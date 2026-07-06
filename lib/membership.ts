@@ -34,3 +34,37 @@ export async function assertAlbumOwner(
 
   return membership;
 }
+
+export async function assertCanUpload(
+  prisma: PrismaClient,
+  albumId: string,
+  userId: string
+) {
+  const membership = await assertAlbumMembership(prisma, albumId, userId);
+
+  // Owner can always upload
+  if (membership.role === "owner") return membership;
+
+  if (!membership.can_upload) {
+    throw new Error("你没有上传权限");
+  }
+
+  return membership;
+}
+
+export async function assertCanDelete(
+  prisma: PrismaClient,
+  albumId: string,
+  userId: string
+) {
+  const membership = await assertAlbumMembership(prisma, albumId, userId);
+
+  // Owner can always delete
+  if (membership.role === "owner") return membership;
+
+  if (!membership.can_delete) {
+    throw new Error("你没有删除权限");
+  }
+
+  return membership;
+}

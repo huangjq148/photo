@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
-import { assertAlbumMembership, assertAlbumOwner } from "@/lib/membership";
+import { assertAlbumMembership, assertAlbumOwner, assertCanUpload, assertCanDelete } from "@/lib/membership";
 
 // ── Types ──
 
@@ -22,6 +22,7 @@ export type AlbumSummary = {
 export type AlbumDetail = {
   id: string;
   creatorId: string;
+  currentUserId: string;
   name: string;
   description: string | null;
   coverPhotoId: string | null;
@@ -54,6 +55,8 @@ export type AlbumMemberItem = {
   nickname: string;
   avatarUrl: string | null;
   role: string;
+  canUpload: boolean;
+  canDelete: boolean;
   joinedAt: Date;
 };
 
@@ -80,7 +83,7 @@ export async function getUserAlbums(
         include: {
           _count: {
             select: {
-              photos: true,
+              photos: { where: { photo: { status: "normal" } } },
               members: true,
             },
           },
@@ -90,6 +93,7 @@ export async function getUserAlbums(
           photos: {
             take: 1,
             orderBy: { added_at: "desc" },
+            where: { photo: { status: "normal" } },
             include: {
               photo: {
                 select: { thumbnail_url: true },
@@ -162,7 +166,10 @@ export async function getAlbumDetail(
         select: { thumbnail_url: true, preview_url: true },
       },
       _count: {
-        select: { photos: true, members: true },
+        select: {
+          photos: { where: { photo: { status: "normal" } } },
+          members: true,
+        },
       },
     },
   });
@@ -172,6 +179,7 @@ export async function getAlbumDetail(
   return {
     id: album.id,
     creatorId: album.creator_id,
+    currentUserId: context.userId,
     name: album.name,
     description: album.description,
     coverPhotoId: album.cover_photo_id,
@@ -322,7 +330,7 @@ export async function addPhotosToAlbum(
   const album = await prisma.album.findUnique({ where: { id: context.albumId } });
   if (!album) throw new Error("相册不存在");
 
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertCanUpload(prisma, context.albumId, context.userId);
 
   for (const photoId of context.photoIds) {
     await prisma.albumPhoto.upsert({
@@ -354,7 +362,7 @@ export async function removePhotoFromAlbum(
   const album = await prisma.album.findUnique({ where: { id: context.albumId } });
   if (!album) throw new Error("相册不存在");
 
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertCanDelete(prisma, context.albumId, context.userId);
 
   if (album.cover_photo_id === context.photoId) {
     await prisma.album.update({
@@ -400,8 +408,80 @@ export async function getAlbumMembers(
     nickname: m.user.nickname,
     avatarUrl: m.user.avatar_url,
     role: m.role,
+    canUpload: m.can_upload,
+    canDelete: m.can_delete,
     joinedAt: m.joined_at,
   }));
+}
+
+export async function updateMemberPermissions(
+  prisma: PrismaClient,
+  context: {
+    albumId: string;
+    userId: string;
+    targetUserId: string;
+    canUpload?: boolean;
+    canDelete?: boolean;
+  }
+) {
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
+
+  const member = await prisma.albumMember.findUnique({
+    where: {
+      album_id_user_id: {
+        album_id: context.albumId,
+        user_id: context.targetUserId,
+      },
+    },
+  });
+
+  if (!member) throw new Error("成员不存在");
+  if (member.role === "owner") throw new Error("不能修改拥有者的权限");
+
+  const data: Record<string, boolean> = {};
+  if (context.canUpload !== undefined) data.can_upload = context.canUpload;
+  if (context.canDelete !== undefined) data.can_delete = context.canDelete;
+
+  return prisma.albumMember.update({
+    where: {
+      album_id_user_id: {
+        album_id: context.albumId,
+        user_id: context.targetUserId,
+      },
+    },
+    data,
+  });
+}
+
+export async function leaveAlbum(
+  prisma: PrismaClient,
+  context: { albumId: string; userId: string }
+) {
+  const member = await prisma.albumMember.findUnique({
+    where: {
+      album_id_user_id: {
+        album_id: context.albumId,
+        user_id: context.userId,
+      },
+    },
+  });
+
+  if (!member) throw new Error("你不在此相册中");
+  if (member.role === "owner") throw new Error("拥有者不能退出相册，请先转让拥有权或删除相册");
+
+  await prisma.albumMember.delete({
+    where: {
+      album_id_user_id: {
+        album_id: context.albumId,
+        user_id: context.userId,
+      },
+    },
+  });
+
+  await prisma.album.update({
+    where: { id: context.albumId },
+    data: { updated_at: new Date() },
+  });
 }
 
 export async function removeAlbumMember(
@@ -464,6 +544,8 @@ export async function addAlbumMemberByEmail(
     nickname: targetUser.nickname,
     avatarUrl: targetUser.avatar_url,
     role: member.role,
+    canUpload: member.can_upload,
+    canDelete: member.can_delete,
     joinedAt: member.joined_at,
   };
 }

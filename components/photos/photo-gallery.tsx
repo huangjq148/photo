@@ -138,7 +138,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
 
   async function removePhoto(photoId: string) {
     try {
-      const response = await fetch(`/api/photos/${photoId}`, {
+      const response = await fetch(`/api/albums/${albumId}/photos/${photoId}`, {
         method: "DELETE"
       });
 
@@ -147,7 +147,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
         throw new Error(json.error ?? "Failed to delete photo");
       }
 
-      message.success("照片已删除");
+      message.success("已从相册移除");
       setRefreshToken((current) => current + 1);
     } catch (error) {
       message.error(error instanceof Error ? error.message : "删除照片失败");

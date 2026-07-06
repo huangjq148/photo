@@ -19,6 +19,7 @@ type AlbumManagementModalProps = {
   open: boolean;
   albumId: string;
   album: ManageAlbum;
+  currentUserId: string;
   editName: string;
   editDesc: string;
   saving: boolean;
@@ -43,6 +44,7 @@ export function AlbumManagementModal({
   open,
   albumId,
   album,
+  currentUserId,
   editName,
   editDesc,
   saving,
@@ -147,7 +149,7 @@ export function AlbumManagementModal({
         ) : null}
 
         {activeTab === "members" ? (
-          <AlbumMembers albumId={albumId} currentRole={album.role} onRefresh={onRefresh} />
+          <AlbumMembers albumId={albumId} currentUserId={currentUserId} currentRole={album.role} onRefresh={onRefresh} />
         ) : null}
 
         {activeTab === "invites" ? (

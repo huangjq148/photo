@@ -80,12 +80,45 @@ type PhotoRecord = {
   album: {
     creator_id: string;
   };
-  albumPhotos?: { album_id: string }[];
+  albumPhotos?: { album_id: string; album: { creator_id: string } }[];
   favorites?: { id: string }[];
 };
 
 function clampPage(value: number) {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
+}
+
+async function assertPhotoAccessible(
+  prisma: PrismaClient,
+  photo: { album_id: string; albumPhotos?: { album_id: string }[] },
+  userId: string
+) {
+  // Check if user is a member of the photo's owning album
+  const owningMembership = await prisma.albumMember.findUnique({
+    where: {
+      album_id_user_id: {
+        album_id: photo.album_id,
+        user_id: userId,
+      },
+    },
+  });
+
+  if (owningMembership) return;
+
+  // Check if user is a member of any linked album via AlbumPhoto
+  if (photo.albumPhotos && photo.albumPhotos.length > 0) {
+    const linkedAlbumIds = photo.albumPhotos.map((ap) => ap.album_id);
+    const linkedMembership = await prisma.albumMember.findFirst({
+      where: {
+        album_id: { in: linkedAlbumIds },
+        user_id: userId,
+      },
+    });
+
+    if (linkedMembership) return;
+  }
+
+  throw new Error("你不在这个相册中");
 }
 
 async function loadAccessiblePhoto(prisma: PrismaClient, photoId: string, userId: string) {
@@ -98,7 +131,10 @@ async function loadAccessiblePhoto(prisma: PrismaClient, photoId: string, userId
         },
       },
       albumPhotos: {
-        select: { album_id: true },
+        select: {
+          album_id: true,
+          album: { select: { creator_id: true } },
+        },
       },
     },
   });
@@ -107,7 +143,7 @@ async function loadAccessiblePhoto(prisma: PrismaClient, photoId: string, userId
     throw new Error("照片不存在");
   }
 
-  await assertAlbumMembership(prisma, photo.album_id, userId);
+  await assertPhotoAccessible(prisma, photo, userId);
 
   return photo as unknown as PhotoRecord;
 }
@@ -144,7 +180,10 @@ async function loadAccessiblePhotos(
         },
       },
       albumPhotos: {
-        select: { album_id: true },
+        select: {
+          album_id: true,
+          album: { select: { creator_id: true } },
+        },
       },
     },
   });
@@ -154,7 +193,7 @@ async function loadAccessiblePhotos(
   }
 
   for (const photo of photos) {
-    await assertAlbumMembership(prisma, photo.album_id, userId);
+    await assertPhotoAccessible(prisma, photo, userId);
   }
 
   return photos as unknown as PhotoRecord[];
@@ -201,7 +240,17 @@ async function loadTrashAccessiblePhotos(prisma: PrismaClient, photoIds: string[
 }
 
 function canManagePhoto(photo: PhotoRecord, userId: string) {
-  return photo.uploader_id === userId || photo.album.creator_id === userId;
+  if (photo.uploader_id === userId) return true;
+  if (photo.album.creator_id === userId) return true;
+
+  // Check if user is the creator of any linked album
+  if (photo.albumPhotos) {
+    for (const ap of photo.albumPhotos) {
+      if (ap.album.creator_id === userId) return true;
+    }
+  }
+
+  return false;
 }
 
 function resolvePhotoPaths(storageRoot: string, storagePath: string) {
