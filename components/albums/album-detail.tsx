@@ -10,6 +10,7 @@ import { useMessage } from "@/components/ui/message";
 type AlbumDetailData = {
   id: string;
   creatorId: string;
+  currentUserId: string;
   name: string;
   description: string | null;
   coverPhotoId: string | null;
@@ -160,6 +161,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         open={showManagement}
         albumId={albumId}
         album={album}
+        currentUserId={album.currentUserId}
         editName={editName}
         editDesc={editDesc}
         saving={saving}

@@ -9,6 +9,7 @@ describe("AlbumManagementModal", () => {
       createElement(AlbumManagementModal, {
         open: true,
         albumId: "album-1",
+        currentUserId: "user-1",
         album: {
           name: "家庭相册",
           description: "周末整理",

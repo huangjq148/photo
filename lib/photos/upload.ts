@@ -4,7 +4,7 @@ import { extname, join } from "node:path";
 import sharp from "sharp";
 import type { PhotoStatus, PrismaClient } from "@prisma/client";
 import { getStorageLayout } from "@/lib/storage/paths";
-import { assertAlbumMembership } from "@/lib/membership";
+import { assertCanUpload } from "@/lib/membership";
 
 const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
 const SUPPORTED_MIME_TYPES = new Set([
@@ -88,7 +88,7 @@ export async function uploadPhotoToAlbum(
     throw new Error("图片大小超过20MB限制");
   }
 
-  await assertAlbumMembership(prisma, input.albumId, input.userId);
+  await assertCanUpload(prisma, input.albumId, input.userId);
 
   const user = await prisma.user.findUnique({
     where: { id: input.userId },

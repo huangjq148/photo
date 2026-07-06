@@ -142,11 +142,13 @@ model Album {
 }
 
 model AlbumMember {
-  id        String   @id @default(uuid()) @db.Uuid
-  album_id  String   @db.Uuid
-  user_id   String   @db.Uuid
-  role      String   @default("member")
-  joined_at DateTime @default(now())
+  id         String   @id @default(uuid()) @db.Uuid
+  album_id   String   @db.Uuid
+  user_id    String   @db.Uuid
+  role       String   @default("member")
+  can_upload Boolean  @default(true)
+  can_delete Boolean  @default(false)
+  joined_at  DateTime @default(now())
 
   album     Album    @relation(fields: [album_id], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)

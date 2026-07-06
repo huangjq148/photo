@@ -35,13 +35,26 @@ export async function GET(
   const photo = await prisma.photo.findFirst({
     where: {
       storage_path: fileName,
-      album: {
-        members: {
-          some: {
-            user_id: user.id
+      OR: [
+        {
+          album: {
+            members: {
+              some: { user_id: user.id }
+            }
+          }
+        },
+        {
+          albumPhotos: {
+            some: {
+              album: {
+                members: {
+                  some: { user_id: user.id }
+                }
+              }
+            }
           }
         }
-      }
+      ]
     },
     select: {
       mime_type: true,
