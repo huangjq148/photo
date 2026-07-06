@@ -1,0 +1,253 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── DEPRECATED enums (kept for migration) ──
+
+enum SpaceType {
+  personal
+  shared
+  // DEPRECATED: Remove after data migration
+}
+
+enum SpaceRole {
+  owner
+  admin
+  member
+  // DEPRECATED: Remove after data migration
+}
+
+enum InviteStatus {
+  pending
+  accepted
+  expired
+  // DEPRECATED: Remove after data migration
+}
+
+// ── Active enums ──
+
+enum PhotoProcessingStatus {
+  pending
+  processing
+  normal
+  failed
+}
+
+enum PhotoStatus {
+  normal
+  deleted
+}
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique
+  password_hash String
+  nickname      String
+  avatar_url    String?  @db.Text
+  storage_limit BigInt   @default(10737418240)
+  storage_used  BigInt   @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  uploads          Photo[]         @relation("PhotoUploader")
+  deletedPhotos    Photo[]         @relation("PhotoDeletedBy")
+  createdAlbums    Album[]         @relation("AlbumCreator")
+  favorites        Favorite[]
+  albumPhotosAdded AlbumPhoto[]
+  photoShares      PhotoShare[]    @relation("ShareCreator")
+  albumMemberships AlbumMember[]
+  albumInvitesSent AlbumInvite[]   @relation("AlbumInviteSender")
+
+  // DEPRECATED: remove after migration
+  ownedSpaces      Space[]         @relation("SpaceOwner")
+  memberships      SpaceMember[]
+  invitesSent      SpaceInvite[]   @relation("InviteSender")
+}
+
+// DEPRECATED: remove after data migration
+model Space {
+  id             String     @id @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  type           SpaceType
+  owner_id       String     @db.Uuid
+  cover_photo_id String?    @db.Uuid
+  storage_used   BigInt     @default(0)
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+
+  owner          User       @relation("SpaceOwner", fields: [owner_id], references: [id], onDelete: Cascade)
+  members        SpaceMember[]
+  invites        SpaceInvite[]
+
+  @@index([owner_id, type])
+}
+
+// DEPRECATED: remove after data migration
+model SpaceMember {
+  id         String   @id @default(uuid()) @db.Uuid
+  space_id   String   @db.Uuid
+  user_id    String   @db.Uuid
+  role       SpaceRole
+  joined_at  DateTime @default(now())
+
+  space      Space    @relation(fields: [space_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([space_id, user_id])
+  @@index([user_id, role])
+}
+
+// DEPRECATED: remove after data migration
+model SpaceInvite {
+  id         String       @id @default(uuid()) @db.Uuid
+  space_id   String       @db.Uuid
+  email      String
+  role       SpaceRole
+  invited_by String       @db.Uuid
+  status     InviteStatus @default(pending)
+  created_at DateTime     @default(now())
+  expired_at DateTime
+
+  space      Space        @relation(fields: [space_id], references: [id], onDelete: Cascade)
+  inviter    User         @relation("InviteSender", fields: [invited_by], references: [id], onDelete: Cascade)
+
+  @@index([space_id, email, status])
+}
+
+model Album {
+  id             String      @id @default(uuid()) @db.Uuid
+  creator_id     String      @db.Uuid
+  name           String
+  description    String?
+  cover_photo_id String?     @db.Uuid
+  is_default     Boolean     @default(false)
+  is_immutable   Boolean     @default(false)
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  creator        User         @relation("AlbumCreator", fields: [creator_id], references: [id], onDelete: Cascade)
+  coverPhoto     Photo?       @relation("AlbumCoverPhoto", fields: [cover_photo_id], references: [id], onDelete: SetNull)
+  ownedPhotos    Photo[]
+  photos         AlbumPhoto[]
+  members        AlbumMember[]
+  invites        AlbumInvite[]
+
+  @@index([creator_id, created_at])
+}
+
+model AlbumMember {
+  id        String   @id @default(uuid()) @db.Uuid
+  album_id  String   @db.Uuid
+  user_id   String   @db.Uuid
+  role      String   @default("member")
+  joined_at DateTime @default(now())
+
+  album     Album    @relation(fields: [album_id], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([album_id, user_id])
+  @@index([user_id, joined_at])
+}
+
+model AlbumInvite {
+  id         String   @id @default(uuid()) @db.Uuid
+  album_id   String   @db.Uuid
+  email      String
+  role       String   @default("member")
+  invited_by String   @db.Uuid
+  token      String   @unique
+  status     String   @default("pending")
+  created_at DateTime @default(now())
+  expired_at DateTime
+
+  album      Album    @relation(fields: [album_id], references: [id], onDelete: Cascade)
+  inviter    User     @relation("AlbumInviteSender", fields: [invited_by], references: [id], onDelete: Cascade)
+
+  @@index([album_id, email, status])
+}
+
+model Photo {
+  id                String                @id @default(uuid()) @db.Uuid
+  album_id          String                @db.Uuid
+  uploader_id       String                @db.Uuid
+  original_name     String
+  file_name         String
+  mime_type         String
+  size              BigInt
+  width             Int
+  height            Int
+  original_url      String                @db.Text
+  preview_url       String                @db.Text
+  thumbnail_url     String                @db.Text
+  storage_path      String
+  checksum          String?
+  processing_status PhotoProcessingStatus @default(pending)
+  taken_at          DateTime?
+  uploaded_at       DateTime              @default(now())
+  status            PhotoStatus           @default(normal)
+  deleted_at        DateTime?
+  deleted_by        String?               @db.Uuid
+  created_at        DateTime              @default(now())
+  updated_at        DateTime              @updatedAt
+
+  album             Album                 @relation(fields: [album_id], references: [id], onDelete: Cascade)
+  uploader          User                  @relation("PhotoUploader", fields: [uploader_id], references: [id], onDelete: Cascade)
+  deletedBy         User?                 @relation("PhotoDeletedBy", fields: [deleted_by], references: [id], onDelete: SetNull)
+  coverForAlbums    Album[]               @relation("AlbumCoverPhoto")
+  albumPhotos       AlbumPhoto[]
+  favorites         Favorite[]
+  shares            PhotoShare[]
+
+  @@index([album_id, status, uploaded_at])
+  @@index([uploader_id])
+  @@index([checksum])
+  @@index([deleted_at])
+}
+
+model AlbumPhoto {
+  id         String   @id @default(uuid()) @db.Uuid
+  album_id   String   @db.Uuid
+  photo_id   String   @db.Uuid
+  added_by   String   @db.Uuid
+  added_at   DateTime @default(now())
+
+  album      Album    @relation(fields: [album_id], references: [id], onDelete: Cascade)
+  photo      Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  addedBy    User     @relation(fields: [added_by], references: [id], onDelete: Cascade)
+
+  @@unique([album_id, photo_id])
+  @@index([photo_id])
+}
+
+model Favorite {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String   @db.Uuid
+  photo_id   String   @db.Uuid
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  photo      Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, photo_id])
+}
+
+model PhotoShare {
+  id         String   @id @default(uuid()) @db.Uuid
+  photo_id   String   @db.Uuid
+  created_by String   @db.Uuid
+  token      String   @unique
+  created_at DateTime @default(now())
+  expires_at DateTime?
+  revoked_at DateTime?
+
+  photo      Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  creator    User     @relation("ShareCreator", fields: [created_by], references: [id], onDelete: Cascade)
+
+  @@index([photo_id, revoked_at])
+}
