@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
+import { generateId } from "@/lib/client-id";
 
 export type MessageType = "success" | "error";
 
@@ -45,7 +46,7 @@ export function MessageProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<MessageItem[]>([]);
 
   const open = useCallback((type: MessageType, content: string) => {
-    const id = crypto.randomUUID();
+    const id = generateId();
     setMessages((current) => [...current, { id, type, content }]);
     window.setTimeout(() => {
       setMessages((current) => current.filter((message) => message.id !== id));
