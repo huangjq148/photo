@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { generateId } from "@/lib/client-id";
 
 type UploadStatus = "pending" | "uploading" | "success" | "failed" | "cancelled";
 
@@ -47,7 +48,7 @@ export function PhotoUploadForm({ albumId, onUploaded }: PhotoUploadFormProps) {
     }
 
     const nextItems = Array.from(files).map((file) => ({
-      id: crypto.randomUUID(),
+      id: generateId(),
       file,
       name: file.name,
       size: file.size,

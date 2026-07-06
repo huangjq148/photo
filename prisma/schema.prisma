@@ -191,6 +191,8 @@ model Photo {
   checksum          String?
   processing_status PhotoProcessingStatus @default(pending)
   taken_at          DateTime?
+  latitude          Float?
+  longitude         Float?
   uploaded_at       DateTime              @default(now())
   status            PhotoStatus           @default(normal)
   deleted_at        DateTime?

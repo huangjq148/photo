@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { extname, join } from "node:path";
+import { parse } from "exifr";
 import sharp from "sharp";
 import type { PhotoStatus, PrismaClient } from "@prisma/client";
 import { getStorageLayout } from "@/lib/storage/paths";
@@ -75,6 +76,38 @@ async function cleanupPaths(paths: string[]) {
   );
 }
 
+async function getImageMeta(
+  file: File,
+  buffer: Buffer
+): Promise<{ takenAt: Date | null; latitude: number | null; longitude: number | null }> {
+  let takenAt: Date | null = null;
+  let latitude: number | null = null;
+  let longitude: number | null = null;
+
+  try {
+    const exif = await parse(buffer, { gps: true });
+
+    if (exif?.DateTimeOriginal) {
+      takenAt = new Date(exif.DateTimeOriginal);
+    } else if (exif?.CreateDate) {
+      takenAt = new Date(exif.CreateDate);
+    }
+
+    if (exif?.latitude != null && exif?.longitude != null) {
+      latitude = Number(exif.latitude);
+      longitude = Number(exif.longitude);
+    }
+  } catch {
+    // EXIF parsing is best-effort
+  }
+
+  if (!takenAt) {
+    takenAt = new Date(file.lastModified);
+  }
+
+  return { takenAt, latitude, longitude };
+}
+
 export async function uploadPhotoToAlbum(
   prisma: PrismaClient,
   env: UploadEnv,
@@ -105,6 +138,9 @@ export async function uploadPhotoToAlbum(
 
   const buffer = Buffer.from(await input.file.arrayBuffer());
   const metadata = await sharp(buffer).metadata();
+
+  // Extract EXIF metadata: time and GPS
+  const { takenAt, latitude, longitude } = await getImageMeta(input.file, buffer);
 
   if (!metadata.width || !metadata.height) {
     throw new Error("无法读取图片尺寸");
@@ -149,6 +185,9 @@ export async function uploadPhotoToAlbum(
           size: uploadSize,
           width: metadata.width ?? 0,
           height: metadata.height ?? 0,
+          taken_at: takenAt,
+          latitude,
+          longitude,
           original_url: originalUrl,
           preview_url: previewUrl,
           thumbnail_url: thumbnailUrl,
