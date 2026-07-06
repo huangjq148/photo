@@ -53,6 +53,18 @@ export function TrashGallery() {
 
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const isAllSelected = useMemo(
+    () => items.length > 0 && selectedIds.length === items.length,
+    [items, selectedIds]
+  );
+
+  function toggleSelectAll() {
+    if (isAllSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(items.map((item) => item.id));
+    }
+  }
 
   async function restorePhoto(photoId: string) {
     const response = await fetch(`/api/photos/${photoId}/restore`, {
@@ -167,7 +179,16 @@ export function TrashGallery() {
             </button>
           </div>
         ) : (
-          <p className="text-sm text-[var(--muted)]">选择后可批量恢复或永久删除。</p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-[var(--muted)]">选择后可批量恢复或永久删除。</p>
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--muted)] transition hover:text-[var(--text)]"
+            >
+              全选
+            </button>
+          </div>
         )}
       </div>
 

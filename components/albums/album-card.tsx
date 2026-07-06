@@ -47,17 +47,11 @@ export function AlbumCard({
         <img
           src={displayCover}
           alt={name}
-          className={`absolute inset-0 h-full w-full object-cover transition duration-300 ${
-            showInfo ? "opacity-0 scale-105" : "opacity-100"
-          }`}
+          className="absolute inset-0 h-full w-full object-cover transition duration-300"
           loading="lazy"
         />
       ) : (
-        <div
-          className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[var(--surface)] via-[var(--surface)] to-zinc-800/40 transition duration-300 ${
-            showInfo ? "opacity-0" : "opacity-100"
-          }`}
-        >
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[var(--surface)] via-[var(--surface)] to-zinc-800/40">
           <span className="text-6xl opacity-15">📷</span>
         </div>
       )}
@@ -67,10 +61,15 @@ export function AlbumCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300" />
       )}
 
+      {/* Dark overlay when info is shown */}
+      {showInfo && (
+        <div className="absolute inset-0 z-[5] bg-black/60 backdrop-blur-sm transition duration-300" />
+      )}
+
       {/* Info layer */}
       <div
-        className={`absolute inset-0 flex flex-col justify-between bg-[var(--surface)] p-5 transition duration-300 ${
-          showInfo ? "z-10 opacity-100" : "z-0 opacity-0 pointer-events-none"
+        className={`absolute inset-0 z-10 flex flex-col justify-between p-5 transition duration-300 ${
+          showInfo ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         <div className="flex items-start justify-between">
