@@ -12,10 +12,10 @@ export default function FavoritesPage() {
           </h1>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/albums"
+              href="/memories"
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)]"
             >
-              相册
+              回忆流
             </Link>
             <Link
               href="/trash"
