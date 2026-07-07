@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AlbumInviteForm } from "@/components/albums/album-invite-form";
 import { AlbumMembers } from "@/components/albums/album-members";
-import { PhotoUploadForm } from "@/components/upload/photo-upload-form";
+import { MediaUploadForm } from "@/components/media/media-upload-form";
 
 type ManageTab = "details" | "upload" | "members" | "invites";
 
@@ -35,7 +35,7 @@ type AlbumManagementModalProps = {
 
 const tabs: { id: ManageTab; label: string }[] = [
   { id: "details", label: "编辑资料" },
-  { id: "upload", label: "上传照片" },
+  { id: "upload", label: "上传回忆" },
   { id: "members", label: "成员" },
   { id: "invites", label: "添加成员" },
 ];
@@ -141,9 +141,9 @@ export function AlbumManagementModal({
 
         {activeTab === "upload" ? (
           <div className="space-y-3">
-            <PhotoUploadForm albumId={albumId} onUploaded={onPhotoUploaded} />
+            <MediaUploadForm albumId={albumId} onUploaded={onPhotoUploaded} />
             <p className="text-sm text-[var(--muted)]">
-              上传的照片将进入你的&quot;全部照片&quot;相册，并自动添加到当前相册。
+              上传的照片和视频将进入你的&quot;全部照片&quot;相册，并自动添加到当前相册。
             </p>
           </div>
         ) : null}
