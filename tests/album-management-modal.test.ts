@@ -32,7 +32,7 @@ describe("AlbumManagementModal", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain("管理相册");
     expect(html).toContain("编辑资料");
-    expect(html).toContain("上传照片");
+    expect(html).toContain("上传回忆");
     expect(html).toContain("成员");
     expect(html).toContain("添加成员");
     expect(html).toContain("删除相册");
