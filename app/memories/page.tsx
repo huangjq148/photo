@@ -17,6 +17,12 @@ export default async function MemoriesPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-black text-[var(--text)] sm:text-3xl">家庭回忆流</h1>
+          <a
+            href="/albums"
+            className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-bold text-black transition hover:bg-white"
+          >
+            上传回忆
+          </a>
         </div>
         <MemoriesClient />
       </div>
