@@ -12,7 +12,9 @@ import { getStorageLayout } from "@/lib/storage/paths";
 const VARIANT_DIRS = {
   originals: "originals",
   previews: "previews",
-  thumbnails: "thumbnails"
+  thumbnails: "thumbnails",
+  posters: "posters",
+  playbacks: "playbacks",
 } as const;
 
 type Variant = keyof typeof VARIANT_DIRS;
@@ -34,26 +36,53 @@ export async function GET(
 
   const photo = await prisma.photo.findFirst({
     where: {
-      storage_path: fileName,
       OR: [
+        // Match by storage_path for originals/previews/thumbnails
         {
+          storage_path: fileName,
+          AND: [
+            {
+              OR: [
+                {
+                  album: {
+                    members: {
+                      some: { user_id: user.id }
+                    }
+                  }
+                },
+                {
+                  albumPhotos: {
+                    some: {
+                      album: {
+                        members: {
+                          some: { user_id: user.id }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+          ],
+        },
+        // Match by poster_url for posters variant
+        ...(variant === "posters" ? [{
+          poster_url: `/api/files/posters/${fileName}`,
           album: {
             members: {
               some: { user_id: user.id }
             }
           }
-        },
-        {
-          albumPhotos: {
-            some: {
-              album: {
-                members: {
-                  some: { user_id: user.id }
-                }
-              }
+        }] : []),
+        // Match by playback_url for playbacks variant
+        ...(variant === "playbacks" ? [{
+          playback_url: `/api/files/playbacks/${fileName}`,
+          album: {
+            members: {
+              some: { user_id: user.id }
             }
           }
-        }
+        }] : []),
       ]
     },
     select: {

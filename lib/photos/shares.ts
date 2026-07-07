@@ -80,12 +80,19 @@ export async function getPublicPhotoShare(prisma: PrismaClient, token: string) {
     originalName: share.photo.original_name,
     previewUrl: share.photo.preview_url,
     thumbnailUrl: share.photo.thumbnail_url,
-    originalUrl: `/api/photos/${share.photo.id}/download`,
+    originalUrl: share.photo.media_type === "image" ? `/api/photos/${share.photo.id}/download` : null,
     mimeType: share.photo.mime_type,
     width: share.photo.width,
     height: share.photo.height,
     albumName: share.photo.album.name,
     createdAt: share.created_at,
-    expiresAt: share.expires_at
+    expiresAt: share.expires_at,
+    mediaType: share.photo.media_type,
+    posterUrl: share.photo.poster_url,
+    playbackUrl: share.photo.media_type === "video" && share.photo.processing_status === "normal"
+      ? `/api/share/${share.token}/playback`
+      : null,
+    processingStatus: share.photo.processing_status,
+    durationSeconds: share.photo.duration_seconds,
   };
 }
