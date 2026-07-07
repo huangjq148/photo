@@ -7,9 +7,10 @@ import type { ReactNode } from "react";
 import { UserMenu } from "@/components/layout/user-menu";
 
 const navItems = [
-  { href: "/albums", label: "相册" },
+  { href: "/memories", label: "家庭回忆流" },
+  { href: "/albums", label: "家庭相册" },
+  { href: "/favorites", label: "收藏精选" },
   { href: "/trash", label: "回收站" },
-  { href: "/favorites", label: "收藏" }
 ] as const satisfies ReadonlyArray<{ href: Route; label: string }>;
 
 export function AppShell({ children }: { children: ReactNode }) {
