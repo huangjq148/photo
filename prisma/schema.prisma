@@ -31,6 +31,11 @@ enum InviteStatus {
 
 // ── Active enums ──
 
+enum MediaType {
+  image
+  video
+}
+
 enum PhotoProcessingStatus {
   pending
   processing
@@ -190,6 +195,18 @@ model Photo {
   storage_path      String
   checksum          String?
   processing_status PhotoProcessingStatus @default(pending)
+  media_type         MediaType             @default(image)
+  duration_seconds   Float?
+  playback_url       String?               @db.Text
+  poster_url         String?               @db.Text
+  processing_error   String?               @db.Text
+  processed_at       DateTime?
+  original_codec    String?               @db.Text
+  original_size      BigInt?
+  preview_size       BigInt?
+  thumbnail_size     BigInt?
+  poster_size        BigInt?
+  playback_size      BigInt?
   taken_at          DateTime?
   latitude          Float?
   longitude         Float?
@@ -208,6 +225,8 @@ model Photo {
   favorites         Favorite[]
   shares            PhotoShare[]
 
+  @@index([media_type, status, taken_at])
+  @@index([processing_status, media_type, uploaded_at])
   @@index([album_id, status, uploaded_at])
   @@index([uploader_id])
   @@index([checksum])

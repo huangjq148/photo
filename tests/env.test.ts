@@ -23,3 +23,28 @@ describe("loadEnv", () => {
     }
   });
 });
+
+describe("media env", () => {
+  it("loads media defaults", () => {
+    const env = loadEnv({
+      DATABASE_URL: "postgresql://test",
+      JWT_SECRET: "x".repeat(32),
+      STORAGE_ROOT: "./data/storage",
+    } as NodeJS.ProcessEnv);
+
+    expect(env.MAX_IMAGE_UPLOAD_MB).toBe(20);
+    expect(env.MAX_VIDEO_UPLOAD_MB).toBe(512);
+    expect(env.MEDIA_WORKER_POLL_INTERVAL_MS).toBe(5000);
+    expect(env.MEDIA_WORKER_CONCURRENCY).toBe(1);
+  });
+
+  it("rejects invalid worker concurrency", () => {
+    expect(() =>
+      loadEnv({
+        DATABASE_URL: "postgresql://test",
+        JWT_SECRET: "x".repeat(32),
+        MEDIA_WORKER_CONCURRENCY: "0",
+      } as NodeJS.ProcessEnv)
+    ).toThrow("Invalid environment configuration");
+  });
+});

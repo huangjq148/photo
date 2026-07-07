@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "worker:media": "tsx workers/media-worker.ts",
+    "worker:media:once": "tsx workers/media-worker.ts --once"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
