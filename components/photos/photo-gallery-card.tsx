@@ -9,6 +9,7 @@ export type PhotoGalleryCardItem = {
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
+  mediaType?: string;
   mimeType: string;
   width: number;
   height: number;

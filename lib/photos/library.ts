@@ -37,6 +37,7 @@ type PhotoListItem = {
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
+  mediaType: string;
   mimeType: string;
   width: number;
   height: number;
@@ -343,6 +344,7 @@ export async function getAlbumPhotos(
       originalName: photo.original_name,
       thumbnailUrl: photo.thumbnail_url,
       previewUrl: photo.preview_url,
+      mediaType: photo.media_type,
       mimeType: photo.mime_type,
       width: photo.width,
       height: photo.height,
@@ -396,6 +398,7 @@ export async function getTrashPhotos(
       originalName: photo.original_name,
       thumbnailUrl: photo.thumbnail_url,
       previewUrl: photo.preview_url,
+      mediaType: photo.media_type,
       mimeType: photo.mime_type,
       width: photo.width,
       height: photo.height,
@@ -442,6 +445,7 @@ export async function getPhotoDetails(
     originalName: photo.original_name,
     thumbnailUrl: photo.thumbnail_url,
     previewUrl: photo.preview_url,
+    mediaType: photo.media_type,
     originalUrl: `/api/photos/${photo.id}/download`,
     mimeType: photo.mime_type,
     width: photo.width,
@@ -507,9 +511,14 @@ export async function getFavoritePhotos(prisma: PrismaClient, userId: string) {
     originalName: item.photo.original_name,
     thumbnailUrl: item.photo.thumbnail_url,
     previewUrl: item.photo.preview_url,
+    posterUrl: item.photo.poster_url,
+    playbackUrl: item.photo.playback_url,
+    mediaType: item.photo.media_type,
     mimeType: item.photo.mime_type,
     width: item.photo.width,
     height: item.photo.height,
+    durationSeconds: item.photo.duration_seconds,
+    processingStatus: item.photo.processing_status,
     status: item.photo.status,
     uploadedAt: item.photo.uploaded_at,
     deletedAt: item.photo.deleted_at,

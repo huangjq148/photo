@@ -6,6 +6,8 @@ type TrashItem = {
   id: string;
   originalName: string;
   thumbnailUrl: string;
+  previewUrl: string;
+  mediaType: string;
   uploadedAt: string;
   deletedAt: string | null;
 };
@@ -108,7 +110,7 @@ export function TrashGallery() {
       throw new Error(json.error ?? "Failed to restore photos");
     }
 
-    setNotice(`已恢复 ${selectedIds.length} 张照片`);
+    setNotice(`已恢复 ${selectedIds.length} 项`);
     setSelectedIds([]);
     setRefreshToken((current) => current + 1);
   }
@@ -129,7 +131,7 @@ export function TrashGallery() {
       throw new Error(json.error ?? "Failed to delete photos permanently");
     }
 
-    setNotice(`已永久删除 ${selectedIds.length} 张照片`);
+    setNotice(`已永久删除 ${selectedIds.length} 项`);
     setSelectedIds([]);
     setRefreshToken((current) => current + 1);
   }
@@ -151,7 +153,7 @@ export function TrashGallery() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
         {selectedCount > 0 ? (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-black px-4 py-3">
-            <span className="text-sm font-medium text-[var(--text)]">已选择 {selectedCount} 张</span>
+            <span className="text-sm font-medium text-[var(--text)]">              已选择 {selectedCount} 项</span>
             <button
               type="button"
               onClick={async () => {
@@ -225,6 +227,9 @@ export function TrashGallery() {
               >
                 {selectedIdSet.has(photo.id) ? "✓" : "□"}
               </button>
+              <div className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-medium text-white/80">
+                {photo.mediaType === "video" ? "视频" : "照片"}
+              </div>
             </div>
             <div className="space-y-3 p-4">
               <div>

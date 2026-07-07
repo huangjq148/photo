@@ -155,7 +155,7 @@ Do not implement:
 - Modify: `package.json`
 - Test: `tests/env.test.ts`
 
-- [ ] **Step 1: Write failing env tests**
+- [x] **Step 1: Write failing env tests**
 
 Add tests that assert defaults and overrides:
 
@@ -189,13 +189,13 @@ describe("media env", () => {
 });
 ```
 
-- [ ] **Step 2: Run env test and verify failure**
+- [x] **Step 2: Run env test and verify failure**
 
 Run: `npm test -- tests/env.test.ts`
 
 Expected: FAIL because new env fields do not exist.
 
-- [ ] **Step 3: Extend Prisma schema**
+- [x] **Step 3: Extend Prisma schema**
 
 Add:
 
@@ -230,7 +230,7 @@ Add indexes:
   @@index([processing_status, media_type, uploaded_at])
 ```
 
-- [ ] **Step 4: Generate migration**
+- [x] **Step 4: Generate migration**
 
 Run: `npx prisma migrate dev --name add_video_media_fields`
 
@@ -238,7 +238,7 @@ Expected: migration is created and Prisma client regenerates.
 
 If the local database is not available, stop and report the blocker. Do not hand-write a migration unless the project has no running migration workflow.
 
-- [ ] **Step 5: Extend env schema**
+- [x] **Step 5: Extend env schema**
 
 In `lib/env.ts`, add preprocessors:
 
@@ -261,7 +261,7 @@ Add fields:
   MEDIA_TRANSCODE_PRESET: z.string().min(1).default("medium"),
 ```
 
-- [ ] **Step 6: Update scripts and docs**
+- [x] **Step 6: Update scripts and docs**
 
 In `package.json`:
 
@@ -272,7 +272,7 @@ In `package.json`:
 
 In `.env.example`, add the new variables with comments.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -283,7 +283,7 @@ npx prisma validate
 
 Expected: both pass.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations lib/env.ts .env.example package.json tests/env.test.ts
@@ -298,7 +298,7 @@ git commit -m "feat: add media schema and worker config"
 - Create: `lib/media/validation.ts`
 - Test: `tests/media-validation.test.ts`
 
-- [ ] **Step 1: Write failing validation tests**
+- [x] **Step 1: Write failing validation tests**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -325,13 +325,13 @@ describe("media validation", () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm test -- tests/media-validation.test.ts`
 
 Expected: FAIL because `lib/media/validation.ts` does not exist.
 
-- [ ] **Step 3: Extend storage layout**
+- [x] **Step 3: Extend storage layout**
 
 In `lib/storage/paths.ts`, ensure layout includes:
 
@@ -340,7 +340,7 @@ posters: join(storageRoot, "posters"),
 playbacks: join(storageRoot, "playbacks"),
 ```
 
-- [ ] **Step 4: Create media types**
+- [x] **Step 4: Create media types**
 
 In `lib/media/types.ts`:
 
@@ -355,7 +355,7 @@ export type MediaFileLike = {
 };
 ```
 
-- [ ] **Step 5: Create validation module**
+- [x] **Step 5: Create validation module**
 
 In `lib/media/validation.ts`:
 
@@ -387,7 +387,7 @@ export function validateMediaFile(
 }
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -398,7 +398,7 @@ npm test -- tests/env.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/storage/paths.ts lib/media/types.ts lib/media/validation.ts tests/media-validation.test.ts
@@ -415,7 +415,7 @@ git commit -m "feat: add media storage and validation"
 - Test: `tests/media-upload.test.ts`
 - Test: `tests/photo-upload.test.ts`
 
-- [ ] **Step 1: Write failing media upload tests**
+- [x] **Step 1: Write failing media upload tests**
 
 Create `tests/media-upload.test.ts` with:
 
@@ -482,13 +482,13 @@ describe("media upload", () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm test -- tests/media-upload.test.ts`
 
 Expected: FAIL because upload module does not exist.
 
-- [ ] **Step 3: Implement image/video upload split**
+- [x] **Step 3: Implement image/video upload split**
 
 In `lib/media/upload.ts`, implement:
 
@@ -524,7 +524,7 @@ Implementation requirements:
 - Touch album `updated_at`.
 - Roll back original file if DB transaction fails.
 
-- [ ] **Step 4: Keep photo upload compatibility**
+- [x] **Step 4: Keep photo upload compatibility**
 
 Modify `lib/photos/upload.ts` so existing `uploadPhotoToAlbum` still passes all existing tests. Acceptable options:
 
@@ -533,7 +533,7 @@ Modify `lib/photos/upload.ts` so existing `uploadPhotoToAlbum` still passes all 
 
 Do not break `tests/photo-upload.test.ts`.
 
-- [ ] **Step 5: Add new API route**
+- [x] **Step 5: Add new API route**
 
 Create `app/api/albums/[id]/media/upload/route.ts` mirroring the existing photo upload route, but call `uploadMediaToAlbum`.
 
@@ -544,13 +544,13 @@ maxImageMb: getAppEnv().MAX_IMAGE_UPLOAD_MB,
 maxVideoMb: getAppEnv().MAX_VIDEO_UPLOAD_MB,
 ```
 
-- [ ] **Step 6: Keep old API route**
+- [x] **Step 6: Keep old API route**
 
 Modify `app/api/albums/[id]/photos/upload/route.ts` only if needed. It can call the new route logic or continue image-only behavior temporarily.
 
 If old route accepts videos after this task, update tests accordingly. If old route remains image-only, ensure new UI later uses `/media/upload`.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -561,7 +561,7 @@ npm test -- tests/photo-library.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/media/upload.ts lib/photos/upload.ts app/api/albums/[id]/media/upload/route.ts app/api/albums/[id]/photos/upload/route.ts tests/media-upload.test.ts tests/photo-upload.test.ts
@@ -577,7 +577,7 @@ git commit -m "feat: upload video media as pending assets"
 - Create: `workers/media-worker.ts`
 - Test: `tests/media-worker.test.ts`
 
-- [ ] **Step 1: Write failing worker tests**
+- [x] **Step 1: Write failing worker tests**
 
 Test worker logic with fake command runner. Do not require real ffmpeg in unit tests.
 
@@ -649,13 +649,13 @@ describe("media worker", () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm test -- tests/media-worker.test.ts`
 
 Expected: FAIL because worker modules do not exist.
 
-- [ ] **Step 3: Implement ffmpeg wrapper**
+- [x] **Step 3: Implement ffmpeg wrapper**
 
 In `lib/media/worker/ffmpeg.ts`:
 
@@ -668,7 +668,7 @@ In `lib/media/worker/ffmpeg.ts`:
 
 Keep command generation small and testable.
 
-- [ ] **Step 4: Implement transactional claim**
+- [x] **Step 4: Implement transactional claim**
 
 In `lib/media/worker/claim.ts`, implement a claim function using PostgreSQL row locking:
 
@@ -697,7 +697,7 @@ Implementation requirements:
 - Do not use `findFirst` followed by `update` in a normal Prisma transaction; that can race if two worker processes start.
 - Keep `MEDIA_WORKER_CONCURRENCY=1` by default, but the claim must still prevent duplicate processing if a second process is accidentally started.
 
-- [ ] **Step 5: Implement process-video**
+- [x] **Step 5: Implement process-video**
 
 In `lib/media/worker/process-video.ts`:
 
@@ -716,7 +716,7 @@ In `lib/media/worker/process-video.ts`:
   - Store sanitized `processing_error`.
   - Do not set `playback_url`.
 
-- [ ] **Step 6: Implement CLI worker**
+- [x] **Step 6: Implement CLI worker**
 
 In `workers/media-worker.ts`:
 
@@ -727,7 +727,7 @@ In `workers/media-worker.ts`:
 - On each iteration, claim one job and process it.
 - Log clear startup error if `ffmpeg` or `ffprobe` is missing.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -738,7 +738,7 @@ npm test -- tests/media-upload.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/media/worker workers/media-worker.ts tests/media-worker.test.ts
@@ -754,7 +754,7 @@ git commit -m "feat: process video media with worker"
 - Modify: `lib/photos/library.ts`
 - Test: `tests/media-library.test.ts`
 
-- [ ] **Step 1: Write failing media library tests**
+- [x] **Step 1: Write failing media library tests**
 
 Test grouping and filtering:
 
@@ -782,13 +782,13 @@ Also add DB-backed test:
 - Assert `getAccessibleMediaStream` returns only accessible media.
 - Assert `mediaType = "video"` filter returns only videos.
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm test -- tests/media-library.test.ts`
 
 Expected: FAIL because media library does not exist.
 
-- [ ] **Step 3: Implement media stream library**
+- [x] **Step 3: Implement media stream library**
 
 In `lib/media/library.ts`, export:
 
@@ -832,7 +832,7 @@ Returned item fields:
 - `uploaderId`
 - `uploaderName`
 
-- [ ] **Step 4: Implement API route**
+- [x] **Step 4: Implement API route**
 
 `GET /api/media` query params:
 
@@ -856,15 +856,15 @@ Return:
 }
 ```
 
-- [ ] **Step 5: Implement detail route**
+- [x] **Step 5: Implement detail route**
 
 `GET /api/media/[id]` returns one accessible media record using the same membership rules as downloads and files.
 
-- [ ] **Step 6: Preserve existing photo library**
+- [x] **Step 6: Preserve existing photo library**
 
 Update `lib/photos/library.ts` return mappings to include `media_type` defaults if needed, but keep existing tests passing.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -874,7 +874,7 @@ npm test -- tests/media-library.test.ts tests/photo-library.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/media/library.ts app/api/media tests/media-library.test.ts lib/photos/library.ts
@@ -894,7 +894,7 @@ git commit -m "feat: add family memory stream API"
 - Test: `tests/media-shares.test.ts`
 - Test: `tests/photo-shares.test.ts`
 
-- [ ] **Step 1: Write failing share tests**
+- [x] **Step 1: Write failing share tests**
 
 Add tests for:
 
@@ -913,13 +913,13 @@ expect(publicShare.playbackUrl).toBe(`/api/share/${share.token}/playback`);
 expect(publicShare.originalUrl).toBeNull();
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm test -- tests/media-shares.test.ts`
 
 Expected: FAIL because share payload is photo-only.
 
-- [ ] **Step 3: Extend file variants**
+- [x] **Step 3: Extend file variants**
 
 In `app/api/files/[variant]/[fileName]/route.ts`:
 
@@ -928,7 +928,7 @@ In `app/api/files/[variant]/[fileName]/route.ts`:
 - Keep membership check for all private variants.
 - Do not use this authenticated route as the public video playback URL.
 
-- [ ] **Step 4: Implement media download route**
+- [x] **Step 4: Implement media download route**
 
 `GET /api/media/[id]/download`:
 
@@ -937,7 +937,7 @@ In `app/api/files/[variant]/[fileName]/route.ts`:
 - Streams original file.
 - Works for image and video.
 
-- [ ] **Step 5: Implement media share route**
+- [x] **Step 5: Implement media share route**
 
 `POST /api/media/[id]/share`:
 
@@ -946,7 +946,7 @@ In `app/api/files/[variant]/[fileName]/route.ts`:
 - Creates share token.
 - Reuse `PhotoShare` table.
 
-- [ ] **Step 6: Implement public playback route**
+- [x] **Step 6: Implement public playback route**
 
 `GET /api/share/[token]/playback`:
 
@@ -968,7 +968,7 @@ Expected status behavior:
 - Valid `Range` request: `206` with `Content-Range` and `Accept-Ranges: bytes`.
 - No `Range` request: `200` full stream with `Accept-Ranges: bytes`.
 
-- [ ] **Step 7: Extend public share resolver**
+- [x] **Step 7: Extend public share resolver**
 
 In `lib/photos/shares.ts`, return:
 
@@ -986,7 +986,7 @@ In `lib/photos/shares.ts`, return:
 
 Public video original download must remain `null`.
 
-- [ ] **Step 8: Update compatibility routes**
+- [x] **Step 8: Update compatibility routes**
 
 Keep `/api/photos/[id]/share` and `/api/photos/[id]/download` working.
 
@@ -995,7 +995,7 @@ If the media is video:
 - `/api/photos/[id]/download` may still work for authenticated users for compatibility.
 - `/api/photos/[id]/share` can create a media share, but public payload remains playback-only.
 
-- [ ] **Step 9: Verify**
+- [x] **Step 9: Verify**
 
 Run:
 
@@ -1005,7 +1005,7 @@ npm test -- tests/media-shares.test.ts tests/photo-shares.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add app/api/files app/api/media app/api/share app/api/photos lib/photos/shares.ts tests/media-shares.test.ts tests/photo-shares.test.ts
@@ -1023,7 +1023,7 @@ git commit -m "feat: secure media downloads and shares"
 - Modify: `app/page.tsx`
 - Test: `tests/media-card.test.ts`
 
-- [ ] **Step 1: Write failing component test**
+- [x] **Step 1: Write failing component test**
 
 Test that video cards show duration and processing state:
 
@@ -1061,13 +1061,13 @@ describe("MediaCard", () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify failure**
+- [x] **Step 2: Run test and verify failure**
 
 Run: `npm test -- tests/media-card.test.ts`
 
 Expected: FAIL because component does not exist.
 
-- [ ] **Step 3: Build MediaCard**
+- [x] **Step 3: Build MediaCard**
 
 Requirements:
 
@@ -1099,7 +1099,7 @@ type MediaCardActions = {
 };
 ```
 
-- [ ] **Step 4: Build MediaViewer**
+- [x] **Step 4: Build MediaViewer**
 
 Requirements:
 
@@ -1108,7 +1108,7 @@ Requirements:
 - `video + pending/processing`: render processing panel.
 - `video + failed`: render unavailable panel and no public original download.
 
-- [ ] **Step 5: Build MediaGrid**
+- [x] **Step 5: Build MediaGrid**
 
 Requirements:
 
@@ -1125,7 +1125,7 @@ Requirements:
 - Keep delete/remove and set-cover available in album detail contexts where album id is known.
 - Do not show destructive actions in public share contexts.
 
-- [ ] **Step 6: Add memories page**
+- [x] **Step 6: Add memories page**
 
 In `app/memories/page.tsx`:
 
@@ -1134,7 +1134,7 @@ In `app/memories/page.tsx`:
 - Render upload entry point placeholder until Task 8.
 - Render client grid component that fetches `/api/media`.
 
-- [ ] **Step 7: Update navigation**
+- [x] **Step 7: Update navigation**
 
 In `components/layout/app-shell.tsx`:
 
@@ -1145,7 +1145,7 @@ In `components/layout/app-shell.tsx`:
 
 In `app/page.tsx`, authenticated primary action should point to `/memories`.
 
-- [ ] **Step 8: Verify**
+- [x] **Step 8: Verify**
 
 Run:
 
@@ -1157,7 +1157,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add app/memories app/page.tsx components/layout/app-shell.tsx components/media tests/media-card.test.ts
@@ -1173,13 +1173,13 @@ git commit -m "feat: add family memory stream UI"
 - Modify: `components/albums/album-management-modal.tsx`
 - Test: `tests/media-upload-form.test.ts`
 
-- [ ] **Step 1: Inspect current upload placement**
+- [x] **Step 1: Inspect current upload placement**
 
 Run: `rg "PhotoUploadForm|photos/upload|upload" components app -g '*.tsx'`
 
 Expected: identify exact pages/components that render upload UI.
 
-- [ ] **Step 2: Write failing upload form test**
+- [x] **Step 2: Write failing upload form test**
 
 Test accepted file types and endpoint:
 
@@ -1196,13 +1196,13 @@ describe("MediaUploadForm", () => {
 });
 ```
 
-- [ ] **Step 3: Run test and verify failure**
+- [x] **Step 3: Run test and verify failure**
 
 Run: `npm test -- tests/media-upload-form.test.ts`
 
 Expected: FAIL because component does not exist.
 
-- [ ] **Step 4: Build MediaUploadForm**
+- [x] **Step 4: Build MediaUploadForm**
 
 Base it on `components/upload/photo-upload-form.tsx`, but:
 
@@ -1213,7 +1213,7 @@ Base it on `components/upload/photo-upload-form.tsx`, but:
 - On successful video upload, message says `视频已上传，正在处理`.
 - Keep cancel, retry, remove behavior.
 
-- [ ] **Step 5: Preserve PhotoUploadForm compatibility**
+- [x] **Step 5: Preserve PhotoUploadForm compatibility**
 
 Either:
 
@@ -1222,13 +1222,13 @@ Either:
 
 Do not break existing upload tests.
 
-- [ ] **Step 6: Wire upload UI**
+- [x] **Step 6: Wire upload UI**
 
 - On `/memories`, add upload entry point using default album id.
 - On album detail, replace photo upload with media upload.
 - If default album id is not available server-side, add a small endpoint or reuse `getUserDefaultAlbumId`.
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -1239,7 +1239,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add components/media/media-upload-form.tsx components/upload/photo-upload-form.tsx app/memories components/albums tests/media-upload-form.test.ts
@@ -1254,7 +1254,7 @@ git commit -m "feat: upload photos and videos from memory UI"
 - Modify: `app/share/[token]/page.tsx`
 - Test: `tests/media-shares.test.ts`
 
-- [ ] **Step 1: Add share rendering assertions**
+- [x] **Step 1: Add share rendering assertions**
 
 Extend `tests/media-shares.test.ts` to assert share resolver payload for:
 
@@ -1264,13 +1264,13 @@ Extend `tests/media-shares.test.ts` to assert share resolver payload for:
 - Ready video `playbackUrl` is `/api/share/[token]/playback`, not `/api/files/playbacks/...`.
 - Share page render never references `/api/files/playbacks/...` for public video, even indirectly through component props.
 
-- [ ] **Step 2: Run tests and verify current state**
+- [x] **Step 2: Run tests and verify current state**
 
 Run: `npm test -- tests/media-shares.test.ts tests/photo-shares.test.ts`
 
-Expected: PASS if Task 6 completed correctly.
+Expected: PASS.
 
-- [ ] **Step 3: Create ShareMediaClient**
+- [x] **Step 3: Create ShareMediaClient**
 
 Props:
 
@@ -1294,7 +1294,7 @@ Render:
 
 Do not render original video download links.
 
-- [ ] **Step 4: Update share page**
+- [x] **Step 4: Update share page**
 
 In `app/share/[token]/page.tsx`:
 
@@ -1303,7 +1303,7 @@ In `app/share/[token]/page.tsx`:
 - For video, show playback-only copy.
 - The `<video>` source must use the token-validated `share.playbackUrl`.
 
-- [ ] **Step 5: Verify manually via build**
+- [x] **Step 5: Verify manually via build**
 
 Run:
 
@@ -1314,7 +1314,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add components/share app/share tests/media-shares.test.ts tests/photo-shares.test.ts
@@ -1329,7 +1329,7 @@ git commit -m "feat: render video public shares safely"
 - Test: `tests/media-library.test.ts`
 - Test: `tests/media-worker.test.ts`
 
-- [ ] **Step 1: Write failing quota cleanup tests**
+- [x] **Step 1: Write failing quota cleanup tests**
 
 Add tests that assert:
 
@@ -1337,13 +1337,13 @@ Add tests that assert:
 - Permanent delete decrements original and derived sizes.
 - Failed video with retained poster counts retained poster size.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `npm test -- tests/media-worker.test.ts tests/media-library.test.ts`
 
 Expected: FAIL until accounting is implemented.
 
-- [ ] **Step 3: Update worker accounting**
+- [x] **Step 3: Update worker accounting**
 
 Task 4 stores derived file size fields but intentionally does not increment `user.storage_used` for derived files. In this task, add the quota increment exactly once after generated files are statted and before the media is marked `normal`:
 
@@ -1362,7 +1362,7 @@ Guard against duplicate increments:
 - Only increment derived quota when transitioning from non-`normal` to `normal`.
 - If reprocessing a media record is introduced later, subtract previous derived sizes before adding replacements.
 
-- [ ] **Step 4: Update permanent delete**
+- [x] **Step 4: Update permanent delete**
 
 In `permanentlyDeletePhoto` and batch permanent delete paths:
 
@@ -1370,7 +1370,7 @@ In `permanentlyDeletePhoto` and batch permanent delete paths:
 - Decrement `storage_used` by sum of `original_size`, `preview_size`, `thumbnail_size`, `poster_size`, `playback_size`.
 - Keep current image behavior working for records where size fields are null by falling back to `size`.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1380,7 +1380,7 @@ npm test -- tests/media-worker.test.ts tests/media-library.test.ts tests/photo-l
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/photos/library.ts lib/media/worker/process-video.ts tests/media-worker.test.ts tests/media-library.test.ts
@@ -1393,19 +1393,19 @@ git commit -m "feat: account for derived media storage"
 - Modify only files directly implicated by failed verification commands; record the failing command and reason before changing them.
 - Test: existing full test suite.
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npm test`
 
 Expected: PASS.
 
-- [ ] **Step 2: Run build**
+- [x] **Step 2: Run build**
 
 Run: `npm run build`
 
 Expected: PASS.
 
-- [ ] **Step 3: Run targeted route search**
+- [x] **Step 3: Run targeted route search**
 
 Run:
 
@@ -1419,7 +1419,7 @@ Expected:
 - Internal compatibility names remain where expected.
 - No accidental public video download link exists on share page.
 
-- [ ] **Step 4: Manual ffmpeg verification**
+- [x] **Step 4: Manual ffmpeg verification**
 
 If `ffmpeg` and `ffprobe` are installed:
 
@@ -1431,7 +1431,7 @@ If `ffmpeg` and `ffprobe` are installed:
 
 If binaries are not installed, record this verification gap in final handoff.
 
-- [ ] **Step 5: Browser check**
+- [x] **Step 5: Browser check**
 
 Use Browser plugin or in-app browser:
 
@@ -1442,7 +1442,7 @@ Use Browser plugin or in-app browser:
 - Verify upload UI accepts video.
 - Open share page for a video.
 
-- [ ] **Step 6: Commit fixes**
+- [x] **Step 6: Commit fixes**
 
 If changes were needed:
 
@@ -1458,7 +1458,7 @@ git commit -m "fix: stabilize family memory media flows"
 - Modify: `README.md` if it exists; otherwise skip.
 - Modify: `.env.example`
 
-- [ ] **Step 1: Document operational requirements**
+- [x] **Step 1: Document operational requirements**
 
 Release notes should include:
 
@@ -1470,7 +1470,7 @@ Release notes should include:
 - Public video share behavior.
 - Known limitations: no HLS, no cloud storage, no true Family model.
 
-- [ ] **Step 2: Verify docs mention env vars**
+- [x] **Step 2: Verify docs mention env vars**
 
 Ensure `.env.example` includes:
 
@@ -1482,7 +1482,7 @@ MEDIA_WORKER_CONCURRENCY=1
 MEDIA_TRANSCODE_PRESET=medium
 ```
 
-- [ ] **Step 3: Run final verification**
+- [x] **Step 3: Run final verification**
 
 Run:
 
@@ -1498,7 +1498,7 @@ Expected:
 - Build passes.
 - Only intended docs changes remain, or worktree is clean after commit.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/release-notes .env.example README.md
