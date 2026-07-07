@@ -43,6 +43,7 @@ export type AlbumPhotoItem = {
   thumbnailUrl: string;
   previewUrl: string;
   mediaType: string;
+  processingStatus: string;
   mimeType: string;
   width: number;
   height: number;
@@ -316,6 +317,7 @@ export async function getAlbumPhotos(
       thumbnailUrl: ref.photo.thumbnail_url,
       previewUrl: ref.photo.preview_url,
       mediaType: ref.photo.media_type,
+      processingStatus: ref.photo.processing_status,
       mimeType: ref.photo.mime_type,
       width: ref.photo.width,
       height: ref.photo.height,

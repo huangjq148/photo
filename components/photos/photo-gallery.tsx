@@ -12,6 +12,7 @@ type PhotoItem = {
   thumbnailUrl: string;
   previewUrl: string;
   mediaType?: string;
+  processingStatus?: string;
   mimeType: string;
   width: number;
   height: number;

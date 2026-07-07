@@ -10,6 +10,7 @@ export type PhotoGalleryCardItem = {
   thumbnailUrl: string;
   previewUrl: string;
   mediaType?: string;
+  processingStatus?: string;
   mimeType: string;
   width: number;
   height: number;
@@ -59,6 +60,8 @@ export function PhotoGalleryCard({
 }: PhotoGalleryCardProps) {
   const [showInfo, setShowInfo] = useState(false);
   const isVideo = photo.mediaType === "video";
+  const isProcessing = photo.processingStatus === "pending" || photo.processingStatus === "processing";
+  const isFailed = photo.processingStatus === "failed";
 
   return (
     <article
@@ -82,8 +85,24 @@ export function PhotoGalleryCard({
           </div>
         )}
 
+        {/* Video processing overlay */}
+        {isVideo && isProcessing && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-[5]">
+            <div className="rounded-lg bg-black/80 px-3 py-1.5 text-xs font-medium text-[var(--film)]">
+              处理中
+            </div>
+          </div>
+        )}
+        {isVideo && isFailed && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-[5]">
+            <div className="rounded-lg bg-black/80 px-3 py-1.5 text-xs font-medium text-red-300">
+              暂不可播放
+            </div>
+          </div>
+        )}
+
         {/* Video play icon */}
-        {isVideo && (
+        {isVideo && !isProcessing && !isFailed && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="rounded-full bg-black/60 p-2">
               <Play aria-hidden="true" size={20} className="text-white" />
