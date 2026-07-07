@@ -83,7 +83,7 @@ export function AddPhotosModal({ albumId, onClose, onAdded }: AddPhotosModalProp
         throw new Error(json.error ?? "添加失败");
       }
 
-      message.success(`已添加 ${selectedIds.size} 张照片`);
+      message.success(`已添加 ${selectedIds.size} 项`);
       setSelectedIds(new Set());
       onAdded();
     } catch (err) {
