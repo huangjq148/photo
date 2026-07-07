@@ -115,25 +115,38 @@ export async function processVideoMedia(
   const posterUrl = posterSize > 0n ? `/api/files/posters/${posterFileName}` : null;
   const playbackUrl = `/api/files/playbacks/${playbackFileName}`;
 
-  await prisma.photo.update({
-    where: { id: options.mediaId },
-    data: {
-      width,
-      height,
-      duration_seconds: duration,
-      original_codec: codec,
-      poster_url: posterUrl,
-      poster_size: posterSize > 0n ? posterSize : null,
-      thumbnail_url: thumbnailSize > 0n
-        ? `/api/files/thumbnails/${thumbnailFileName}`
-        : media.thumbnail_url,
-      thumbnail_size: thumbnailSize > 0n ? thumbnailSize : null,
-      playback_url: playbackUrl,
-      playback_size: playbackSize,
-      processing_status: "normal",
-      processing_error: null,
-      processed_at: new Date(),
-      updated_at: new Date(),
-    },
+  // Only increment storage for derived files when transitioning to normal
+  const derivedSize = posterSize + thumbnailSize + playbackSize;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.photo.update({
+      where: { id: options.mediaId },
+      data: {
+        width,
+        height,
+        duration_seconds: duration,
+        original_codec: codec,
+        poster_url: posterUrl,
+        poster_size: posterSize > 0n ? posterSize : null,
+        thumbnail_url: thumbnailSize > 0n
+          ? `/api/files/thumbnails/${thumbnailFileName}`
+          : media.thumbnail_url,
+        thumbnail_size: thumbnailSize > 0n ? thumbnailSize : null,
+        playback_url: playbackUrl,
+        playback_size: playbackSize,
+        processing_status: "normal",
+        processing_error: null,
+        processed_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    // Increment uploader storage for derived files
+    if (derivedSize > 0n) {
+      await tx.user.update({
+        where: { id: media.uploader_id },
+        data: { storage_used: { increment: derivedSize } },
+      });
+    }
   });
 }

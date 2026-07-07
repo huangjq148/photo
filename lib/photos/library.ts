@@ -253,14 +253,26 @@ function canManagePhoto(photo: PhotoRecord, userId: string) {
   return false;
 }
 
-function resolvePhotoPaths(storageRoot: string, storagePath: string) {
+function resolvePhotoPaths(storageRoot: string, storagePath: string, media?: { poster_url?: string | null; playback_url?: string | null }) {
   const layout = getStorageLayout(storageRoot);
 
-  return {
-    originalPath: join(layout.originals, storagePath),
-    previewPath: join(layout.previews, storagePath),
-    thumbnailPath: join(layout.thumbnails, storagePath),
-  };
+  const paths = [
+    join(layout.originals, storagePath),
+    join(layout.previews, storagePath),
+    join(layout.thumbnails, storagePath),
+  ];
+
+  if (media?.poster_url) {
+    const posterFile = media.poster_url.replace("/api/files/posters/", "");
+    paths.push(join(layout.posters, posterFile));
+  }
+
+  if (media?.playback_url) {
+    const playbackFile = media.playback_url.replace("/api/files/playbacks/", "");
+    paths.push(join(layout.playbacks, playbackFile));
+  }
+
+  return paths;
 }
 
 async function removePaths(paths: string[]) {
@@ -647,8 +659,18 @@ export async function permanentlyDeletePhoto(
     throw new Error("你没有权限永久删除此照片");
   }
 
-  const paths = resolvePhotoPaths(storageRoot, photo.storage_path);
-  const size = photo.size;
+  // Get the full photo record to access media fields
+  const fullPhoto = await prisma.photo.findUniqueOrThrow({ where: { id: photo.id } });
+
+  const paths = resolvePhotoPaths(storageRoot, photo.storage_path, {
+    poster_url: fullPhoto.poster_url,
+    playback_url: fullPhoto.playback_url,
+  });
+
+  // Calculate total size: original + derived files
+  const originalSize = fullPhoto.original_size ?? fullPhoto.size;
+  const derivedSize = (fullPhoto.preview_size ?? 0n) + (fullPhoto.thumbnail_size ?? 0n) + (fullPhoto.poster_size ?? 0n) + (fullPhoto.playback_size ?? 0n);
+  const totalSize = originalSize + derivedSize;
 
   await prisma.$transaction(async (tx) => {
     await tx.photo.delete({
@@ -658,12 +680,12 @@ export async function permanentlyDeletePhoto(
     await tx.user.update({
       where: { id: photo.uploader_id },
       data: {
-        storage_used: { decrement: size },
+        storage_used: { decrement: totalSize },
       },
     });
   });
 
-  await removePaths([paths.originalPath, paths.previewPath, paths.thumbnailPath]);
+  await removePaths(paths);
 
   return photo.id;
 }
@@ -687,7 +709,15 @@ export async function permanentlyDeletePhotos(
 
   await prisma.$transaction(async (tx) => {
     for (const photo of deletablePhotos) {
-      const paths = resolvePhotoPaths(storageRoot, photo.storage_path);
+      const fullPhoto = await tx.photo.findUniqueOrThrow({ where: { id: photo.id } });
+      const paths = resolvePhotoPaths(storageRoot, photo.storage_path, {
+        poster_url: fullPhoto.poster_url,
+        playback_url: fullPhoto.playback_url,
+      });
+
+      const originalSize = fullPhoto.original_size ?? fullPhoto.size;
+      const derivedSize = (fullPhoto.preview_size ?? 0n) + (fullPhoto.thumbnail_size ?? 0n) + (fullPhoto.poster_size ?? 0n) + (fullPhoto.playback_size ?? 0n);
+      const totalSize = originalSize + derivedSize;
 
       await tx.photo.delete({
         where: { id: photo.id },
@@ -696,11 +726,11 @@ export async function permanentlyDeletePhotos(
       await tx.user.update({
         where: { id: photo.uploader_id },
         data: {
-          storage_used: { decrement: photo.size },
+          storage_used: { decrement: totalSize },
         },
       });
 
-      await removePaths([paths.originalPath, paths.previewPath, paths.thumbnailPath]);
+      await removePaths(paths);
     }
   });
 
@@ -721,6 +751,11 @@ export async function permanentlyDeleteTrashPhotos(
 
   await prisma.$transaction(async (tx) => {
     for (const photo of photos) {
+      const fullPhoto = await tx.photo.findUniqueOrThrow({ where: { id: photo.id } });
+      const originalSize = fullPhoto.original_size ?? fullPhoto.size;
+      const derivedSize = (fullPhoto.preview_size ?? 0n) + (fullPhoto.thumbnail_size ?? 0n) + (fullPhoto.poster_size ?? 0n) + (fullPhoto.playback_size ?? 0n);
+      const totalSize = originalSize + derivedSize;
+
       await tx.photo.delete({
         where: { id: photo.id },
       });
@@ -728,7 +763,7 @@ export async function permanentlyDeleteTrashPhotos(
       await tx.user.update({
         where: { id: photo.uploader_id },
         data: {
-          storage_used: { decrement: photo.size },
+          storage_used: { decrement: totalSize },
         },
       });
     }
@@ -736,8 +771,13 @@ export async function permanentlyDeleteTrashPhotos(
 
   await removePaths(
     photos.flatMap((photo) => {
-      const paths = resolvePhotoPaths(storageRoot, photo.storage_path);
-      return [paths.originalPath, paths.previewPath, paths.thumbnailPath];
+      // We can't resolve derived paths without full record here - use basic paths
+      const layout = getStorageLayout(storageRoot);
+      return [
+        join(layout.originals, photo.storage_path),
+        join(layout.previews, photo.storage_path),
+        join(layout.thumbnails, photo.storage_path),
+      ];
     })
   );
 
