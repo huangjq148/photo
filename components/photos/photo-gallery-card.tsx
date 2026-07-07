@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bookmark, Check, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
+import { Bookmark, Check, Ellipsis, Heart, Info, Play, Share2, Trash2 } from "lucide-react";
 import ImageViewer from "@/components/ui/image-viewer";
 
 export type PhotoGalleryCardItem = {
@@ -58,6 +58,7 @@ export function PhotoGalleryCard({
   onSetCover,
 }: PhotoGalleryCardProps) {
   const [showInfo, setShowInfo] = useState(false);
+  const isVideo = photo.mediaType === "video";
 
   return (
     <article
@@ -65,7 +66,7 @@ export function PhotoGalleryCard({
         waterfall ? "break-inside-avoid" : ""
       }`}
     >
-      <div className="overflow-hidden rounded-t-xl">
+      <div className="overflow-hidden rounded-t-xl relative">
         <ImageViewer
           src={photo.thumbnailUrl}
           alt={photo.originalName}
@@ -73,6 +74,22 @@ export function PhotoGalleryCard({
           imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
           className="group/img block w-full"
         />
+
+        {/* Media type badge */}
+        {photo.mediaType && (
+          <div className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-0.5 text-xs font-medium text-white/80">
+            {isVideo ? "视频" : "照片"}
+          </div>
+        )}
+
+        {/* Video play icon */}
+        {isVideo && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="rounded-full bg-black/60 p-2">
+              <Play aria-hidden="true" size={20} className="text-white" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Photo info overlay */}
@@ -84,6 +101,7 @@ export function PhotoGalleryCard({
           <div className="space-y-2 text-white">
             <p className="text-sm font-bold">{photo.originalName}</p>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-white/70">
+              {isVideo && <><span>类型</span><span>视频</span></>}
               <span>尺寸</span>
               <span>
                 {photo.width} × {photo.height}
@@ -166,7 +184,7 @@ export function PhotoGalleryCard({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/[0.08]"
             >
               <Info aria-hidden="true" size={15} />
-              照片信息
+              {isVideo ? "媒体信息" : "照片信息"}
             </button>
             <button
               type="button"
