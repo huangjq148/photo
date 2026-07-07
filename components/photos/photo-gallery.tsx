@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
-import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
+import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
+import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
 import { useMessage } from "@/components/ui/message";
 
 type PhotoItem = {
@@ -235,7 +236,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-3">
           <div className="flex-1 space-y-2">
             <input
               id="photo-search"
@@ -244,49 +245,6 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
               placeholder="按文件名搜索"
               className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--film)]"
             />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--muted)] transition hover:border-white/20">
-              <span>拍照时间</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={showTakenAt}
-                onClick={() => setShowTakenAt((prev) => !prev)}
-                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition ${
-                  showTakenAt ? "bg-[var(--accent)]" : "bg-white/15"
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition ${
-                    showTakenAt ? "translate-x-4" : "translate-x-0"
-                  }`}
-                />
-              </button>
-            </label>
-            <PhotoGallerySizeControl value={photoSize} onChange={setPhotoSize} />
-            <button
-              type="button"
-              onClick={() => setLayoutMode("grid")}
-              className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium transition ${
-                layoutMode === "grid"
-                  ? "bg-[var(--accent)] text-black"
-                  : "border border-[var(--border)] text-[var(--muted)]"
-              }`}
-            >
-              网格
-            </button>
-            <button
-              type="button"
-              onClick={() => setLayoutMode("waterfall")}
-              className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-sm font-medium transition ${
-                layoutMode === "waterfall"
-                  ? "bg-[var(--accent)] text-black"
-                  : "border border-[var(--border)] text-[var(--muted)]"
-              }`}
-            >
-              瀑布流
-            </button>
           </div>
         </div>
 
@@ -312,6 +270,15 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
           </div>
         ) : null}
       </div>
+
+      <PhotoGalleryFloatTools
+        showTakenAt={showTakenAt}
+        onToggleTakenAt={() => setShowTakenAt((prev) => !prev)}
+        photoSize={photoSize}
+        onPhotoSizeChange={setPhotoSize}
+        layoutMode={layoutMode}
+        onLayoutModeChange={setLayoutMode}
+      />
 
       <div
         className={

@@ -12,28 +12,28 @@ export default async function HomePage() {
   const user = await getCurrentUserFromCookieStore(await cookies());
 
   return (
-    <main className="h-full overflow-hidden px-5 sm:px-8 lg:px-12">
-      <section className="mx-auto grid h-full min-h-0 max-w-7xl items-center gap-6 py-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
-          <p className="mb-5 text-sm font-medium text-[var(--film)]">PHOTO ARCHIVE</p>
-          <h1 className="max-w-4xl text-5xl font-black leading-none text-[var(--text)] sm:text-8xl lg:text-9xl">
+    <main className="overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6 lg:px-12 lg:py-4">
+      <section className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-center">
+        <div className="min-w-0">
+          <p className="mb-4 text-sm font-medium tracking-[0.18em] text-[var(--film)]">PHOTO ARCHIVE</p>
+          <h1 className="max-w-[10ch] text-5xl font-black leading-[0.92] text-[var(--text)] sm:max-w-4xl sm:text-7xl lg:text-8xl">
             NOIR PHOTO
           </h1>
           <HomeActions isAuthenticated={Boolean(user)} />
         </div>
 
-        <aside className="min-h-0 border-t border-[var(--border)] pt-4">
-          <div className="grid grid-cols-3 gap-3">
+        <aside className="min-w-0 border-t border-[var(--border)] pt-4 lg:pt-0">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {stats.map((item) => (
               <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
                 <p className="text-xs text-[var(--muted)]">{item.label}</p>
-                <p className="mt-3 text-xl font-black text-[var(--text)]">{item.value}</p>
+                <p className="mt-3 text-lg font-black text-[var(--text)] sm:text-xl">{item.value}</p>
               </div>
             ))}
           </div>
-          <div className="mt-4 aspect-[4/3] max-h-[42dvh] overflow-hidden rounded-2xl border border-[var(--border)] bg-[linear-gradient(135deg,#0b0b0b,#373737_45%,#050505)]">
-            <div className="flex h-full items-end p-5">
-              <p className="text-4xl font-black leading-none text-white sm:text-5xl">
+          <div className="mt-4 aspect-[4/3] min-h-[18rem] overflow-hidden rounded-2xl border border-[var(--border)] bg-[linear-gradient(135deg,#0b0b0b,#373737_45%,#050505)]">
+            <div className="flex h-full items-end p-5 sm:p-6">
+              <p className="text-3xl font-black leading-none text-white sm:text-5xl">
                 ARCHIVE
                 <br />
                 EDIT

@@ -13,6 +13,7 @@ import {
 import {
   clampImageViewerZoom,
   formatImageViewerZoomLabel,
+  getImageViewerFitZoom,
   getNextImageViewerZoom,
 } from './zoom'
 import {
@@ -82,10 +83,23 @@ export default function ImageViewer({
 
   const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget
-    setImageSize({
+    const nextSize = {
       width: image.naturalWidth || image.width,
       height: image.naturalHeight || image.height,
-    })
+    }
+    setImageSize(nextSize)
+
+    if (typeof window !== 'undefined') {
+      const fitZoom = getImageViewerFitZoom({
+        imageWidth: nextSize.width,
+        imageHeight: nextSize.height,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      })
+      setZoom(fitZoom)
+      return
+    }
+
     setZoom((current) => clampImageViewerZoom(current))
   }
 

@@ -21,9 +21,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className={`${isHome ? "flex h-dvh flex-col overflow-hidden" : "min-h-dvh"} bg-[var(--background)] text-[var(--text)]`}>
+    <div className={`${isHome ? "flex min-h-dvh flex-col overflow-x-hidden" : "min-h-dvh"} bg-[var(--background)] text-[var(--text)]`}>
       <header className="sticky top-0 z-20 shrink-0 border-b border-[var(--border)] bg-black/86 backdrop-blur-xl">
-        <div className="mx-auto grid max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:grid-cols-[1fr_auto_1fr] lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:px-8">
           <Link href="/" className="inline-flex items-baseline gap-3 self-start">
             <span className="text-base font-black uppercase text-[var(--text)]">
               Noir
@@ -32,34 +32,39 @@ export function AppShell({ children }: { children: ReactNode }) {
               photo archive
             </span>
           </Link>
-          <nav
-            aria-label="主导航"
-            className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 lg:justify-self-center"
-          >
-            {navItems.map((item) => {
-              const active = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition duration-200 ${
-                    active
-                      ? "bg-[var(--accent)] text-black"
-                      : "text-[var(--muted)] hover:bg-white/[0.08] hover:text-[var(--text)]"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="lg:justify-self-end">
+          <div className="flex items-center gap-2 min-w-0 lg:justify-self-center">
+            <nav
+              aria-label="主导航"
+              className="flex h-[50px] min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 lg:justify-self-center lg:h-auto"
+            >
+              {navItems.map((item) => {
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium transition duration-200 ${
+                      active
+                        ? "bg-[var(--accent)] text-black"
+                        : "text-[var(--muted)] hover:bg-white/[0.08] hover:text-[var(--text)]"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="shrink-0 lg:hidden">
+              <UserMenu />
+            </div>
+          </div>
+          <div className="hidden lg:justify-self-end lg:block">
             <UserMenu />
           </div>
         </div>
       </header>
-      <div className={isHome ? "min-h-0 flex-1 overflow-hidden" : undefined}>{children}</div>
+      <div className={isHome ? "min-h-0 flex-1" : undefined}>{children}</div>
     </div>
   );
 }
