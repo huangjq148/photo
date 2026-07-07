@@ -5,6 +5,8 @@ export type StorageLayout = {
   originals: string;
   previews: string;
   thumbnails: string;
+  posters: string;
+  playbacks: string;
 };
 
 export function getStorageLayout(root: string): StorageLayout {
@@ -12,6 +14,8 @@ export function getStorageLayout(root: string): StorageLayout {
     root,
     originals: join(root, "originals"),
     previews: join(root, "previews"),
-    thumbnails: join(root, "thumbnails")
+    thumbnails: join(root, "thumbnails"),
+    posters: join(root, "posters"),
+    playbacks: join(root, "playbacks"),
   };
 }
