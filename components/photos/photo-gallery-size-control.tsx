@@ -7,6 +7,7 @@ export type PhotoSize = "small" | "medium" | "large";
 type PhotoGallerySizeControlProps = {
   value: PhotoSize;
   onChange: (value: PhotoSize) => void;
+  compact?: boolean;
 };
 
 const sizes: { value: PhotoSize; label: string }[] = [
@@ -15,7 +16,28 @@ const sizes: { value: PhotoSize; label: string }[] = [
   { value: "large", label: "大" },
 ];
 
-export function PhotoGallerySizeControl({ value, onChange }: PhotoGallerySizeControlProps) {
+export function PhotoGallerySizeControl({ value, onChange, compact = false }: PhotoGallerySizeControlProps) {
+  if (compact) {
+    return (
+      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-[var(--border)] bg-black p-1">
+        {sizes.map((size) => (
+          <button
+            key={size.value}
+            type="button"
+            onClick={() => onChange(size.value)}
+            className={`inline-flex h-10 items-center justify-center rounded-xl text-sm font-medium transition ${
+              value === size.value
+                ? "bg-[var(--accent)] text-black"
+                : "text-[var(--muted)] hover:bg-white/[0.08] hover:text-[var(--text)]"
+            }`}
+          >
+            {size.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-[var(--muted)]">图片尺寸</span>

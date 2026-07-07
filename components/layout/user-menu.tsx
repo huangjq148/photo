@@ -52,33 +52,57 @@ export function UserMenu() {
   if (!user) {
     if (loading) {
       return (
-        <div className="h-10 w-20 rounded-lg border border-[var(--border)] bg-white/[0.08]" aria-hidden="true" />
+        <>
+          <div className="inline-flex h-[50px] w-20 items-center justify-center rounded-xl border border-[var(--border)] bg-white/[0.08] p-1 lg:hidden" aria-hidden="true" />
+          <div className="hidden h-10 w-20 rounded-lg border border-[var(--border)] bg-white/[0.08] lg:block" aria-hidden="true" />
+        </>
       );
     }
 
     return (
-      <Link
-        href="/login"
-        className="inline-flex min-h-10 items-center rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-3.5 py-2 text-sm font-medium text-[var(--text)] transition hover:border-[var(--border-strong)]"
-      >
-        登录
-      </Link>
+      <>
+        <Link
+          href="/login"
+          className="inline-flex h-[50px] items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 text-sm font-medium text-[var(--text)] transition hover:border-[var(--border-strong)] lg:hidden"
+        >
+          <span className="inline-flex h-[40px] items-center rounded-lg bg-[var(--surface-strong)] px-3.5">
+            登录
+          </span>
+        </Link>
+        <Link
+          href="/login"
+          className="hidden min-h-10 items-center rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-3.5 py-2 text-sm font-medium text-[var(--text)] transition hover:border-[var(--border-strong)] lg:inline-flex"
+        >
+          登录
+        </Link>
+      </>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
-      <div className="hidden text-right leading-tight sm:block">
-        <p className="text-sm font-medium text-[var(--text)]">{user.nickname}</p>
-        <p className="text-xs text-[var(--muted)]">{user.email}</p>
+    <>
+      <div className="inline-flex h-[50px] items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 lg:hidden">
+        <button
+          type="button"
+          onClick={logout}
+          className="inline-flex h-[40px] items-center rounded-lg bg-[var(--surface-strong)] px-3.5 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--text)]"
+        >
+          退出
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={logout}
-        className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
-      >
-        退出
-      </button>
-    </div>
+      <div className="hidden items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 lg:flex">
+        <div className="hidden text-right leading-tight sm:block">
+          <p className="text-sm font-medium text-[var(--text)]">{user.nickname}</p>
+          <p className="text-xs text-[var(--muted)]">{user.email}</p>
+        </div>
+        <button
+          type="button"
+          onClick={logout}
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+        >
+          退出
+        </button>
+      </div>
+    </>
   );
 }
