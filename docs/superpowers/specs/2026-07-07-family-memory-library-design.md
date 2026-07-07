@@ -113,6 +113,22 @@ Cons:
 
 Choose option 3.
 
+## First Implementation Target
+
+The first implementation plan should cover `P0: Family Memory Stream` and `P1: Complete Video Support`.
+
+`P2` and `P3` are roadmap context only. They should not be included in the first implementation plan except where `P0/P1` work must avoid blocking them.
+
+Decisions for the first implementation:
+
+- Maximum image upload size: keep the current `20MB` default.
+- Maximum video upload size: default to `512MB`, configurable by environment.
+- Public video shares: playback-only by default; do not expose original video download on public share pages.
+- Worker concurrency: support one active job by default in the first implementation.
+- Worker job claim: still use a transactional claim so a second worker process cannot process the same job if accidentally started.
+- Quota accounting: count original uploads immediately and count derived files after worker processing completes.
+- API migration: keep existing `/api/photos` endpoints as compatibility aliases; use `/api/media` naming for new UI and new endpoints where practical.
+
 ## Information Architecture
 
 ### Primary Navigation
@@ -305,6 +321,14 @@ The Next.js app remains responsible for:
 9. Worker updates URLs, duration, dimensions, codec info, `processed_at`, and `processing_status = normal`.
 10. On failure, worker sets `processing_status = failed` and records `processing_error`.
 
+If processing fails after creating some derived files:
+
+- Keep successfully generated poster or thumbnail files if they are usable for display.
+- Do not expose a playback URL unless transcoding completed successfully.
+- Count retained derived files against quota.
+- Remove incomplete playback files.
+- Record the failure in `processing_error`.
+
 ### Playback Format
 
 Initial target format:
@@ -350,8 +374,8 @@ The first implementation may accept additional types only if ffmpeg can reliably
 
 Separate limits for images and videos:
 
-- Images can keep the existing `20MB` limit unless changed by product requirements.
-- Videos need a larger configurable limit, for example `512MB` initially.
+- Images keep the existing `20MB` default.
+- Videos use a `512MB` default.
 
 The exact value should be environment-configurable:
 
@@ -367,15 +391,16 @@ Storage capacity must include:
 - Video posters.
 - Video playback files.
 
-The current `storage_used` behavior only increments by upload file size. That is insufficient once video transcoding creates derived files.
+The current `storage_used` behavior only increments by upload file size. That must be expanded for video processing.
 
-Recommended first step:
+Required first implementation behavior:
 
-- Track original upload size in the existing user capacity check.
-- Add derived file sizes after worker processing completes.
-- Decrement all known file sizes on permanent delete.
-
-If exact derived accounting is too large for the first implementation, document the known limitation clearly and keep conservative upload limits.
+- Check quota against original upload size before accepting the upload.
+- Increment quota by original upload size when the original file is stored.
+- After worker processing completes, add generated poster, thumbnail, and playback file sizes to the user's `storage_used`.
+- On permanent delete, decrement all known original and derived file sizes.
+- If processing fails before derived files are created, only the original file size remains counted.
+- If cleanup of a derived file fails, keep database accounting consistent with the files that are still expected to exist and log the cleanup failure.
 
 ## Access Control
 
@@ -398,16 +423,18 @@ Share page behavior:
 
 - Photo share: show image preview and download action.
 - Video share: show video player using `playback_url` when processing is complete.
-- Failed or pending video share: show poster or placeholder and a clear unavailable/download state.
+- Failed or pending public video share: show poster or placeholder and a clear unavailable state. Do not expose original video download on the public share page.
 
-Open question for implementation:
+Public video shares are playback-only by default.
 
-- Whether public video original download should be allowed by default.
+- Authenticated users with album access can download original videos.
+- Public share viewers can play processed videos when ready.
+- Public share viewers cannot download original videos in the first implementation.
+- Photo public shares can keep the existing download behavior unless a later privacy pass changes it.
 
-Recommendation:
+Public playback routes must serve only processed playback variants. They must never stream files from `originals/`.
 
-- Keep original download available for private authenticated users.
-- For public shares, use a share-specific download decision and default to playback-only unless product requirements say otherwise.
+When this spec says failed videos remain downloadable, that applies only to authenticated album members through authenticated download routes, not to public share viewers.
 
 ## UI Components
 
@@ -539,6 +566,8 @@ Acceptance criteria:
 
 Goal: improve long-term browsing and archive value.
 
+This phase is roadmap context and should be split into separate specs before implementation.
+
 Scope:
 
 - Year/month jump navigation.
@@ -578,6 +607,7 @@ Add API-level tests for:
 - Failed processing preserves original file.
 - Unauthorized users cannot read video files.
 - Public share token can access only allowed media.
+- Failed or pending public video shares never render or expose original video download URLs.
 
 ### End-to-End Tests
 
@@ -638,9 +668,11 @@ Add environment configuration:
 
 The worker must claim jobs safely.
 
-For PostgreSQL, prefer a transactional claim step that prevents two workers from processing the same record.
+The first implementation supports one active processing job by default.
 
-If the first implementation only supports one worker process, document that limitation and keep the claim logic simple but safe enough for local production.
+For PostgreSQL, still use a transactional claim step that prevents two workers from processing the same record if multiple worker processes are accidentally started.
+
+`MEDIA_WORKER_CONCURRENCY` should default to `1`. Higher values are out of scope until processing load, CPU capacity, and storage throughput are measured.
 
 ## Risks
 
@@ -681,18 +713,20 @@ Video public sharing can expose large files or private family content.
 Mitigation:
 
 - Keep token validation strict.
-- Consider playback-only public shares by default.
+- Use playback-only public video shares by default.
 - Add revocation and expiration visibility.
 
-## Open Questions
+## Resolved Planning Decisions
 
-These decisions should be finalized before implementation planning:
+These decisions are fixed for the first implementation plan:
 
-- What is the initial maximum video upload size?
-- Should public video shares allow original downloads?
-- Should the first worker support only one concurrent job?
-- Should generated playback files count against user quota immediately in P1?
-- Should existing `/api/photos` endpoints be renamed now or kept as compatibility aliases?
+- Initial maximum image upload size: `20MB`.
+- Initial maximum video upload size: `512MB`.
+- Public video shares: playback-only, no original video download.
+- Worker concurrency: one active job by default.
+- Worker claim safety: transactional claim even with default single-job processing.
+- Generated playback, poster, and thumbnail files count against user quota after processing completes.
+- Existing `/api/photos` endpoints remain as compatibility aliases during the transition.
 
 ## Out Of Scope For First Implementation
 
