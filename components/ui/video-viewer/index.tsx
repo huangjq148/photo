@@ -117,7 +117,7 @@ export default function VideoViewer({
           >
             {/* Top toolbar — auto-hides after 3s of inactivity */}
             <div
-              className={`absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 py-3 transition-opacity duration-300 ${
+              className={`absolute left-0 right-0 top-0 z-[60] flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 py-3 transition-opacity duration-300 ${
                 showControls ? 'opacity-100' : 'pointer-events-none opacity-0'
               }`}
             >
@@ -164,16 +164,11 @@ export default function VideoViewer({
               src={videoSrc}
               controls
               autoPlay
-              className={`max-h-full max-w-full ${showControls ? '' : 'cursor-none'}`}
-              style={{
-                objectFit: browserFullscreen ? 'contain' : 'contain',
-                width: browserFullscreen ? '100vw' : undefined,
-                height: browserFullscreen ? '100vh' : undefined,
-                position: browserFullscreen ? 'fixed' : undefined,
-                top: browserFullscreen ? 0 : undefined,
-                left: browserFullscreen ? 0 : undefined,
-                zIndex: browserFullscreen ? 60 : undefined,
-              }}
+              className={`${showControls ? '' : 'cursor-none'} ${
+                browserFullscreen
+                  ? 'fixed inset-0 z-50 h-full w-full object-contain'
+                  : 'max-h-full max-w-full object-contain'
+              }`}
               onClick={(e) => {
                 e.stopPropagation()
                 resetControlsTimer()
