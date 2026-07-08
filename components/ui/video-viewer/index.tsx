@@ -31,7 +31,7 @@ export default function VideoViewer({
   const [open, setOpen] = useState(false)
   const [hover, setHover] = useState(false)
   const [previewLoaded, setPreviewLoaded] = useState(false)
-  const hoverTimer = useRef<ReturnType<typeof setTimeout>>()
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const handleMouseEnter = () => {
     hoverTimer.current = setTimeout(() => setHover(true), 300)
