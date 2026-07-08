@@ -14,6 +14,7 @@ type MediaViewerProps = {
   height: number;
   durationSeconds: number | null;
   processingStatus: string;
+  interactiveImagePreview?: boolean;
 };
 
 export function MediaViewer({
@@ -24,8 +25,20 @@ export function MediaViewer({
   playbackUrl,
   originalName,
   processingStatus,
+  interactiveImagePreview = true,
 }: MediaViewerProps) {
   if (mediaType === "image") {
+    if (!interactiveImagePreview) {
+      return (
+        <img
+          src={previewUrl}
+          alt={originalName}
+          draggable={false}
+          className="max-h-[70vh] w-full object-contain"
+        />
+      );
+    }
+
     return (
       <ImageViewer
         src={previewUrl}

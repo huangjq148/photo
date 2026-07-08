@@ -100,7 +100,7 @@ export function MediaGrid({
                 onClick={() => setViewerMedia(item)}
                 className="cursor-pointer"
               >
-                <MediaCard media={item} actions={actions} />
+                <MediaCard media={item} actions={actions} previewMode="passive" />
               </div>
             ))}
           </div>
@@ -146,6 +146,7 @@ export function MediaGrid({
               height={viewerMedia.height}
               durationSeconds={viewerMedia.durationSeconds}
               processingStatus={viewerMedia.processingStatus}
+              interactiveImagePreview={false}
             />
             <p className="mt-3 text-center text-sm text-white/70">{viewerMedia.originalName}</p>
           </div>

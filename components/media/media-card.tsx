@@ -34,6 +34,7 @@ export type MediaCardActions = {
 type MediaCardProps = {
   media: MediaCardItem;
   actions?: MediaCardActions;
+  previewMode?: "viewer" | "passive";
 };
 
 function formatDuration(seconds: number | null): string | null {
@@ -66,7 +67,7 @@ function getProcessingLabel(status: string): string | null {
   }
 }
 
-export function MediaCard({ media, actions }: MediaCardProps) {
+export function MediaCard({ media, actions, previewMode = "viewer" }: MediaCardProps) {
   const [showInfo, setShowInfo] = useState(false);
   const isVideo = media.mediaType === "video";
   const imgSrc = isVideo ? (media.posterUrl || media.thumbnailUrl || "") : (media.thumbnailUrl || media.previewUrl || "");
@@ -78,13 +79,20 @@ export function MediaCard({ media, actions }: MediaCardProps) {
   return (
     <article className="group relative break-inside-avoid mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30">
       <div className="overflow-hidden rounded-t-xl relative">
-        {imgSrc ? (
+        {imgSrc && previewMode === "viewer" ? (
           <ImageViewer
             src={imgSrc}
             alt={media.originalName}
             previewSrc={media.previewUrl || imgSrc}
             imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
             className="group/img block w-full"
+          />
+        ) : imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={media.originalName}
+            draggable={false}
+            className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-[1.02]"
           />
         ) : (
           <div className="aspect-[4/3] w-full flex items-center justify-center bg-[#0b0b0b] text-[var(--muted)] text-sm">
