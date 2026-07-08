@@ -25,7 +25,7 @@ describe("photo shares", () => {
     await prisma.photoShare.deleteMany();
     await prisma.albumPhoto.deleteMany();
     await prisma.favorite.deleteMany();
-    await prisma.photo.deleteMany();
+    await prisma.media.deleteMany();
     await prisma.albumMember.deleteMany();
     await prisma.album.deleteMany();
     await prisma.spaceInvite.deleteMany();

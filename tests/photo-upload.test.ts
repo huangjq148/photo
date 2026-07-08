@@ -26,7 +26,7 @@ describe("photo upload", () => {
     await prisma.albumPhoto.deleteMany();
     await prisma.photoShare.deleteMany();
     await prisma.favorite.deleteMany();
-    await prisma.photo.deleteMany();
+    await prisma.media.deleteMany();
     await prisma.albumMember.deleteMany();
     await prisma.album.deleteMany();
     await prisma.spaceInvite.deleteMany();
@@ -78,7 +78,7 @@ describe("photo upload", () => {
     expect(result.originalName).toBe("upload.png");
     expect(result.status).toBe("normal");
 
-    const photo = await prisma.photo.findUnique({ where: { id: result.id } });
+    const photo = await prisma.media.findUnique({ where: { id: result.id } });
     expect(photo?.album_id).toBe(albumId);
 
     // Verify AlbumPhoto reference was created
