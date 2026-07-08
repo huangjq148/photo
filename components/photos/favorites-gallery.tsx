@@ -31,7 +31,7 @@ function getProcessingLabel(status: string): string | null {
     case "processing":
       return "处理中";
     case "failed":
-      return "暂不可播放";
+      return "处理失败";
     default:
       return null;
   }
@@ -128,10 +128,19 @@ export function FavoritesGallery() {
 
               {/* Processing overlay */}
               {isVideo && processingLabel && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 p-3">
                   <div className="rounded-lg bg-black/80 px-3 py-1.5 text-xs font-medium text-[var(--film)]">
                     {processingLabel}
                   </div>
+                  {item.processingStatus === "failed" && (
+                    <a
+                      href={`/api/media/${item.id}/download`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded-lg bg-white/15 px-3 py-1 text-xs font-medium text-white hover:bg-white/25"
+                    >
+                      下载原文件
+                    </a>
+                  )}
                 </div>
               )}
 

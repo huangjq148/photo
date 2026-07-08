@@ -17,6 +17,7 @@ type MediaViewerProps = {
 };
 
 export function MediaViewer({
+  id,
   mediaType,
   previewUrl,
   posterUrl,
@@ -66,10 +67,16 @@ export function MediaViewer({
     );
   }
 
-  // Failed or unknown
+  // Failed — show download link for authenticated users
   return (
-    <div className="flex aspect-video w-full items-center justify-center bg-[#0b0b0b]">
-      <p className="text-sm text-[var(--muted)]">视频暂不可播放</p>
+    <div className="flex aspect-video w-full flex-col items-center justify-center gap-4 bg-[#0b0b0b]">
+      <p className="text-sm text-[var(--muted)]">视频处理失败，暂不可在线播放</p>
+      <a
+        href={`/api/media/${id}/download`}
+        className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)] transition hover:bg-white/[0.08]"
+      >
+        下载原文件
+      </a>
     </div>
   );
 }

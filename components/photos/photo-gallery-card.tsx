@@ -94,10 +94,17 @@ export function PhotoGalleryCard({
           </div>
         )}
         {isVideo && isFailed && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-[5]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 z-[5] p-3">
             <div className="rounded-lg bg-black/80 px-3 py-1.5 text-xs font-medium text-red-300">
-              暂不可播放
+              处理失败
             </div>
+            <a
+              href={`/api/media/${photo.id}/download`}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-lg bg-white/15 px-3 py-1 text-xs font-medium text-white hover:bg-white/25"
+            >
+              下载原文件
+            </a>
           </div>
         )}
 
