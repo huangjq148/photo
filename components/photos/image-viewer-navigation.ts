@@ -14,12 +14,22 @@ export function isImageMedia(item: Pick<MediaNavigationSource, "mediaType" | "mi
   return item.mediaType === "image" && !item.mimeType.startsWith("video/");
 }
 
-export function buildImageViewerNavigationItems(items: MediaNavigationSource[]): ImageViewerNavigationItem[] {
-  return items.filter(isImageMedia).map((item) => ({
+export function isVideoMedia(item: Pick<MediaNavigationSource, "mediaType" | "mimeType">): boolean {
+  return item.mediaType === "video" || item.mimeType.startsWith("video/");
+}
+
+export function buildMediaViewerNavigationItems(items: MediaNavigationSource[]): ImageViewerNavigationItem[] {
+  return items.filter((item) => isImageMedia(item) || isVideoMedia(item)).map((item) => ({
     id: item.id,
+    mediaType: isVideoMedia(item) ? "video" : "image",
     src: item.thumbnailUrl,
-    previewSrc: item.mimeType === "image/gif" ? item.originalUrl : item.previewUrl,
+    previewSrc: isImageMedia(item)
+      ? (item.mimeType === "image/gif" ? item.originalUrl : item.previewUrl)
+      : undefined,
+    videoSrc: isVideoMedia(item) ? item.originalUrl : undefined,
     alt: item.originalName,
     title: item.originalName,
   }));
 }
+
+export const buildImageViewerNavigationItems = buildMediaViewerNavigationItems;

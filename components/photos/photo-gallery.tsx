@@ -6,7 +6,7 @@ import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
 import { useMessage } from "@/components/ui/message";
 import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
-import { buildImageViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
+import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 
 type PhotoItem = {
   id: string;
@@ -257,7 +257,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
 
   // Build navigation items for fullscreen prev/next switching
   const navigableItems = useMemo<ImageViewerNavigationItem[]>(() => {
-    return buildImageViewerNavigationItems(items);
+    return buildMediaViewerNavigationItems(items);
   }, [items]);
 
   const groupedPhotos = useMemo(() => {

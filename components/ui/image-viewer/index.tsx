@@ -24,8 +24,10 @@ import {
 
 export interface ImageViewerNavigationItem {
   id: string
+  mediaType?: 'image' | 'video'
   src: string
   previewSrc?: string
+  videoSrc?: string
   alt: string
   title?: string
 }
@@ -34,6 +36,8 @@ interface ImageViewerProps {
   src: string
   alt: string
   previewSrc?: string
+  videoSrc?: string
+  mediaType?: 'image' | 'video'
   className?: string
   imgClassName?: string
   previewImageClassName?: string
@@ -46,6 +50,8 @@ export default function ImageViewer({
   src,
   alt,
   previewSrc,
+  videoSrc,
+  mediaType = 'image',
   className = '',
   imgClassName = '',
   previewImageClassName = '',
@@ -79,9 +85,13 @@ export default function ImageViewer({
 
   // Derive current display item
   const currentItem = navigationEnabled ? items[currentIndex] : null
+  const currentMediaType = currentItem?.mediaType || mediaType
   const fullScreenSrc = navigationEnabled && currentItem
     ? (currentItem.previewSrc || currentItem.src)
     : (previewSrc || src)
+  const fullScreenVideoSrc = navigationEnabled && currentItem
+    ? (currentItem.videoSrc || currentItem.previewSrc || currentItem.src)
+    : (videoSrc || previewSrc || src)
   const currentAlt = navigationEnabled && currentItem ? currentItem.alt : alt
   const currentTitle = navigationEnabled && currentItem
     ? (currentItem.title || currentItem.alt)
@@ -89,6 +99,7 @@ export default function ImageViewer({
 
   const hasPrev = navigationEnabled && currentIndex > 0
   const hasNext = navigationEnabled && currentIndex < items.length - 1
+  const isCurrentVideo = currentMediaType === 'video'
 
   const getFitZoomForSize = useCallback((size: { width: number; height: number }) => {
     if (typeof window === 'undefined') return clampImageViewerZoom(1)
@@ -123,14 +134,20 @@ export default function ImageViewer({
       const idx = emblaApi.selectedScrollSnap()
       if (idx !== currentIndex) {
         setCurrentIndex(idx)
+        const nextItem = navigableItems[idx]
+        if (nextItem.mediaType === 'video') {
+          setZoom(getImageViewerResetState().zoom)
+          setImageSize(null)
+        } else {
         // restore cached image size for this slide
-        const cached = imageSizeCacheRef.current.get(navigableItems[idx].id)
+        const cached = imageSizeCacheRef.current.get(nextItem.id)
         if (cached) {
           setImageSize(cached)
           setZoom(getFitZoomForSize(cached))
         } else {
           setZoom(getImageViewerResetState().zoom)
           setImageSize(null)
+        }
         }
         // reset scroll
         const slideNode = emblaApi.slideNodes()[idx]
@@ -253,6 +270,7 @@ export default function ImageViewer({
   // ---- Double-click: reset zoom ----
   const handleDoubleClick = useCallback(() => {
     const resetState = getImageViewerResetState()
+    if (isCurrentVideo) return
     setZoom(imageSize ? getFitZoomForSize(imageSize) : resetState.zoom)
     // reset scroll in all slide containers
     if (emblaApi) {
@@ -261,7 +279,7 @@ export default function ImageViewer({
         node.scrollTop = resetState.scrollTop
       })
     }
-  }, [emblaApi, getFitZoomForSize, imageSize])
+  }, [emblaApi, getFitZoomForSize, imageSize, isCurrentVideo])
 
   // ============================================================
   //  OVERLAY
@@ -308,6 +326,23 @@ export default function ImageViewer({
               <div className="h-full w-full overflow-hidden" ref={emblaRef}>
                 <div className="flex h-full">
                   {navigableItems!.map((item, idx) => (
+                    item.mediaType === 'video' ? (
+                      <div
+                        key={item.id}
+                        className="flex h-full w-full min-w-0 flex-shrink-0 items-center justify-center overflow-hidden bg-black/30"
+                      >
+                        <div className="flex h-full w-full items-center justify-center p-8">
+                          <video
+                            src={item.videoSrc || item.previewSrc || item.src}
+                            poster={item.src}
+                            controls
+                            playsInline
+                            preload="metadata"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                      </div>
+                    ) : (
                     <div
                       key={item.id}
                       className={`flex h-full w-full min-w-0 flex-shrink-0 items-center justify-center overflow-auto bg-black/30 ${
@@ -339,42 +374,56 @@ export default function ImageViewer({
                         />
                       </div>
                     </div>
+                    )
                   ))}
                 </div>
               </div>
             ) : (
-              /* ---- Single image (no navigation) ---- */
+              /* ---- Single media item (no navigation) ---- */
               <div
-                className={`flex h-full w-full items-center justify-center overflow-auto bg-black/30 shadow-2xl ${
+                className={`flex h-full w-full items-center justify-center ${isCurrentVideo ? 'overflow-hidden' : 'overflow-auto'} bg-black/30 shadow-2xl ${
                   isDragging ? 'cursor-grabbing' : 'cursor-grab'
                 }`}
                 style={{ touchAction: 'none' }}
-                onWheel={handleWheel}
-                onDoubleClick={handleDoubleClick}
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerCancel}
+                onWheel={isCurrentVideo ? undefined : handleWheel}
+                onDoubleClick={isCurrentVideo ? undefined : handleDoubleClick}
+                onPointerDown={isCurrentVideo ? undefined : handlePointerDown}
+                onPointerMove={isCurrentVideo ? undefined : handlePointerMove}
+                onPointerUp={isCurrentVideo ? undefined : handlePointerUp}
+                onPointerCancel={isCurrentVideo ? undefined : handlePointerCancel}
               >
                 <div className="flex min-h-full min-w-full items-center justify-center p-8">
-                  <img
-                    src={fullScreenSrc} alt={currentAlt}
-                    onLoad={handleImageLoad('_single')}
-                    className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
-                    style={imageSize ? {
-                      width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
-                      height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
-                    } : undefined}
-                    draggable={false}
-                  />
+                  {isCurrentVideo ? (
+                    <video
+                      src={fullScreenVideoSrc}
+                      poster={src}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={fullScreenSrc} alt={currentAlt}
+                      onLoad={handleImageLoad('_single')}
+                      className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
+                      style={imageSize ? {
+                        width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
+                        height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
+                      } : undefined}
+                      draggable={false}
+                    />
+                  )}
                 </div>
               </div>
             )}
 
             {/* Zoom badge */}
-            <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-xs text-gray-100 shadow-lg">
-              {formatImageViewerZoomLabel(zoom)}
-            </div>
+            {!isCurrentVideo && (
+              <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-xs text-gray-100 shadow-lg">
+                {formatImageViewerZoomLabel(zoom)}
+              </div>
+            )}
 
             {/* Info bar */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-xs text-gray-100 shadow-lg">
@@ -399,7 +448,7 @@ export default function ImageViewer({
         <span className="pointer-events-none absolute inset-0 transition-colors group-hover:bg-black/5 dark:group-hover:bg-white/5" />
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
           <span className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm dark:bg-black/55">
-            点击查看原图
+            {mediaType === 'video' ? '点击播放视频' : '点击查看原图'}
           </span>
         </span>
       </button>

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildImageViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
+import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 
-describe("buildImageViewerNavigationItems", () => {
-  it("keeps image items only and uses originals for GIF previews", () => {
-    const items = buildImageViewerNavigationItems([
+describe("buildMediaViewerNavigationItems", () => {
+  it("keeps images and videos with the right preview source for each media type", () => {
+    const items = buildMediaViewerNavigationItems([
       {
         id: "image-1",
         thumbnailUrl: "/thumb/image.jpg",
@@ -36,13 +36,23 @@ describe("buildImageViewerNavigationItems", () => {
     expect(items).toEqual([
       {
         id: "image-1",
+        mediaType: "image",
         src: "/thumb/image.jpg",
         previewSrc: "/preview/image.jpg",
         alt: "image.jpg",
         title: "image.jpg",
       },
       {
+        id: "video-1",
+        mediaType: "video",
+        src: "/thumb/video.jpg",
+        videoSrc: "/original/video.mp4",
+        alt: "video.mp4",
+        title: "video.mp4",
+      },
+      {
         id: "gif-1",
+        mediaType: "image",
         src: "/thumb/loop.gif",
         previewSrc: "/original/loop.gif",
         alt: "loop.gif",

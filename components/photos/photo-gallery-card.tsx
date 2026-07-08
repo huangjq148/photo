@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bookmark, Check, Clock, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
+import { Bookmark, Check, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
-import VideoViewer from "@/components/ui/video-viewer";
 
 export type PhotoGalleryCardItem = {
   id: string;
@@ -81,26 +80,17 @@ export function PhotoGalleryCard({
       }`}
     >
       <div className="overflow-hidden rounded-t-xl">
-        {isVideo ? (
-          <VideoViewer
-            src={photo.thumbnailUrl}
-            alt={photo.originalName}
-            videoSrc={photo.originalUrl}
-            duration={photo.duration ?? undefined}
-            imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
-            className="group/img block w-full"
-          />
-        ) : (
-          <ImageViewer
-            src={photo.thumbnailUrl}
-            alt={photo.originalName}
-            previewSrc={isGif ? photo.originalUrl : photo.previewUrl}
-            items={navigableItems}
-            initialItemId={photo.id}
-            imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
-            className="group/img block w-full"
-          />
-        )}
+        <ImageViewer
+          src={photo.thumbnailUrl}
+          alt={photo.originalName}
+          {...(isVideo
+            ? { videoSrc: photo.originalUrl, mediaType: "video" as const }
+            : { previewSrc: isGif ? photo.originalUrl : photo.previewUrl })}
+          items={navigableItems}
+          initialItemId={photo.id}
+          imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+          className="group/img block w-full"
+        />
       </div>
 
       {/* Media info overlay */}

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ImageViewer from "@/components/ui/image-viewer";
-import VideoViewer from "@/components/ui/video-viewer";
-import { buildImageViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
+import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 
 type FavoriteItem = {
   id: string;
@@ -82,11 +81,13 @@ export function FavoritesGallery() {
       {items.map((photo) => (
         <article key={photo.id} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30">
           {photo.mediaType === "video" || photo.mimeType.startsWith("video/") ? (
-            <VideoViewer
+            <ImageViewer
               src={photo.thumbnailUrl}
               alt={photo.originalName}
               videoSrc={photo.originalUrl}
-              duration={photo.duration ?? undefined}
+              mediaType="video"
+              items={buildMediaViewerNavigationItems(items)}
+              initialItemId={photo.id}
               imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
               className="group/img block w-full"
             />
@@ -95,7 +96,7 @@ export function FavoritesGallery() {
               src={photo.thumbnailUrl}
               alt={photo.originalName}
               previewSrc={photo.mimeType === "image/gif" ? photo.originalUrl : photo.previewUrl}
-              items={buildImageViewerNavigationItems(items)}
+              items={buildMediaViewerNavigationItems(items)}
               initialItemId={photo.id}
               imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
               className="group/img block w-full"
