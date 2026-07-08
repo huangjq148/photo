@@ -43,6 +43,11 @@ enum PhotoStatus {
   deleted
 }
 
+enum MediaType {
+  image
+  video
+}
+
 model User {
   id            String   @id @default(uuid()) @db.Uuid
   email         String   @unique
@@ -54,8 +59,8 @@ model User {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  uploads          Photo[]         @relation("PhotoUploader")
-  deletedPhotos    Photo[]         @relation("PhotoDeletedBy")
+  uploads          Media[]         @relation("MediaUploader")
+  deletedMedia     Media[]         @relation("MediaDeletedBy")
   createdAlbums    Album[]         @relation("AlbumCreator")
   favorites        Favorite[]
   albumPhotosAdded AlbumPhoto[]
@@ -132,8 +137,8 @@ model Album {
   updated_at     DateTime    @updatedAt
 
   creator        User         @relation("AlbumCreator", fields: [creator_id], references: [id], onDelete: Cascade)
-  coverPhoto     Photo?       @relation("AlbumCoverPhoto", fields: [cover_photo_id], references: [id], onDelete: SetNull)
-  ownedPhotos    Photo[]
+  coverPhoto     Media?       @relation("AlbumCoverPhoto", fields: [cover_photo_id], references: [id], onDelete: SetNull)
+  ownedMedia     Media[]
   photos         AlbumPhoto[]
   members        AlbumMember[]
   invites        AlbumInvite[]
@@ -174,13 +179,15 @@ model AlbumInvite {
   @@index([album_id, email, status])
 }
 
-model Photo {
+model Media {
   id                String                @id @default(uuid()) @db.Uuid
   album_id          String                @db.Uuid
   uploader_id       String                @db.Uuid
   original_name     String
   file_name         String
   mime_type         String
+  media_type        MediaType             @default(image)
+  duration_seconds  Float?
   size              BigInt
   width             Int
   height            Int
@@ -201,8 +208,8 @@ model Photo {
   updated_at        DateTime              @updatedAt
 
   album             Album                 @relation(fields: [album_id], references: [id], onDelete: Cascade)
-  uploader          User                  @relation("PhotoUploader", fields: [uploader_id], references: [id], onDelete: Cascade)
-  deletedBy         User?                 @relation("PhotoDeletedBy", fields: [deleted_by], references: [id], onDelete: SetNull)
+  uploader          User                  @relation("MediaUploader", fields: [uploader_id], references: [id], onDelete: Cascade)
+  deletedBy         User?                 @relation("MediaDeletedBy", fields: [deleted_by], references: [id], onDelete: SetNull)
   coverForAlbums    Album[]               @relation("AlbumCoverPhoto")
   albumPhotos       AlbumPhoto[]
   favorites         Favorite[]
@@ -222,7 +229,7 @@ model AlbumPhoto {
   added_at   DateTime @default(now())
 
   album      Album    @relation(fields: [album_id], references: [id], onDelete: Cascade)
-  photo      Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  media      Media    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
   addedBy    User     @relation(fields: [added_by], references: [id], onDelete: Cascade)
 
   @@unique([album_id, photo_id])
@@ -236,7 +243,7 @@ model Favorite {
   created_at DateTime @default(now())
 
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  photo      Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  media      Media    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, photo_id])
 }
@@ -250,7 +257,7 @@ model PhotoShare {
   expires_at DateTime?
   revoked_at DateTime?
 
-  photo      Photo    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
+  media      Media    @relation(fields: [photo_id], references: [id], onDelete: Cascade)
   creator    User     @relation("ShareCreator", fields: [created_by], references: [id], onDelete: Cascade)
 
   @@index([photo_id, revoked_at])
