@@ -69,6 +69,7 @@ export function PhotoGalleryCard({
 }: PhotoGalleryCardProps) {
   const [showInfo, setShowInfo] = useState(false);
   const isVideo = photo.mediaType === "video" || photo.mimeType.startsWith("video/");
+  const isGif = photo.mimeType === "image/gif";
 
   return (
     <article
@@ -90,7 +91,7 @@ export function PhotoGalleryCard({
           <ImageViewer
             src={photo.thumbnailUrl}
             alt={photo.originalName}
-            previewSrc={photo.previewUrl}
+            previewSrc={isGif ? photo.originalUrl : photo.previewUrl}
             imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
             className="group/img block w-full"
           />

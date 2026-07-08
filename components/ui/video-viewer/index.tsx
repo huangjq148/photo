@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Play, X } from 'lucide-react'
+import { Maximize, Minimize, Play, X } from 'lucide-react'
 
 interface VideoViewerProps {
   src: string
@@ -31,7 +31,9 @@ export default function VideoViewer({
   const [open, setOpen] = useState(false)
   const [hover, setHover] = useState(false)
   const [previewLoaded, setPreviewLoaded] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const handleMouseEnter = () => {
     hoverTimer.current = setTimeout(() => setHover(true), 300)
@@ -43,12 +45,35 @@ export default function VideoViewer({
     setPreviewLoaded(false)
   }
 
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return
+
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().then(() => setFullscreen(true)).catch(() => {})
+    } else {
+      document.exitFullscreen().then(() => setFullscreen(false)).catch(() => {})
+    }
+  }
+
+  // Listen for native fullscreen changes
+  useEffect(() => {
+    const handler = () => setFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
+
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {})
+        } else {
+          setOpen(false)
+        }
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => {
@@ -61,28 +86,53 @@ export default function VideoViewer({
     open && typeof document !== 'undefined'
       ? createPortal(
           <div
+            ref={containerRef}
             role="dialog"
             aria-modal="true"
             aria-label={`播放视频：${alt}`}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setOpen(false)
-            }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black"
           >
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg transition hover:bg-black/80"
-              aria-label="关闭"
-            >
-              <X size={20} />
-            </button>
+            {/* Top toolbar */}
+            <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-4 py-3 opacity-0 transition-opacity hover:opacity-100">
+              <p className="truncate pr-4 text-sm font-medium text-white/90">{alt}</p>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label={fullscreen ? '退出全屏' : '全屏'}
+                >
+                  {fullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white"
+                  aria-label="关闭"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Video */}
             <video
               src={videoSrc}
               controls
               autoPlay
-              className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+              className="max-h-full max-w-full object-contain"
               onClick={(e) => e.stopPropagation()}
+            />
+
+            {/* Click background to close */}
+            <div
+              className="absolute inset-0 -z-10 cursor-pointer"
+              onClick={() => {
+                if (document.fullscreenElement) {
+                  document.exitFullscreen().catch(() => {})
+                }
+                setOpen(false)
+              }}
             />
           </div>,
           document.body,

@@ -93,7 +93,7 @@ export function FavoritesGallery() {
             <ImageViewer
               src={photo.thumbnailUrl}
               alt={photo.originalName}
-              previewSrc={photo.previewUrl}
+              previewSrc={photo.mimeType === "image/gif" ? photo.originalUrl : photo.previewUrl}
               imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
               className="group/img block w-full"
             />

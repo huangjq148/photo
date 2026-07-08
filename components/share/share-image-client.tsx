@@ -29,11 +29,13 @@ export function ShareImageClient({ thumbnailUrl, previewUrl, originalUrl, origin
     );
   }
 
+  const isGif = mimeType === "image/gif";
+
   return (
     <ImageViewer
       src={thumbnailUrl}
       alt={originalName}
-      previewSrc={previewUrl}
+      previewSrc={isGif ? originalUrl : previewUrl}
       imgClassName="h-[68vh] min-h-80 w-full object-cover"
       className="group/img block w-full"
       title={originalName}

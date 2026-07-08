@@ -13,6 +13,7 @@ export const SUPPORTED_IMAGE_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/gif",
 ]);
 
 export const SUPPORTED_VIDEO_TYPES = new Set([
@@ -22,7 +23,7 @@ export const SUPPORTED_VIDEO_TYPES = new Set([
 ]);
 
 export const SUPPORTED_MIME_TYPES = new Set([
-  "image/jpeg", "image/png", "image/webp",
+  "image/jpeg", "image/png", "image/webp", "image/gif",
   "video/mp4", "video/webm", "video/quicktime",
 ]);
 
@@ -39,6 +40,8 @@ export function mimeToExtension(mimeType: string): string {
       return ".png";
     case "image/webp":
       return ".webp";
+    case "image/gif":
+      return ".gif";
     case "video/mp4":
       return ".mp4";
     case "video/webm":
