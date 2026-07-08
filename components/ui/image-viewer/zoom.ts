@@ -1,4 +1,4 @@
-export const IMAGE_VIEWER_ZOOM_MIN = 0.25
+export const IMAGE_VIEWER_ZOOM_MIN = 0.01
 export const IMAGE_VIEWER_ZOOM_MAX = 5
 export const IMAGE_VIEWER_ZOOM_FACTOR = 1.12
 

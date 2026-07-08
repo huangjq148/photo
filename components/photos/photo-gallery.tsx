@@ -6,6 +6,7 @@ import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
 import { useMessage } from "@/components/ui/message";
 import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
+import { buildImageViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 
 type PhotoItem = {
   id: string;
@@ -256,13 +257,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
 
   // Build navigation items for fullscreen prev/next switching
   const navigableItems = useMemo<ImageViewerNavigationItem[]>(() => {
-    return items.map((photo) => ({
-      id: photo.id,
-      src: photo.thumbnailUrl,
-      previewSrc: photo.mimeType === "image/gif" ? photo.originalUrl : photo.previewUrl,
-      alt: photo.originalName,
-      title: photo.originalName,
-    }));
+    return buildImageViewerNavigationItems(items);
   }, [items]);
 
   const groupedPhotos = useMemo(() => {

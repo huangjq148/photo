@@ -58,8 +58,9 @@ export default function ImageViewer({
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [emblaStartIndex, setEmblaStartIndex] = useState(0)
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false }, [])
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, startIndex: emblaStartIndex }, [])
 
   const initIndexRef = useRef(0)
   const imageSizeCacheRef = useRef<Map<string, { width: number; height: number }>>(new Map())
@@ -89,11 +90,21 @@ export default function ImageViewer({
   const hasPrev = navigationEnabled && currentIndex > 0
   const hasNext = navigationEnabled && currentIndex < items.length - 1
 
+  const getFitZoomForSize = useCallback((size: { width: number; height: number }) => {
+    if (typeof window === 'undefined') return clampImageViewerZoom(1)
+    return getImageViewerFitZoom({
+      imageWidth: size.width,
+      imageHeight: size.height,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    })
+  }, [])
+
   // ---- Scroll embla to initial index after open ----
   useEffect(() => {
-    if (!emblaApi || !open || initIndexRef.current <= 0) return
+    if (!emblaApi || !open) return
     const raf = requestAnimationFrame(() => {
-      emblaApi.scrollTo(initIndexRef.current, false)
+      emblaApi.scrollTo(initIndexRef.current, true)
     })
     return () => cancelAnimationFrame(raf)
   }, [emblaApi, open])
@@ -116,9 +127,9 @@ export default function ImageViewer({
         const cached = imageSizeCacheRef.current.get(navigableItems[idx].id)
         if (cached) {
           setImageSize(cached)
-          setZoom(1)
+          setZoom(getFitZoomForSize(cached))
         } else {
-          setZoom(1)
+          setZoom(getImageViewerResetState().zoom)
           setImageSize(null)
         }
         // reset scroll
@@ -128,7 +139,7 @@ export default function ImageViewer({
     }
     emblaApi.on('select', onSelect)
     return () => { emblaApi.off('select', onSelect) }
-  }, [emblaApi, currentIndex, navigableItems])
+  }, [emblaApi, currentIndex, getFitZoomForSize, navigableItems])
 
   // ---- Keyboard ----
   useEffect(() => {
@@ -158,20 +169,14 @@ export default function ImageViewer({
   }, [])
 
   // ---- Image load (computes fit zoom & caches size) ----
-  const handleImageLoad = useCallback((itemId: string) => (event: SyntheticEvent<HTMLImageElement>) => {
+  const handleImageLoad = useCallback((itemId: string, active = true) => (event: SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget
     const nextSize = { width: image.naturalWidth || image.width, height: image.naturalHeight || image.height }
     imageSizeCacheRef.current.set(itemId, nextSize)
+    if (!active) return
     setImageSize(nextSize)
-    if (typeof window !== 'undefined') {
-      setZoom(getImageViewerFitZoom({
-        imageWidth: nextSize.width, imageHeight: nextSize.height,
-        viewportWidth: window.innerWidth, viewportHeight: window.innerHeight,
-      }))
-    } else {
-      setZoom((c) => clampImageViewerZoom(c))
-    }
-  }, [])
+    setZoom(getFitZoomForSize(nextSize))
+  }, [getFitZoomForSize])
 
   // ---- Open viewer ----
   const openViewer = useCallback(() => {
@@ -188,6 +193,7 @@ export default function ImageViewer({
       if (idx >= 0) initialIdx = idx
     }
     initIndexRef.current = initialIdx
+    setEmblaStartIndex(initialIdx)
     setCurrentIndex(initialIdx)
     setOpen(true)
   }, [navigationEnabled, initialItemId, items])
@@ -247,7 +253,7 @@ export default function ImageViewer({
   // ---- Double-click: reset zoom ----
   const handleDoubleClick = useCallback(() => {
     const resetState = getImageViewerResetState()
-    setZoom(resetState.zoom)
+    setZoom(imageSize ? getFitZoomForSize(imageSize) : resetState.zoom)
     // reset scroll in all slide containers
     if (emblaApi) {
       emblaApi.slideNodes().forEach((node) => {
@@ -255,7 +261,7 @@ export default function ImageViewer({
         node.scrollTop = resetState.scrollTop
       })
     }
-  }, [emblaApi])
+  }, [emblaApi, getFitZoomForSize, imageSize])
 
   // ============================================================
   //  OVERLAY
@@ -319,7 +325,7 @@ export default function ImageViewer({
                         <img
                           src={item.previewSrc || item.src}
                           alt={item.alt}
-                          onLoad={idx === currentIndex ? handleImageLoad(item.id) : undefined}
+                          onLoad={handleImageLoad(item.id, idx === currentIndex)}
                           className={
                             idx === currentIndex
                               ? `${getImageViewerImageClasses()} ${previewImageClassName}`
