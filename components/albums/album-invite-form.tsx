@@ -63,7 +63,7 @@ export function AlbumInviteForm({ albumId, onRefresh }: AlbumInviteFormProps) {
             disabled={sending || !email.trim()}
             className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {sending ? "添加中..." : "添加成员"}
+            {sending ? "添加中..." : "添加"}
           </button>
         </div>
         <p className="text-xs text-[var(--muted)]">仅支持添加已经注册的用户。</p>

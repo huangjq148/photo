@@ -12,6 +12,7 @@ type PhotoGalleryFloatToolsProps = {
   onPhotoSizeChange: (value: PhotoSize) => void;
   layoutMode: "grid" | "waterfall";
   onLayoutModeChange: (value: "grid" | "waterfall") => void;
+  groupMode: "none" | "month" | "year";
 };
 
 export function PhotoGalleryFloatTools({
@@ -21,6 +22,7 @@ export function PhotoGalleryFloatTools({
   onPhotoSizeChange,
   layoutMode,
   onLayoutModeChange,
+  groupMode,
 }: PhotoGalleryFloatToolsProps) {
   const [visible, setVisible] = useState(false);
   const [open, setOpen] = useState(false);
@@ -80,6 +82,7 @@ export function PhotoGalleryFloatTools({
         onPhotoSizeChange={onPhotoSizeChange}
         layoutMode={layoutMode}
         onLayoutModeChange={onLayoutModeChange}
+        groupMode={groupMode}
         onClose={() => setOpen(false)}
       />
     </>

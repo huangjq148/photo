@@ -12,6 +12,7 @@ type PhotoGalleryControlsModalProps = {
   onPhotoSizeChange: (value: PhotoSize) => void;
   layoutMode: "grid" | "waterfall";
   onLayoutModeChange: (value: "grid" | "waterfall") => void;
+  groupMode: "none" | "month" | "year";
   onClose: () => void;
 };
 
@@ -23,8 +24,10 @@ export function PhotoGalleryControlsModal({
   onPhotoSizeChange,
   layoutMode,
   onLayoutModeChange,
+  groupMode,
   onClose,
 }: PhotoGalleryControlsModalProps) {
+  const isGrouped = groupMode !== "none";
   return (
     <Modal open={open} title="照片操作" size="sm" onClose={onClose}>
       <div className="space-y-3">
@@ -59,6 +62,7 @@ export function PhotoGalleryControlsModal({
           </div>
         </section>
 
+        {!isGrouped ? (
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/70 p-4">
           <p className="text-sm font-medium text-[var(--text)]">排列方式</p>
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -88,6 +92,7 @@ export function PhotoGalleryControlsModal({
           </button>
         </div>
         </section>
+        ) : null}
       </div>
     </Modal>
   );

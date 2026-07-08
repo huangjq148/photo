@@ -6,7 +6,7 @@ import { AlbumInviteForm } from "@/components/albums/album-invite-form";
 import { AlbumMembers } from "@/components/albums/album-members";
 import { PhotoUploadForm } from "@/components/upload/photo-upload-form";
 
-type ManageTab = "details" | "upload" | "members" | "invites";
+type ManageTab = "details" | "upload" | "members";
 
 type ManageAlbum = {
   name: string;
@@ -36,8 +36,7 @@ type AlbumManagementModalProps = {
 const tabs: { id: ManageTab; label: string }[] = [
   { id: "details", label: "编辑资料" },
   { id: "upload", label: "上传照片" },
-  { id: "members", label: "成员" },
-  { id: "invites", label: "添加成员" },
+  { id: "members", label: "成员管理" },
 ];
 
 export function AlbumManagementModal({
@@ -149,11 +148,10 @@ export function AlbumManagementModal({
         ) : null}
 
         {activeTab === "members" ? (
-          <AlbumMembers albumId={albumId} currentUserId={currentUserId} currentRole={album.role} onRefresh={onRefresh} />
-        ) : null}
-
-        {activeTab === "invites" ? (
-          <AlbumInviteForm albumId={albumId} onRefresh={onRefresh} />
+          <div className="space-y-5">
+            <AlbumInviteForm albumId={albumId} onRefresh={onRefresh} />
+            <AlbumMembers albumId={albumId} currentUserId={currentUserId} currentRole={album.role} onRefresh={onRefresh} />
+          </div>
         ) : null}
       </div>
     </Modal>
