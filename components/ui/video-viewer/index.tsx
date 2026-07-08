@@ -93,7 +93,7 @@ export default function VideoViewer({
             className="fixed inset-0 z-50 flex items-center justify-center bg-black"
           >
             {/* Top toolbar */}
-            <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-4 py-3 opacity-0 transition-opacity hover:opacity-100">
+            <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 py-3">
               <p className="truncate pr-4 text-sm font-medium text-white/90">{alt}</p>
               <div className="flex shrink-0 items-center gap-1">
                 <button
