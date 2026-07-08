@@ -62,6 +62,7 @@ export default function ImageViewer({
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false }, [])
 
   const initIndexRef = useRef(0)
+  const imageSizeCacheRef = useRef<Map<string, { width: number; height: number }>>(new Map())
 
   const dragRef = useRef<{
     pointerId: number
@@ -106,19 +107,28 @@ export default function ImageViewer({
 
   // ---- Track embla slide change ----
   useEffect(() => {
-    if (!emblaApi) return
+    if (!emblaApi || !navigableItems) return
     const onSelect = () => {
       const idx = emblaApi.selectedScrollSnap()
       if (idx !== currentIndex) {
         setCurrentIndex(idx)
-        // reset zoom when switching slides
-        setZoom(1)
-        setImageSize(null)
+        // restore cached image size for this slide
+        const cached = imageSizeCacheRef.current.get(navigableItems[idx].id)
+        if (cached) {
+          setImageSize(cached)
+          setZoom(1)
+        } else {
+          setZoom(1)
+          setImageSize(null)
+        }
+        // reset scroll
+        const slideNode = emblaApi.slideNodes()[idx]
+        if (slideNode) { slideNode.scrollLeft = 0; slideNode.scrollTop = 0 }
       }
     }
     emblaApi.on('select', onSelect)
     return () => { emblaApi.off('select', onSelect) }
-  }, [emblaApi, currentIndex])
+  }, [emblaApi, currentIndex, navigableItems])
 
   // ---- Keyboard ----
   useEffect(() => {
@@ -147,10 +157,11 @@ export default function ImageViewer({
     setZoom((current) => getNextImageViewerZoom(current, event.deltaY))
   }, [])
 
-  // ---- Image load (computes fit zoom) ----
-  const handleImageLoad = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
+  // ---- Image load (computes fit zoom & caches size) ----
+  const handleImageLoad = useCallback((itemId: string) => (event: SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget
     const nextSize = { width: image.naturalWidth || image.width, height: image.naturalHeight || image.height }
+    imageSizeCacheRef.current.set(itemId, nextSize)
     setImageSize(nextSize)
     if (typeof window !== 'undefined') {
       setZoom(getImageViewerFitZoom({
@@ -168,6 +179,7 @@ export default function ImageViewer({
     setZoom(resetState.zoom)
     setImageSize(null)
     setIsDragging(false)
+    imageSizeCacheRef.current.clear()
     dragRef.current = null
 
     let initialIdx = 0
@@ -307,11 +319,11 @@ export default function ImageViewer({
                         <img
                           src={item.previewSrc || item.src}
                           alt={item.alt}
-                          onLoad={idx === currentIndex ? handleImageLoad : undefined}
+                          onLoad={idx === currentIndex ? handleImageLoad(item.id) : undefined}
                           className={
                             idx === currentIndex
                               ? `${getImageViewerImageClasses()} ${previewImageClassName}`
-                              : `h-full w-full object-contain ${previewImageClassName}`
+                              : `max-h-full max-w-full object-contain ${previewImageClassName}`
                           }
                           style={idx === currentIndex && imageSize ? {
                             width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
@@ -340,7 +352,8 @@ export default function ImageViewer({
               >
                 <div className="flex min-h-full min-w-full items-center justify-center p-8">
                   <img
-                    src={fullScreenSrc} alt={currentAlt} onLoad={handleImageLoad}
+                    src={fullScreenSrc} alt={currentAlt}
+                    onLoad={handleImageLoad('_single')}
                     className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
                     style={imageSize ? {
                       width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
