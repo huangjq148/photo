@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getAppEnv } from "@/lib/config";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
-import { uploadPhotoToAlbum } from "@/lib/photos/upload";
+import { uploadPhotoToAlbum } from "@/lib/media/upload";
 import { getUserDefaultAlbumId } from "@/lib/albums/library";
 import { addPhotosToAlbum } from "@/lib/albums/library";
 
