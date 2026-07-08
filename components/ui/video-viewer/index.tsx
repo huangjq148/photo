@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Maximize, Minimize, Play, X } from 'lucide-react'
+import { Expand, Maximize, Minimize, Play, X } from 'lucide-react'
 
 interface VideoViewerProps {
   src: string
@@ -32,6 +32,7 @@ export default function VideoViewer({
   const [hover, setHover] = useState(false)
   const [previewLoaded, setPreviewLoaded] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [browserFullscreen, setBrowserFullscreen] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -55,6 +56,11 @@ export default function VideoViewer({
     } else {
       document.exitFullscreen().then(() => setFullscreen(false)).catch(() => {})
     }
+  }
+
+  const toggleBrowserFullscreen = () => {
+    setBrowserFullscreen((prev) => !prev)
+    resetControlsTimer()
   }
 
   // Auto-hide controls after inactivity
@@ -119,6 +125,17 @@ export default function VideoViewer({
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
+                  onClick={toggleBrowserFullscreen}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition ${
+                    browserFullscreen ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white'
+                  }`}
+                  aria-label={browserFullscreen ? '退出浏览器全屏' : '浏览器全屏'}
+                  title={browserFullscreen ? '退出浏览器全屏' : '浏览器全屏'}
+                >
+                  <Expand size={18} />
+                </button>
+                <button
+                  type="button"
                   onClick={toggleFullscreen}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white"
                   aria-label={fullscreen ? '退出显示器全屏' : '显示器全屏'}
@@ -142,12 +159,21 @@ export default function VideoViewer({
               </div>
             </div>
 
-            {/* Video — fills entire viewport */}
+            {/* Video */}
             <video
               src={videoSrc}
               controls
               autoPlay
-              className={`max-h-full max-w-full object-contain ${showControls ? '' : 'cursor-none'}`}
+              className={`max-h-full max-w-full ${showControls ? '' : 'cursor-none'}`}
+              style={{
+                objectFit: browserFullscreen ? 'contain' : 'contain',
+                width: browserFullscreen ? '100vw' : undefined,
+                height: browserFullscreen ? '100vh' : undefined,
+                position: browserFullscreen ? 'fixed' : undefined,
+                top: browserFullscreen ? 0 : undefined,
+                left: browserFullscreen ? 0 : undefined,
+                zIndex: browserFullscreen ? 60 : undefined,
+              }}
               onClick={(e) => {
                 e.stopPropagation()
                 resetControlsTimer()
