@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent, SyntheticEvent, WheelEvent } from 'react'
 import { createPortal } from 'react-dom'
+import useEmblaCarousel from 'embla-carousel-react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import {
   getImageViewerContentClasses,
@@ -41,9 +42,6 @@ interface ImageViewerProps {
   initialItemId?: string
 }
 
-/** 滑动切换阈值：占屏幕宽度的比例 */
-const SWIPE_COMMIT_RATIO = 0.25
-
 export default function ImageViewer({
   src,
   alt,
@@ -60,26 +58,20 @@ export default function ImageViewer({
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [hasNavigated, setHasNavigated] = useState(false)
 
-  // Swipe carousel
-  const [isSwiping, setIsSwiping] = useState(false)
-  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false }, [])
 
-  const scrollRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{
     pointerId: number
     startX: number
     startY: number
     startScrollLeft: number
     startScrollTop: number
-    startTime: number
-    swipeStarted: boolean
+    el: HTMLDivElement
   } | null>(null)
-  const committedRef = useRef(false)
-  const vwRef = useRef(typeof window !== 'undefined' ? window.innerWidth : 800)
 
   const navigationEnabled = !!(items && items.length > 1)
+  const navigableItems = navigationEnabled ? items : null
 
   // Derive current display item
   const currentItem = navigationEnabled ? items[currentIndex] : null
@@ -94,55 +86,30 @@ export default function ImageViewer({
   const hasPrev = navigationEnabled && currentIndex > 0
   const hasNext = navigationEnabled && currentIndex < items.length - 1
 
-  // Adjacent image sources
-  const prevSrc = navigationEnabled && hasPrev
-    ? (items[currentIndex - 1].previewSrc || items[currentIndex - 1].src)
-    : null
-  const nextSrc = navigationEnabled && hasNext
-    ? (items[currentIndex + 1].previewSrc || items[currentIndex + 1].src)
-    : null
-
-  const canSwipe = navigationEnabled && zoom <= 1.05
-
-  const vw = vwRef.current
-
-  // Strip default position: -vw so the 2nd slot (current) is visible
-  const stripTranslateX = -vw + swipeOffset
-
-  // ----- Navigate (keyboard / arrow buttons) -----
-  const navigateTo = useCallback((index: number) => {
-    if (!navigationEnabled || index < 0 || index >= items.length) return
-    setCurrentIndex(index)
-    setHasNavigated(true)
-    setZoom(1)
-    setImageSize(null)
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = 0
-      scrollRef.current.scrollTop = 0
+  // ---- Sync embla with zoom state ----
+  useEffect(() => {
+    if (emblaApi && open) {
+      emblaApi.reInit({ watchDrag: zoom <= 1.05 })
     }
-  }, [navigationEnabled, items])
+  }, [zoom, emblaApi, open])
 
-  // Commit swipe: animate strip to target slot, then switch
-  const commitSwipe = useCallback((direction: 1 | -1) => {
-    if (committedRef.current) return
-    committedRef.current = true
-    setIsSwiping(false)
-    setSwipeOffset(direction * vw)
+  // ---- Track embla slide change ----
+  useEffect(() => {
+    if (!emblaApi) return
+    const onSelect = () => {
+      const idx = emblaApi.selectedScrollSnap()
+      if (idx !== currentIndex) {
+        setCurrentIndex(idx)
+        // reset zoom when switching slides
+        setZoom(1)
+        setImageSize(null)
+      }
+    }
+    emblaApi.on('select', onSelect)
+    return () => { emblaApi.off('select', onSelect) }
+  }, [emblaApi, currentIndex])
 
-    setTimeout(() => {
-      const newIdx = direction < 0 ? currentIndex + 1 : currentIndex - 1
-      navigateTo(newIdx)
-      setSwipeOffset(0)
-      committedRef.current = false
-    }, 300)
-  }, [navigateTo, currentIndex, vw])
-
-  const snapBack = useCallback(() => {
-    setIsSwiping(false)
-    setSwipeOffset(0)
-  }, [])
-
-  // ----- Keyboard -----
+  // ---- Keyboard ----
   useEffect(() => {
     if (!open || typeof document === 'undefined') return
 
@@ -151,9 +118,9 @@ export default function ImageViewer({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { setOpen(false); return }
-      if (!navigationEnabled || committedRef.current) return
-      if (event.key === 'ArrowLeft' && hasPrev) { event.preventDefault(); commitSwipe(1) }
-      if (event.key === 'ArrowRight' && hasNext) { event.preventDefault(); commitSwipe(-1) }
+      if (!navigationEnabled || !emblaApi) return
+      if (event.key === 'ArrowLeft') { event.preventDefault(); emblaApi.scrollPrev() }
+      if (event.key === 'ArrowRight') { event.preventDefault(); emblaApi.scrollNext() }
     }
 
     document.addEventListener('keydown', handleKeyDown)
@@ -161,16 +128,16 @@ export default function ImageViewer({
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open, navigationEnabled, hasPrev, hasNext, commitSwipe])
+  }, [open, navigationEnabled, emblaApi])
 
-  // ----- Wheel zoom -----
-  const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
+  // ---- Wheel zoom ----
+  const handleWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault()
     setZoom((current) => getNextImageViewerZoom(current, event.deltaY))
-  }
+  }, [])
 
-  // ----- Image load -----
-  const handleImageLoad = (event: SyntheticEvent<HTMLImageElement>) => {
+  // ---- Image load (computes fit zoom) ----
+  const handleImageLoad = useCallback((event: SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget
     const nextSize = { width: image.naturalWidth || image.width, height: image.naturalHeight || image.height }
     setImageSize(nextSize)
@@ -182,131 +149,94 @@ export default function ImageViewer({
     } else {
       setZoom((c) => clampImageViewerZoom(c))
     }
-  }
+  }, [])
 
-  // ----- Open -----
-  const openViewer = () => {
+  // ---- Open viewer ----
+  const openViewer = useCallback(() => {
     const resetState = getImageViewerResetState()
     setZoom(resetState.zoom)
     setImageSize(null)
     setIsDragging(false)
-    setIsSwiping(false)
-    setSwipeOffset(0)
-    committedRef.current = false
     dragRef.current = null
-    setHasNavigated(false)
+
+    let initialIdx = 0
     if (navigationEnabled && initialItemId) {
       const idx = items.findIndex((item) => item.id === initialItemId)
-      setCurrentIndex(idx >= 0 ? idx : 0)
-    } else {
-      setCurrentIndex(0)
+      if (idx >= 0) initialIdx = idx
     }
-    setOpen(true)
-  }
+    setCurrentIndex(initialIdx)
 
-  // ----- Pointer: down -----
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || committedRef.current) return
-    const container = scrollRef.current
-    if (!container) return
+    setOpen(true)
+    // Scroll embla to initial slide after render
+    requestAnimationFrame(() => {
+      if (emblaApi) emblaApi.scrollTo(initialIdx, false)
+    })
+  }, [navigationEnabled, initialItemId, items, emblaApi])
+
+  // ---- Pointer: down (pan within a zoomed image) ----
+  const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return
+    const el = event.currentTarget
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      startScrollLeft: container.scrollLeft,
-      startScrollTop: container.scrollTop,
-      startTime: Date.now(),
-      swipeStarted: false,
+      startScrollLeft: el.scrollLeft,
+      startScrollTop: el.scrollTop,
+      el,
     }
-  }
+    setIsDragging(true)
+    el.setPointerCapture(event.pointerId)
+  }, [])
 
-  // ----- Pointer: move -----
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+  // ---- Pointer: move (pan) ----
+  const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
+    event.preventDefault()
 
-    const dx = event.clientX - drag.startX
-    const dy = event.clientY - drag.startY
-    const absDx = Math.abs(dx)
-    const absDy = Math.abs(dy)
+    const nextScroll = getImageViewerDragScrollPosition({
+      startScrollLeft: drag.startScrollLeft,
+      startScrollTop: drag.startScrollTop,
+      deltaX: event.clientX - drag.startX,
+      deltaY: event.clientY - drag.startY,
+    })
+    drag.el.scrollLeft = nextScroll.scrollLeft
+    drag.el.scrollTop = nextScroll.scrollTop
+  }, [])
 
-    // First significant move — decide swipe vs drag
-    if (!isSwiping && !isDragging && !drag.swipeStarted) {
-      if (absDx > 5 && absDx > absDy && canSwipe) {
-        drag.swipeStarted = true
-        setIsSwiping(true)
-        if (scrollRef.current) scrollRef.current.setPointerCapture(event.pointerId)
-        event.preventDefault()
-        setSwipeOffset(dx)
-        return
-      }
-      if (absDx > 3 || absDy > 3) {
-        setIsDragging(true)
-        if (scrollRef.current) scrollRef.current.setPointerCapture(event.pointerId)
-      }
-    }
-
-    if (isSwiping) {
-      event.preventDefault()
-      setSwipeOffset(dx)
-      return
-    }
-
-    if (isDragging) {
-      event.preventDefault()
-      const container = scrollRef.current
-      if (!container) return
-      const nextScroll = getImageViewerDragScrollPosition({
-        startScrollLeft: drag.startScrollLeft, startScrollTop: drag.startScrollTop,
-        deltaX: dx, deltaY: dy,
-      })
-      container.scrollLeft = nextScroll.scrollLeft
-      container.scrollTop = nextScroll.scrollTop
-    }
-  }
-
-  // ----- Pointer: up -----
-  const endPointer = (pointerId: number) => {
-    const container = scrollRef.current
+  // ---- Pointer: up / cancel ----
+  const endDrag = useCallback((pointerId: number) => {
     const drag = dragRef.current
-    if (container && drag && drag.pointerId === pointerId) {
-      try { container.releasePointerCapture(pointerId) } catch { /* ok */ }
+    if (drag && drag.pointerId === pointerId) {
+      try { drag.el.releasePointerCapture(pointerId) } catch { /* ok */ }
     }
-
-    if (isSwiping && drag) {
-      const dx = swipeOffset
-      const absDx = Math.abs(dx)
-      const elapsed = Date.now() - drag.startTime || 1
-      const threshold = vw * SWIPE_COMMIT_RATIO
-
-      if ((absDx > threshold || (absDx / elapsed > 0.5 && absDx > 30))) {
-        if (dx > 0 && hasPrev) { commitSwipe(1); dragRef.current = null; setIsDragging(false); setIsSwiping(false); return }
-        if (dx < 0 && hasNext) { commitSwipe(-1); dragRef.current = null; setIsDragging(false); setIsSwiping(false); return }
-      }
-      snapBack()
-    }
-
     dragRef.current = null
     setIsDragging(false)
-    setIsSwiping(false)
-  }
+  }, [])
 
-  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerUp = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.pointerId !== event.pointerId) return
-    endPointer(event.pointerId)
-  }
+    endDrag(event.pointerId)
+  }, [endDrag])
 
-  const handlePointerCancel = (event: PointerEvent<HTMLDivElement>) => {
+  const handlePointerCancel = useCallback((event: PointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.pointerId !== event.pointerId) return
-    endPointer(event.pointerId)
-  }
+    endDrag(event.pointerId)
+  }, [endDrag])
 
-  // ----- Double-click reset -----
-  const handleDoubleClick = () => {
+  // ---- Double-click: reset zoom ----
+  const handleDoubleClick = useCallback(() => {
     const resetState = getImageViewerResetState()
     setZoom(resetState.zoom)
-    if (scrollRef.current) { scrollRef.current.scrollLeft = 0; scrollRef.current.scrollTop = 0 }
-  }
+    // reset scroll in all slide containers
+    if (emblaApi) {
+      emblaApi.slideNodes().forEach((node) => {
+        node.scrollLeft = resetState.scrollLeft
+        node.scrollTop = resetState.scrollTop
+      })
+    }
+  }, [emblaApi])
 
   // ============================================================
   //  OVERLAY
@@ -322,17 +252,17 @@ export default function ImageViewer({
         >
           <div className={getImageViewerContentClasses()}>
             {/* Prev / Next buttons */}
-            {navigationEnabled && (
+            {navigationEnabled && emblaApi && (
               <>
                 {hasPrev && (
-                  <button type="button" onClick={() => commitSwipe(1)}
+                  <button type="button" onClick={() => emblaApi.scrollPrev()}
                     className="absolute left-4 top-1/2 z-10 -translate-y-1/2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg transition-colors hover:bg-black/80"
                     aria-label="上一张">
                     <ChevronLeft aria-hidden="true" size={24} />
                   </button>
                 )}
                 {hasNext && (
-                  <button type="button" onClick={() => commitSwipe(-1)}
+                  <button type="button" onClick={() => emblaApi.scrollNext()}
                     className="absolute right-4 top-1/2 z-10 -translate-y-1/2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg transition-colors hover:bg-black/80"
                     aria-label="下一张">
                     <ChevronRight aria-hidden="true" size={24} />
@@ -348,61 +278,68 @@ export default function ImageViewer({
               <X aria-hidden="true" size={20} />
             </button>
 
-            {/* ---- Strip container ---- */}
-            <div className="relative h-full w-full overflow-hidden">
-              <div
-                className="flex h-full"
-                style={{
-                  width: navigationEnabled ? `${(1 + (hasPrev ? 1 : 0) + (hasNext ? 1 : 0)) * 100}vw` : '100vw',
-                  transform: `translateX(${stripTranslateX}px)`,
-                  transition: isSwiping ? 'none' : 'transform 300ms ease-out',
-                }}
-              >
-                {/* Slot: previous image */}
-                {hasPrev && (
-                  <div className="flex h-full w-screen flex-shrink-0 items-center justify-center bg-black/30 p-8">
-                    <img src={prevSrc!} alt="上一张"
-                      className={getImageViewerImageClasses()} draggable={false} />
-                  </div>
-                )}
-
-                {/* Slot: current image (with zoom / pan) */}
-                <div
-                  ref={scrollRef}
-                  className={`flex h-full w-screen flex-shrink-0 items-center justify-center overflow-auto bg-black/30 shadow-2xl ${
-                    isDragging ? 'cursor-grabbing' : isSwiping ? 'cursor-grabbing' : 'cursor-grab'
-                  }`}
-                  style={{ touchAction: 'none' }}
-                  onWheel={handleWheel}
-                  onDoubleClick={handleDoubleClick}
-                  onPointerDown={handlePointerDown}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerCancel}
-                >
-                  <div className="flex min-h-full min-w-full items-center justify-center p-8">
-                    <img
-                      key={navigationEnabled ? `${items[currentIndex].id}-${hasNavigated ? 'nav' : 'init'}` : 'single'}
-                      src={fullScreenSrc} alt={currentAlt} onLoad={handleImageLoad}
-                      className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
-                      style={imageSize ? {
-                        width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
-                        height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
-                      } : undefined}
-                      draggable={false}
-                    />
-                  </div>
+            {/* ---- Embla Carousel ---- */}
+            {navigationEnabled ? (
+              <div className="h-full w-full overflow-hidden" ref={emblaRef}>
+                <div className="flex h-full">
+                  {navigableItems!.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex h-full w-full min-w-0 flex-shrink-0 items-center justify-center overflow-auto bg-black/30 ${
+                        isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                      }`}
+                      style={{ touchAction: 'none' }}
+                      onWheel={handleWheel}
+                      onDoubleClick={handleDoubleClick}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerCancel={handlePointerCancel}
+                    >
+                      <div className="flex min-h-full min-w-full items-center justify-center p-8">
+                        <img
+                          src={item.previewSrc || item.src}
+                          alt={item.alt}
+                          onLoad={handleImageLoad}
+                          className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
+                          style={imageSize ? {
+                            width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
+                            height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
+                          } : undefined}
+                          draggable={false}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* Slot: next image */}
-                {hasNext && (
-                  <div className="flex h-full w-screen flex-shrink-0 items-center justify-center bg-black/30 p-8">
-                    <img src={nextSrc!} alt="下一张"
-                      className={getImageViewerImageClasses()} draggable={false} />
-                  </div>
-                )}
               </div>
-            </div>
+            ) : (
+              /* ---- Single image (no navigation) ---- */
+              <div
+                className={`flex h-full w-full items-center justify-center overflow-auto bg-black/30 shadow-2xl ${
+                  isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                }`}
+                style={{ touchAction: 'none' }}
+                onWheel={handleWheel}
+                onDoubleClick={handleDoubleClick}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerCancel}
+              >
+                <div className="flex min-h-full min-w-full items-center justify-center p-8">
+                  <img
+                    src={fullScreenSrc} alt={currentAlt} onLoad={handleImageLoad}
+                    className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
+                    style={imageSize ? {
+                      width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
+                      height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
+                    } : undefined}
+                    draggable={false}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Zoom badge */}
             <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-xs text-gray-100 shadow-lg">
