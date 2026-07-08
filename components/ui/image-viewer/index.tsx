@@ -116,8 +116,8 @@ export default function ImageViewer({
         return
       }
 
-      // Only handle arrow navigation when viewer is focused and items provided
-      if (navigationEnabled && event.target instanceof HTMLElement && event.target.closest('[role="dialog"]')) {
+      // Arrow navigation when viewer is open and items provided
+      if (navigationEnabled) {
         if (event.key === 'ArrowLeft' && hasPrev) {
           event.preventDefault()
           navigateTo(currentIndex - 1)
@@ -359,6 +359,7 @@ export default function ImageViewer({
               className={`flex h-full w-full items-center justify-center overflow-auto bg-black/30 shadow-2xl ${
                 isDragging ? 'cursor-grabbing' : 'cursor-grab'
               }`}
+              style={{ touchAction: 'none' }}
               onWheel={handleWheel}
               onDoubleClick={handleDoubleClick}
               onPointerDown={handlePointerDown}
