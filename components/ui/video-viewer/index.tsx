@@ -32,7 +32,9 @@ export default function VideoViewer({
   const [hover, setHover] = useState(false)
   const [previewLoaded, setPreviewLoaded] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [showControls, setShowControls] = useState(true)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleMouseEnter = () => {
@@ -55,6 +57,13 @@ export default function VideoViewer({
     }
   }
 
+  // Auto-hide controls after inactivity
+  const resetControlsTimer = () => {
+    setShowControls(true)
+    clearTimeout(hideControlsTimer.current)
+    hideControlsTimer.current = setTimeout(() => setShowControls(false), 3000)
+  }
+
   // Listen for native fullscreen changes
   useEffect(() => {
     const handler = () => setFullscreen(!!document.fullscreenElement)
@@ -62,10 +71,15 @@ export default function VideoViewer({
     return () => document.removeEventListener('fullscreenchange', handler)
   }, [])
 
+  // Modal lifecycle
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+
+    // Start the auto-hide timer
+    resetControlsTimer()
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (document.fullscreenElement) {
@@ -75,10 +89,12 @@ export default function VideoViewer({
         }
       }
     }
+
     document.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
       document.removeEventListener('keydown', onKey)
+      clearTimeout(hideControlsTimer.current)
     }
   }, [open])
 
@@ -91,22 +107,33 @@ export default function VideoViewer({
             aria-modal="true"
             aria-label={`播放视频：${alt}`}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black"
+            onMouseMove={resetControlsTimer}
           >
-            {/* Top toolbar */}
-            <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 py-3">
+            {/* Top toolbar — auto-hides after 3s of inactivity */}
+            <div
+              className={`absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 py-3 transition-opacity duration-300 ${
+                showControls ? 'opacity-100' : 'pointer-events-none opacity-0'
+              }`}
+            >
               <p className="truncate pr-4 text-sm font-medium text-white/90">{alt}</p>
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={toggleFullscreen}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white"
-                  aria-label={fullscreen ? '退出全屏' : '全屏'}
+                  aria-label={fullscreen ? '退出显示器全屏' : '显示器全屏'}
+                  title={fullscreen ? '退出显示器全屏' : '显示器全屏'}
                 >
                   {fullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    if (document.fullscreenElement) {
+                      document.exitFullscreen().catch(() => {})
+                    }
+                    setOpen(false)
+                  }}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white"
                   aria-label="关闭"
                 >
@@ -115,23 +142,36 @@ export default function VideoViewer({
               </div>
             </div>
 
-            {/* Video */}
+            {/* Video — fills entire viewport */}
             <video
               src={videoSrc}
               controls
               autoPlay
-              className="max-h-full max-w-full object-contain"
-              onClick={(e) => e.stopPropagation()}
+              className={`max-h-full max-w-full object-contain ${showControls ? '' : 'cursor-none'}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                resetControlsTimer()
+              }}
             />
+
+            {/* Bottom hint when controls hidden */}
+            <div
+              className={`pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-2 text-xs text-white/60 backdrop-blur-sm transition-opacity duration-500 ${
+                showControls ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
+              移动鼠标显示控制栏 · 双击退出全屏
+            </div>
 
             {/* Click background to close */}
             <div
-              className="absolute inset-0 -z-10 cursor-pointer"
-              onClick={() => {
+              className="absolute inset-0 -z-10"
+              onDoubleClick={() => {
                 if (document.fullscreenElement) {
                   document.exitFullscreen().catch(() => {})
+                } else {
+                  setOpen(false)
                 }
-                setOpen(false)
               }}
             />
           </div>,
