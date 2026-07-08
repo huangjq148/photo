@@ -61,6 +61,8 @@ export default function ImageViewer({
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false }, [])
 
+  const initIndexRef = useRef(0)
+
   const dragRef = useRef<{
     pointerId: number
     startX: number
@@ -85,6 +87,18 @@ export default function ImageViewer({
 
   const hasPrev = navigationEnabled && currentIndex > 0
   const hasNext = navigationEnabled && currentIndex < items.length - 1
+
+  // ---- Scroll embla to initial index after init ----
+  useEffect(() => {
+    if (!emblaApi || !open) return
+    const handleInit = () => {
+      if (initIndexRef.current > 0) {
+        emblaApi.scrollTo(initIndexRef.current, false)
+      }
+    }
+    emblaApi.on('init', handleInit)
+    return () => { emblaApi.off('init', handleInit) }
+  }, [emblaApi, open])
 
   // ---- Sync embla with zoom state ----
   useEffect(() => {
@@ -164,14 +178,10 @@ export default function ImageViewer({
       const idx = items.findIndex((item) => item.id === initialItemId)
       if (idx >= 0) initialIdx = idx
     }
+    initIndexRef.current = initialIdx
     setCurrentIndex(initialIdx)
-
     setOpen(true)
-    // Scroll embla to initial slide after render
-    requestAnimationFrame(() => {
-      if (emblaApi) emblaApi.scrollTo(initialIdx, false)
-    })
-  }, [navigationEnabled, initialItemId, items, emblaApi])
+  }, [navigationEnabled, initialItemId, items])
 
   // ---- Pointer: down (pan within a zoomed image) ----
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
@@ -282,7 +292,7 @@ export default function ImageViewer({
             {navigationEnabled ? (
               <div className="h-full w-full overflow-hidden" ref={emblaRef}>
                 <div className="flex h-full">
-                  {navigableItems!.map((item) => (
+                  {navigableItems!.map((item, idx) => (
                     <div
                       key={item.id}
                       className={`flex h-full w-full min-w-0 flex-shrink-0 items-center justify-center overflow-auto bg-black/30 ${
@@ -300,9 +310,9 @@ export default function ImageViewer({
                         <img
                           src={item.previewSrc || item.src}
                           alt={item.alt}
-                          onLoad={handleImageLoad}
+                          onLoad={idx === currentIndex ? handleImageLoad : undefined}
                           className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
-                          style={imageSize ? {
+                          style={idx === currentIndex && imageSize ? {
                             width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
                             height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
                           } : undefined}
