@@ -164,14 +164,14 @@ export function PhotoUploadForm({ albumId, onUploaded }: PhotoUploadFormProps) {
     >
       <div className="space-y-2">
         <label htmlFor="photo-file" className="text-sm font-medium text-[var(--muted-strong)]">
-          选择图片
+          选择图片/视频
         </label>
         <input
           id="photo-file"
           name="file"
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
           onChange={(event: ChangeEvent<HTMLInputElement>) => enqueueFiles(event.target.files)}
           className="block w-full rounded-lg border border-[var(--border)] bg-black px-4 py-3 text-sm text-[var(--muted-strong)] file:mr-4 file:rounded-md file:border-0 file:bg-[var(--accent)] file:px-4 file:py-2 file:text-sm file:font-bold file:text-black"
         />
