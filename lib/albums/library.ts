@@ -83,7 +83,7 @@ export async function getUserAlbums(
         include: {
           _count: {
             select: {
-              photos: { where: { photo: { status: "normal" } } },
+              photos: { where: { media: { status: "normal" } } },
               members: true,
             },
           },
@@ -93,9 +93,9 @@ export async function getUserAlbums(
           photos: {
             take: 1,
             orderBy: { added_at: "desc" },
-            where: { photo: { status: "normal" } },
+            where: { media: { status: "normal" } },
             include: {
-              photo: {
+              media: {
                 select: { thumbnail_url: true },
               },
             },
@@ -112,7 +112,7 @@ export async function getUserAlbums(
     description: m.album.description,
     coverPhotoId: m.album.cover_photo_id,
     coverUrl: m.album.coverPhoto?.thumbnail_url ?? null,
-    lastPhotoUrl: m.album.photos[0]?.photo.thumbnail_url ?? null,
+    lastPhotoUrl: m.album.photos[0]?.media.thumbnail_url ?? null,
     isDefault: m.album.is_default,
     isImmutable: m.album.is_immutable,
     photoCount: m.album._count.photos,
@@ -167,7 +167,7 @@ export async function getAlbumDetail(
       },
       _count: {
         select: {
-          photos: { where: { photo: { status: "normal" } } },
+          photos: { where: { media: { status: "normal" } } },
           members: true,
         },
       },
@@ -281,7 +281,7 @@ export async function getAlbumPhotos(
   };
 
   if (keyword) {
-    where.photo = {
+    where.media = {
       status: "normal",
       OR: [
         { original_name: { contains: keyword, mode: "insensitive" } },
@@ -289,7 +289,7 @@ export async function getAlbumPhotos(
       ],
     };
   } else {
-    where.photo = {
+    where.media = {
       status: "normal",
     };
   }
@@ -298,7 +298,7 @@ export async function getAlbumPhotos(
     prisma.albumPhoto.count({ where }),
     prisma.albumPhoto.findMany({
       where,
-      include: { photo: true },
+      include: { media: true },
       orderBy: { added_at: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -310,15 +310,15 @@ export async function getAlbumPhotos(
     pageSize,
     total,
     items: refs.map((ref) => ({
-      id: ref.photo.id,
-      originalName: ref.photo.original_name,
-      thumbnailUrl: ref.photo.thumbnail_url,
-      previewUrl: ref.photo.preview_url,
-      mimeType: ref.photo.mime_type,
-      width: ref.photo.width,
-      height: ref.photo.height,
-      takenAt: ref.photo.taken_at,
-      uploadedAt: ref.photo.uploaded_at,
+      id: ref.media.id,
+      originalName: ref.media.original_name,
+      thumbnailUrl: ref.media.thumbnail_url,
+      previewUrl: ref.media.preview_url,
+      mimeType: ref.media.mime_type,
+      width: ref.media.width,
+      height: ref.media.height,
+      takenAt: ref.media.taken_at,
+      uploadedAt: ref.media.uploaded_at,
     })),
   };
 }
