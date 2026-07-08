@@ -1,10 +1,10 @@
 'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent, SyntheticEvent, WheelEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import {
   getImageViewerContentClasses,
   getImageViewerImageClasses,
@@ -21,6 +21,14 @@ import {
   getImageViewerResetState,
 } from './interactions'
 
+export interface ImageViewerNavigationItem {
+  id: string
+  src: string
+  previewSrc?: string
+  alt: string
+  title?: string
+}
+
 interface ImageViewerProps {
   src: string
   alt: string
@@ -29,6 +37,10 @@ interface ImageViewerProps {
   imgClassName?: string
   previewImageClassName?: string
   title?: string
+  /** 用于导航切换的同组照片列表（提供后启用左右切换） */
+  items?: ImageViewerNavigationItem[]
+  /** 当前照片在 items 中的 id，用于定位初始索引 */
+  initialItemId?: string
 }
 
 export default function ImageViewer({
@@ -39,12 +51,16 @@ export default function ImageViewer({
   imgClassName = '',
   previewImageClassName = '',
   title = '原图预览',
+  items,
+  initialItemId,
 }: ImageViewerProps) {
   const [open, setOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const fullScreenSrc = previewSrc || src
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [hasNavigated, setHasNavigated] = useState(false)
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{
     pointerId: number
@@ -52,7 +68,39 @@ export default function ImageViewer({
     startY: number
     startScrollLeft: number
     startScrollTop: number
+    startTime: number
   } | null>(null)
+  const swipeDeltaRef = useRef<{ dx: number; dy: number; time: number } | null>(null)
+
+  const navigationEnabled = items && items.length > 1
+
+  // derive display item from nav state or props
+  const currentItem = navigationEnabled
+    ? items[currentIndex]
+    : null
+  const fullScreenSrc = navigationEnabled && currentItem
+    ? (currentItem.previewSrc || currentItem.src)
+    : (previewSrc || src)
+  const currentAlt = navigationEnabled && currentItem ? currentItem.alt : alt
+  const currentTitle = navigationEnabled && currentItem
+    ? (currentItem.title || currentItem.alt)
+    : title
+
+  const hasPrev = navigationEnabled && currentIndex > 0
+  const hasNext = navigationEnabled && currentIndex < items.length - 1
+
+  const navigateTo = useCallback((index: number) => {
+    if (!navigationEnabled || index < 0 || index >= items.length) return
+    setCurrentIndex(index)
+    setHasNavigated(true)
+    // reset zoom & scroll for new image
+    setZoom(1)
+    setImageSize(null)
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = 0
+      scrollRef.current.scrollTop = 0
+    }
+  }, [navigationEnabled, items])
 
   useEffect(() => {
     if (!open || typeof document === 'undefined') {
@@ -65,6 +113,21 @@ export default function ImageViewer({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
+        return
+      }
+
+      // Only handle arrow navigation when viewer is focused and items provided
+      if (navigationEnabled && event.target instanceof HTMLElement && event.target.closest('[role="dialog"]')) {
+        if (event.key === 'ArrowLeft' && hasPrev) {
+          event.preventDefault()
+          navigateTo(currentIndex - 1)
+          return
+        }
+        if (event.key === 'ArrowRight' && hasNext) {
+          event.preventDefault()
+          navigateTo(currentIndex + 1)
+          return
+        }
       }
     }
 
@@ -74,7 +137,7 @@ export default function ImageViewer({
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open])
+  }, [open, navigationEnabled, hasPrev, hasNext, currentIndex, navigateTo])
 
   const handleWheel = (event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -109,6 +172,17 @@ export default function ImageViewer({
     setImageSize(null)
     setIsDragging(false)
     dragRef.current = null
+    swipeDeltaRef.current = null
+    setHasNavigated(false)
+
+    // find initial index from items
+    if (navigationEnabled && initialItemId) {
+      const idx = items.findIndex((item) => item.id === initialItemId)
+      setCurrentIndex(idx >= 0 ? idx : 0)
+    } else {
+      setCurrentIndex(0)
+    }
+
     setOpen(true)
   }
 
@@ -128,7 +202,9 @@ export default function ImageViewer({
       startY: event.clientY,
       startScrollLeft: container.scrollLeft,
       startScrollTop: container.scrollTop,
+      startTime: Date.now(),
     }
+    swipeDeltaRef.current = null
     setIsDragging(true)
     container.setPointerCapture(event.pointerId)
   }
@@ -143,11 +219,21 @@ export default function ImageViewer({
 
     event.preventDefault()
 
+    const dx = event.clientX - drag.startX
+    const dy = event.clientY - drag.startY
+
+    // track accumulated swipe delta for swipe detection
+    swipeDeltaRef.current = {
+      dx,
+      dy,
+      time: Date.now() - drag.startTime,
+    }
+
     const nextScroll = getImageViewerDragScrollPosition({
       startScrollLeft: drag.startScrollLeft,
       startScrollTop: drag.startScrollTop,
-      deltaX: event.clientX - drag.startX,
-      deltaY: event.clientY - drag.startY,
+      deltaX: dx,
+      deltaY: dy,
     })
 
     container.scrollLeft = nextScroll.scrollLeft
@@ -175,6 +261,30 @@ export default function ImageViewer({
       return
     }
 
+    // detect swipe for navigation
+    if (navigationEnabled) {
+      const swipe = swipeDeltaRef.current
+      if (swipe) {
+        const absDx = Math.abs(swipe.dx)
+        const absDy = Math.abs(swipe.dy)
+        const velocity = swipe.time > 0 ? absDx / swipe.time : 0
+
+        // swipe: primarily horizontal, fast enough, and enough distance
+        if (absDx > absDy && absDx > 40 && (velocity > 0.3 || absDx > 120)) {
+          if (swipe.dx < 0 && hasNext) {
+            navigateTo(currentIndex + 1)
+            endDragging(event.pointerId)
+            return
+          }
+          if (swipe.dx > 0 && hasPrev) {
+            navigateTo(currentIndex - 1)
+            endDragging(event.pointerId)
+            return
+          }
+        }
+      }
+    }
+
     endDragging(event.pointerId)
   }
 
@@ -200,7 +310,7 @@ export default function ImageViewer({
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={title}
+          aria-label={currentTitle}
           className={getImageViewerOverlayClasses()}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
@@ -209,6 +319,32 @@ export default function ImageViewer({
           }}
         >
           <div className={getImageViewerContentClasses()}>
+            {/* Prev / Next navigation arrows */}
+            {navigationEnabled && (
+              <>
+                {hasPrev && (
+                  <button
+                    type="button"
+                    onClick={() => navigateTo(currentIndex - 1)}
+                    className="absolute left-4 top-1/2 z-10 -translate-y-1/2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg transition-colors hover:bg-black/80"
+                    aria-label="上一张"
+                  >
+                    <ChevronLeft aria-hidden="true" size={24} />
+                  </button>
+                )}
+                {hasNext && (
+                  <button
+                    type="button"
+                    onClick={() => navigateTo(currentIndex + 1)}
+                    className="absolute right-4 top-1/2 z-10 -translate-y-1/2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg transition-colors hover:bg-black/80"
+                    aria-label="下一张"
+                  >
+                    <ChevronRight aria-hidden="true" size={24} />
+                  </button>
+                )}
+              </>
+            )}
+
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -232,8 +368,9 @@ export default function ImageViewer({
             >
               <div className="flex min-h-full min-w-full items-center justify-center p-8">
                 <img
+                  key={navigationEnabled ? `${items[currentIndex].id}-${hasNavigated ? 'nav' : 'init'}` : 'single'}
                   src={fullScreenSrc}
-                  alt={alt}
+                  alt={currentAlt}
                   onLoad={handleImageLoad}
                   className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
                   style={
@@ -254,7 +391,9 @@ export default function ImageViewer({
             </div>
 
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-xs text-gray-100 shadow-lg">
-              {title}
+              {navigationEnabled
+                ? `${currentIndex + 1} / ${items.length} · ${currentTitle}`
+                : currentTitle}
             </div>
           </div>
         </div>,

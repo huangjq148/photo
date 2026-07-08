@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ImageViewer from "@/components/ui/image-viewer";
+import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import VideoViewer from "@/components/ui/video-viewer";
 
 type FavoriteItem = {
@@ -94,6 +94,14 @@ export function FavoritesGallery() {
               src={photo.thumbnailUrl}
               alt={photo.originalName}
               previewSrc={photo.mimeType === "image/gif" ? photo.originalUrl : photo.previewUrl}
+              items={items.map((item) => ({
+                id: item.id,
+                src: item.thumbnailUrl,
+                previewSrc: item.mimeType === "image/gif" ? item.originalUrl : item.previewUrl,
+                alt: item.originalName,
+                title: item.originalName,
+              }))}
+              initialItemId={photo.id}
               imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
               className="group/img block w-full"
             />

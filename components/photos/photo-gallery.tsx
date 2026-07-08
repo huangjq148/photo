@@ -5,6 +5,7 @@ import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
 import { useMessage } from "@/components/ui/message";
+import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 
 type PhotoItem = {
   id: string;
@@ -21,11 +22,38 @@ type PhotoItem = {
   uploadedAt: string;
 };
 
+type GroupMode = "none" | "month" | "year";
+
 type PhotoGalleryProps = {
   albumId: string;
   refreshSignal?: number;
   onSetCover?: (photoId: string) => void;
 };
+
+function getSortDate(photo: PhotoItem): Date {
+  return photo.takenAt ? new Date(photo.takenAt) : new Date(photo.uploadedAt);
+}
+
+function groupPhotos(photos: PhotoItem[], mode: GroupMode): Map<string, PhotoItem[]> {
+  const groups = new Map<string, PhotoItem[]>();
+
+  // Sort by date descending first
+  const sorted = [...photos].sort((a, b) => getSortDate(b).getTime() - getSortDate(a).getTime());
+
+  for (const photo of sorted) {
+    const date = getSortDate(photo);
+    let key: string;
+    if (mode === "year") {
+      key = `${date.getFullYear()}年`;
+    } else {
+      key = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+    }
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(photo);
+  }
+
+  return groups;
+}
 
 export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGalleryProps) {
   const [items, setItems] = useState<PhotoItem[]>([]);
@@ -35,6 +63,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
   const [keyword, setKeyword] = useState("");
   const [layoutMode, setLayoutMode] = useState<"grid" | "waterfall">("grid");
   const [photoSize, setPhotoSize] = useState<PhotoSize>("medium");
+  const [groupMode, setGroupMode] = useState<GroupMode>("none");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showTakenAt, setShowTakenAt] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -223,6 +252,23 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
 
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const isGrouped = groupMode !== "none";
+
+  // Build navigation items for fullscreen prev/next switching
+  const navigableItems = useMemo<ImageViewerNavigationItem[]>(() => {
+    return items.map((photo) => ({
+      id: photo.id,
+      src: photo.thumbnailUrl,
+      previewSrc: photo.mimeType === "image/gif" ? photo.originalUrl : photo.previewUrl,
+      alt: photo.originalName,
+      title: photo.originalName,
+    }));
+  }, [items]);
+
+  const groupedPhotos = useMemo(() => {
+    if (groupMode === "none") return null;
+    return groupPhotos(items, groupMode);
+  }, [items, groupMode]);
 
   if (loading) {
     return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">加载照片...</div>;
@@ -249,6 +295,30 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
               className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--film)]"
             />
           </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs font-medium text-[var(--muted)]">展示方式</span>
+          <nav className="inline-flex h-10 items-center rounded-lg border border-[var(--border)] bg-black p-1">
+            {([
+              ["none", "时间倒序"],
+              ["month", "按月"],
+              ["year", "按年"],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setGroupMode(key)}
+                className={`inline-flex h-8 items-center rounded-md px-3 text-xs font-medium transition ${
+                  groupMode === key
+                    ? "bg-[var(--accent)] text-black"
+                    : "text-[var(--muted)] hover:text-[var(--text)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
         </div>
 
         {selectedCount > 0 ? (
@@ -281,8 +351,60 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
         onPhotoSizeChange={setPhotoSize}
         layoutMode={layoutMode}
         onLayoutModeChange={setLayoutMode}
+        groupMode={groupMode}
       />
 
+      {isGrouped && groupedPhotos ? (
+        <div className="space-y-8">
+          {Array.from(groupedPhotos.entries()).map(([label, photos]) => (
+            <section key={label}>
+              <h3 className="mb-3 flex items-center gap-3 text-sm font-bold text-[var(--text)]">
+                <span>{label}</span>
+                <span className="text-xs font-normal text-[var(--muted)]">{photos.length} 张</span>
+              </h3>
+              <div
+                className={
+                  {
+                    small: "grid gap-3 grid-cols-3 sm:grid-cols-4 xl:grid-cols-5",
+                    medium: "grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4",
+                    large: "grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
+                  }[photoSize]
+                }
+              >
+                {photos.map((photo) => (
+                  <PhotoGalleryCard
+                    key={photo.id}
+                    photo={photo}
+                    selected={selectedIdSet.has(photo.id)}
+                    waterfall={false}
+                    showTakenAt={showTakenAt}
+                    navigableItems={navigableItems}
+                    onSelect={() => {
+                      setSelectedIds((current) =>
+                        current.includes(photo.id)
+                          ? current.filter((item) => item !== photo.id)
+                          : [...current, photo.id]
+                      );
+                    }}
+                    onFavorite={() => {
+                      void toggleFavorite(photo.id);
+                    }}
+                    onDelete={() => {
+                      void removePhoto(photo.id);
+                    }}
+                    onShare={() => {
+                      void sharePhoto(photo.id);
+                    }}
+                    onSetCover={() => {
+                      if (onSetCover) onSetCover(photo.id);
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
       <div
         className={
           layoutMode === "waterfall"
@@ -305,6 +427,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
             selected={selectedIdSet.has(photo.id)}
             waterfall={layoutMode === "waterfall"}
             showTakenAt={showTakenAt}
+            navigableItems={navigableItems}
             onSelect={() => {
               setSelectedIds((current) =>
                 current.includes(photo.id)
@@ -327,6 +450,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
           />
         ))}
       </div>
+      )}
 
       {/* Infinite scroll sentinel */}
       <div ref={sentinelRef} className="h-1" />

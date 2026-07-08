@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Bookmark, Check, Clock, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
-import ImageViewer from "@/components/ui/image-viewer";
+import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import VideoViewer from "@/components/ui/video-viewer";
 
 export type PhotoGalleryCardItem = {
@@ -25,6 +25,8 @@ type PhotoGalleryCardProps = {
   selected: boolean;
   waterfall: boolean;
   showTakenAt: boolean;
+  /** 用于全屏预览时左右切换的同组照片 */
+  navigableItems?: ImageViewerNavigationItem[];
   onSelect: () => void;
   onFavorite: () => void;
   onDelete: () => void;
@@ -61,6 +63,7 @@ export function PhotoGalleryCard({
   selected,
   waterfall,
   showTakenAt,
+  navigableItems,
   onSelect,
   onFavorite,
   onDelete,
@@ -92,6 +95,8 @@ export function PhotoGalleryCard({
             src={photo.thumbnailUrl}
             alt={photo.originalName}
             previewSrc={isGif ? photo.originalUrl : photo.previewUrl}
+            items={navigableItems}
+            initialItemId={photo.id}
             imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
             className="group/img block w-full"
           />
