@@ -88,16 +88,13 @@ export default function ImageViewer({
   const hasPrev = navigationEnabled && currentIndex > 0
   const hasNext = navigationEnabled && currentIndex < items.length - 1
 
-  // ---- Scroll embla to initial index after init ----
+  // ---- Scroll embla to initial index after open ----
   useEffect(() => {
-    if (!emblaApi || !open) return
-    const handleInit = () => {
-      if (initIndexRef.current > 0) {
-        emblaApi.scrollTo(initIndexRef.current, false)
-      }
-    }
-    emblaApi.on('init', handleInit)
-    return () => { emblaApi.off('init', handleInit) }
+    if (!emblaApi || !open || initIndexRef.current <= 0) return
+    const raf = requestAnimationFrame(() => {
+      emblaApi.scrollTo(initIndexRef.current, false)
+    })
+    return () => cancelAnimationFrame(raf)
   }, [emblaApi, open])
 
   // ---- Sync embla with zoom state ----
@@ -311,7 +308,11 @@ export default function ImageViewer({
                           src={item.previewSrc || item.src}
                           alt={item.alt}
                           onLoad={idx === currentIndex ? handleImageLoad : undefined}
-                          className={`${getImageViewerImageClasses()} ${previewImageClassName}`}
+                          className={
+                            idx === currentIndex
+                              ? `${getImageViewerImageClasses()} ${previewImageClassName}`
+                              : `h-full w-full object-contain ${previewImageClassName}`
+                          }
                           style={idx === currentIndex && imageSize ? {
                             width: `${Math.max(1, Math.round(imageSize.width * zoom))}px`,
                             height: `${Math.max(1, Math.round(imageSize.height * zoom))}px`,
