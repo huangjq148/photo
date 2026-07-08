@@ -1,7 +1,7 @@
 'use client'
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { PointerEvent, SyntheticEvent, WheelEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
@@ -60,6 +60,7 @@ export default function ImageViewer({
   const [isDragging, setIsDragging] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [hasNavigated, setHasNavigated] = useState(false)
+  const [slideDir, setSlideDir] = useState<'left' | 'right' | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{
@@ -91,6 +92,8 @@ export default function ImageViewer({
 
   const navigateTo = useCallback((index: number) => {
     if (!navigationEnabled || index < 0 || index >= items.length) return
+    const dir: 'left' | 'right' = index > currentIndex ? 'right' : 'left'
+    setSlideDir(dir)
     setCurrentIndex(index)
     setHasNavigated(true)
     // reset zoom & scroll for new image
@@ -100,10 +103,23 @@ export default function ImageViewer({
       scrollRef.current.scrollLeft = 0
       scrollRef.current.scrollTop = 0
     }
-  }, [navigationEnabled, items])
+  }, [navigationEnabled, items, currentIndex])
+
+  // Trigger slide-in transition after the new image mounts
+  useLayoutEffect(() => {
+    if (slideDir !== null) {
+      const frame1 = requestAnimationFrame(() => {
+        void requestAnimationFrame(() => {
+          setSlideDir(null)
+        })
+      })
+      return () => cancelAnimationFrame(frame1)
+    }
+  }, [slideDir])
 
   useEffect(() => {
     if (!open || typeof document === 'undefined') {
+      setSlideDir(null)
       return
     }
 
@@ -174,6 +190,7 @@ export default function ImageViewer({
     dragRef.current = null
     swipeDeltaRef.current = null
     setHasNavigated(false)
+    setSlideDir(null)
 
     // find initial index from items
     if (navigationEnabled && initialItemId) {
@@ -367,7 +384,11 @@ export default function ImageViewer({
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerCancel}
             >
-              <div className="flex min-h-full min-w-full items-center justify-center p-8">
+              <div className={`flex min-h-full min-w-full items-center justify-center p-8 transition-all duration-300 ease-out ${
+                slideDir === 'left' ? 'translate-x-16 opacity-0' :
+                slideDir === 'right' ? '-translate-x-16 opacity-0' :
+                'translate-x-0 opacity-100'
+              }`}>
                 <img
                   key={navigationEnabled ? `${items[currentIndex].id}-${hasNavigated ? 'nav' : 'init'}` : 'single'}
                   src={fullScreenSrc}
