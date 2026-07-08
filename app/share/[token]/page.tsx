@@ -24,7 +24,11 @@ export default async function SharePage({ params }: SharePageProps) {
             <ShareImageClient
               thumbnailUrl={share.previewUrl}
               previewUrl={share.previewUrl}
+              originalUrl={share.originalUrl}
               originalName={share.originalName}
+              mimeType={share.mimeType}
+              mediaType={share.mediaType}
+              duration={share.duration}
             />
             <div className="grid gap-5 p-5 sm:p-7 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>

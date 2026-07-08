@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import ImageViewer from "@/components/ui/image-viewer";
+import VideoViewer from "@/components/ui/video-viewer";
 
 type FavoriteItem = {
   id: string;
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
+  originalUrl: string;
+  mimeType: string;
+  mediaType: string;
+  duration: number | null;
   width: number;
   height: number;
 };
@@ -75,13 +80,24 @@ export function FavoritesGallery() {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {items.map((photo) => (
         <article key={photo.id} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30">
-          <ImageViewer
-            src={photo.thumbnailUrl}
-            alt={photo.originalName}
-            previewSrc={photo.previewUrl}
-            imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
-            className="group/img block w-full"
-          />
+          {photo.mediaType === "video" || photo.mimeType.startsWith("video/") ? (
+            <VideoViewer
+              src={photo.thumbnailUrl}
+              alt={photo.originalName}
+              videoSrc={photo.originalUrl}
+              duration={photo.duration ?? undefined}
+              imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+              className="group/img block w-full"
+            />
+          ) : (
+            <ImageViewer
+              src={photo.thumbnailUrl}
+              alt={photo.originalName}
+              previewSrc={photo.previewUrl}
+              imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+              className="group/img block w-full"
+            />
+          )}
           <div className="space-y-3 p-4">
             <div>
               <h3 className="text-sm font-medium text-[var(--text)]">{photo.originalName}</h3>

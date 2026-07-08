@@ -6,6 +6,8 @@ type TrashItem = {
   id: string;
   originalName: string;
   thumbnailUrl: string;
+  mimeType: string;
+  mediaType: string;
   uploadedAt: string;
   deletedAt: string | null;
 };
@@ -206,6 +208,13 @@ export function TrashGallery() {
           >
             <div className="relative">
               <img src={photo.thumbnailUrl} alt={photo.originalName} className="aspect-[4/3] w-full object-cover opacity-70 grayscale" />
+              {photo.mediaType === "video" && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="rounded-full bg-black/60 p-2 backdrop-blur-sm">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21" /></svg>
+                  </span>
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => {

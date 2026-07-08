@@ -1,15 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bookmark, Check, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
+import { Bookmark, Check, Clock, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
 import ImageViewer from "@/components/ui/image-viewer";
+import VideoViewer from "@/components/ui/video-viewer";
 
 export type PhotoGalleryCardItem = {
   id: string;
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
+  originalUrl: string;
   mimeType: string;
+  mediaType: string;
+  duration: number | null;
   width: number;
   height: number;
   takenAt: string | null;
@@ -27,6 +31,13 @@ type PhotoGalleryCardProps = {
   onShare: () => void;
   onSetCover: () => void;
 };
+
+function formatDuration(seconds?: number): string {
+  if (!seconds || seconds <= 0) return "";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -57,6 +68,7 @@ export function PhotoGalleryCard({
   onSetCover,
 }: PhotoGalleryCardProps) {
   const [showInfo, setShowInfo] = useState(false);
+  const isVideo = photo.mediaType === "video" || photo.mimeType.startsWith("video/");
 
   return (
     <article
@@ -65,16 +77,27 @@ export function PhotoGalleryCard({
       }`}
     >
       <div className="overflow-hidden rounded-t-xl">
-        <ImageViewer
-          src={photo.thumbnailUrl}
-          alt={photo.originalName}
-          previewSrc={photo.previewUrl}
-          imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
-          className="group/img block w-full"
-        />
+        {isVideo ? (
+          <VideoViewer
+            src={photo.thumbnailUrl}
+            alt={photo.originalName}
+            videoSrc={photo.originalUrl}
+            duration={photo.duration ?? undefined}
+            imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+            className="group/img block w-full"
+          />
+        ) : (
+          <ImageViewer
+            src={photo.thumbnailUrl}
+            alt={photo.originalName}
+            previewSrc={photo.previewUrl}
+            imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+            className="group/img block w-full"
+          />
+        )}
       </div>
 
-      {/* Photo info overlay */}
+      {/* Media info overlay */}
       {showInfo && (
         <div
           className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/95 via-black/70 to-black/30 p-4"
@@ -89,6 +112,12 @@ export function PhotoGalleryCard({
               </span>
               <span>格式</span>
               <span>{photo.mimeType}</span>
+              {isVideo && photo.duration != null && photo.duration > 0 ? (
+                <>
+                  <span>时长</span>
+                  <span>{formatDuration(photo.duration)}</span>
+                </>
+              ) : null}
               <span>上传时间</span>
               <span>{formatDateTime(photo.uploadedAt)}</span>
             </div>
@@ -165,7 +194,7 @@ export function PhotoGalleryCard({
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/[0.08]"
             >
               <Info aria-hidden="true" size={15} />
-              照片信息
+              媒体信息
             </button>
             <button
               type="button"

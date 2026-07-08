@@ -11,7 +11,10 @@ type PhotoItem = {
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
+  originalUrl: string;
   mimeType: string;
+  mediaType: string;
+  duration: number | null;
   width: number;
   height: number;
   takenAt: string | null;
