@@ -8,3 +8,5 @@
 node_modules/
 data/
 coverage/
+playwright-report/
+test-results/

@@ -6,7 +6,6 @@ test.describe("smoke", () => {
   const email = `e2e-smoke-${uniqueId}@test.local`;
   const password = "Test1234!";
   const nickname = `SmokeUser-${uniqueId}`;
-  const albumName = `测试相册-${uniqueId}`;
 
   test("register, browse albums and create an album", async ({ page }) => {
     // 1. Navigate to register page

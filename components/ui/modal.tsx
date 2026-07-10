@@ -12,7 +12,7 @@ type ModalProps = {
   open: boolean;
   title: string;
   description?: string;
-  children: ReactNode;
+  children?: ReactNode;
   footer?: ReactNode;
   size?: ModalSize;
   onClose: () => void;
