@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { createSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { createSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session";
 
 type RegisterInput = {
   email: string;
@@ -103,4 +103,57 @@ export async function loginUser(
     sessionToken: createSessionToken(user.id, user.session_version, env.JWT_SECRET),
     cookieName: SESSION_COOKIE_NAME
   };
+}
+
+export async function changePassword(
+  prisma: PrismaClient,
+  env: AppEnv,
+  input: { userId: string; currentPassword: string; newPassword: string }
+) {
+  const user = await prisma.user.findUnique({ where: { id: input.userId } });
+  if (!user) throw new Error("用户不存在");
+
+  // Verify current password
+  const ok = await verifyPassword(input.currentPassword, user.password_hash);
+  if (!ok) throw new Error("当前密码错误");
+
+  // Check new password is different
+  if (input.currentPassword === input.newPassword) {
+    throw new Error("新密码不能与当前密码相同");
+  }
+
+  const newHash = await hashPassword(input.newPassword);
+
+  // Increment session_version to invalidate all existing sessions
+  const newVersion = user.session_version + 1;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password_hash: newHash,
+      session_version: newVersion,
+    },
+  });
+
+  // Issue new token with the new version
+  return {
+    sessionToken: createSessionToken(user.id, newVersion, env.JWT_SECRET),
+    cookieName: SESSION_COOKIE_NAME,
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  };
+}
+
+export async function logoutAllDevices(
+  prisma: PrismaClient,
+  env: AppEnv,
+  userId: string
+) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error("用户不存在");
+
+  // Increment session_version to invalidate all existing sessions
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { session_version: user.session_version + 1 },
+  });
 }
