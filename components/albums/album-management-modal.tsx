@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AlbumInviteForm } from "@/components/albums/album-invite-form";
+import { AlbumInviteList } from "@/components/albums/album-invite-list";
 import { AlbumMembers } from "@/components/albums/album-members";
 import { PhotoUploadForm } from "@/components/upload/photo-upload-form";
 
@@ -149,7 +150,17 @@ export function AlbumManagementModal({
 
         {activeTab === "members" ? (
           <div className="space-y-5">
-            <AlbumInviteForm albumId={albumId} onRefresh={onRefresh} />
+            {album.role === "owner" ? (
+              <>
+                <AlbumInviteForm albumId={albumId} onRefresh={onRefresh} />
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                  <p className="text-sm font-medium text-[var(--muted-strong)]">待处理邀请</p>
+                  <div className="mt-3">
+                    <AlbumInviteList albumId={albumId} refreshToken={0} onRefresh={onRefresh} />
+                  </div>
+                </div>
+              </>
+            ) : null}
             <AlbumMembers albumId={albumId} currentUserId={currentUserId} currentRole={album.role} onRefresh={onRefresh} />
           </div>
         ) : null}

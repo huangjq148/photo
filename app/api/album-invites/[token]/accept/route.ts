@@ -11,7 +11,7 @@ export async function POST(
   const user = await getCurrentUserFromRequest(request);
 
   if (!user) {
-    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+    return NextResponse.json({ error: "请先登录", code: "UNAUTHORIZED" }, { status: 401 });
   }
 
   const { token } = await context.params;
@@ -21,11 +21,14 @@ export async function POST(
     return NextResponse.json({ data });
   } catch (error) {
     const message = error instanceof Error ? error.message : "接受邀请失败";
-    const status =
-      message === "Invite not found" ? 404 :
-      message.includes("expired") ? 410 :
-      message.includes("different email") ? 403 :
-      message.includes("no longer valid") ? 410 : 400;
-    return NextResponse.json({ error: message }, { status });
+    const code = message.includes("不存在") ? "NOT_FOUND"
+      : message.includes("过期") ? "EXPIRED"
+      : message.includes("不一致") ? "EMAIL_MISMATCH"
+      : message.includes("失效") ? "INVALID" : "ACCEPT_FAILED";
+    const status = code === "NOT_FOUND" ? 404
+      : code === "EXPIRED" ? 410
+      : code === "EMAIL_MISMATCH" ? 403
+      : code === "INVALID" ? 410 : 400;
+    return NextResponse.json({ error: message, code }, { status });
   }
 }

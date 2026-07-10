@@ -91,7 +91,7 @@ export function ShareManager({ photoId, open, onClose }: ShareManagerProps) {
   async function handleRevoke(shareId: string) {
     setFeedback(null);
     try {
-      const res = await fetch(`/api/shares/${shareId}`, { method: "DELETE" });
+      const res = await fetch(`/api/photos/shares/${shareId}`, { method: "DELETE" });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error ?? "撤销失败");

@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
-import { revokePhotoShare } from "@/lib/media/shares";
+import { resendAlbumInvite } from "@/lib/albums/library";
 
-export async function DELETE(
+export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ shareId: string }> }
+  context: { params: Promise<{ id: string; inviteId: string }> }
 ) {
   const user = await getCurrentUserFromRequest(request);
 
@@ -14,18 +14,15 @@ export async function DELETE(
     return NextResponse.json({ error: "请先登录", code: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { shareId } = await context.params;
+  const { id: albumId, inviteId } = await context.params;
 
   try {
-    await revokePhotoShare(prisma, shareId, user.id);
-    return NextResponse.json({ data: { revoked: true } });
+    const data = await resendAlbumInvite(prisma, { inviteId, albumId, userId: user.id });
+    return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "撤销分享失败";
-    const code = message.includes("无权")
-      ? "FORBIDDEN"
-      : message.includes("不存在")
-        ? "NOT_FOUND"
-        : "REVOKE_FAILED";
+    const message = error instanceof Error ? error.message : "重新发送失败";
+    const code = message.includes("只有相册拥有者") ? "FORBIDDEN"
+      : message.includes("不存在") ? "NOT_FOUND" : "RESEND_FAILED";
     const status = code === "FORBIDDEN" ? 403 : code === "NOT_FOUND" ? 404 : 400;
     return NextResponse.json({ error: message, code }, { status });
   }
