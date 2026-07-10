@@ -1,8 +1,7 @@
-"use client";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Shield } from "lucide-react";
 
 type CurrentUser = {
   id: string;
@@ -95,6 +94,13 @@ export function UserMenu() {
           <p className="text-sm font-medium text-[var(--text)]">{user.nickname}</p>
           <p className="text-xs text-[var(--muted)]">{user.email}</p>
         </div>
+        <Link
+          href="/account/security"
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)] inline-flex items-center gap-1"
+        >
+          <Shield size={14} />
+          安全
+        </Link>
         <button
           type="button"
           onClick={logout}
