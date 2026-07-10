@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
 import { createPhotoShare } from "@/lib/photos/shares";
 
+// DEPRECATED: Use POST /api/photos/:id/shares instead
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUserFromRequest(request);
 
