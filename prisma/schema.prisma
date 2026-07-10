@@ -56,6 +56,7 @@ model User {
   avatar_url    String?  @db.Text
   storage_limit BigInt   @default(10737418240)
   storage_used  BigInt   @default(0)
+  session_version Int    @default(1)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 

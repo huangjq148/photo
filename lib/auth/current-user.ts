@@ -20,7 +20,8 @@ export async function getCurrentUserFromCookieStore(cookieStore: CookieStore) {
 
   let session;
   try {
-    session = verifySessionToken(token, getAppEnv().JWT_SECRET);
+    // First, verify the token with a dummy version to extract userId
+    session = verifySessionToken(token, 0, getAppEnv().JWT_SECRET);
   } catch {
     return null;
   }
@@ -33,12 +34,20 @@ export async function getCurrentUserFromCookieStore(cookieStore: CookieStore) {
     return null;
   }
 
+  // Re-verify with the actual session_version from DB
+  try {
+    verifySessionToken(token, user.session_version, getAppEnv().JWT_SECRET);
+  } catch {
+    return null;
+  }
+
   return {
     id: user.id,
     email: user.email,
     nickname: user.nickname,
     avatarUrl: user.avatar_url,
     storageLimit: user.storage_limit.toString(),
-    storageUsed: user.storage_used.toString()
+    storageUsed: user.storage_used.toString(),
+    sessionVersion: user.session_version,
   };
-}
+};

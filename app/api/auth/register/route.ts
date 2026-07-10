@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getAppEnv } from "@/lib/config";
 import { registerSchema } from "@/lib/auth/schemas";
 import { registerUser } from "@/lib/users/auth";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
+      maxAge: SESSION_MAX_AGE_SECONDS,
       secure: process.env.NODE_ENV === "production"
     });
 

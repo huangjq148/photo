@@ -67,7 +67,7 @@ export async function registerUser(
       id: result.album.id,
       name: result.album.name
     },
-    sessionToken: createSessionToken(result.user.id, env.JWT_SECRET),
+    sessionToken: createSessionToken(result.user.id, result.user.session_version, env.JWT_SECRET),
     cookieName: SESSION_COOKIE_NAME
   };
 }
@@ -100,7 +100,7 @@ export async function loginUser(
       storageLimit: user.storage_limit.toString(),
       storageUsed: user.storage_used.toString()
     },
-    sessionToken: createSessionToken(user.id, env.JWT_SECRET),
+    sessionToken: createSessionToken(user.id, user.session_version, env.JWT_SECRET),
     cookieName: SESSION_COOKIE_NAME
   };
 }

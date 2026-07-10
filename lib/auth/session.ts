@@ -119,8 +119,8 @@ export function verifySessionToken(
     throw new Error("Session 已过期");
   }
 
-  // Check session version matches
-  if (p.sv !== expectedSessionVersion) {
+  // Check session version matches (0 means skip version check)
+  if (expectedSessionVersion > 0 && p.sv !== expectedSessionVersion) {
     throw new Error("Session 版本不匹配，请重新登录");
   }
 
