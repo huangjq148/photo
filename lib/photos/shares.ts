@@ -1,1 +1,1 @@
-export { createPhotoShare, getPublicPhotoShare, listPhotoShares, revokePhotoShare } from "@/lib/media/shares";
+export { createPhotoShare, getPublicPhotoShare, listPhotoShares, revokePhotoShare, resolvePublicShare } from "@/lib/media/shares";

@@ -132,6 +132,28 @@ export async function revokePhotoShare(
 }
 
 export async function getPublicPhotoShare(prisma: PrismaClient, token: string) {
+  const share = await resolvePublicShare(prisma, token);
+
+  return {
+    token: share.token,
+    url: `/share/${share.token}`,
+    originalName: share.media.original_name,
+    previewUrl: share.media.preview_url,
+    thumbnailUrl: share.media.thumbnail_url,
+    originalUrl: `/api/photos/${share.media.id}/download`,
+    mimeType: share.media.mime_type,
+    mediaType: share.media.media_type,
+    duration: share.media.duration_seconds,
+    width: share.media.width,
+    height: share.media.height,
+    albumName: share.media.album.name,
+    createdAt: share.created_at,
+    expiresAt: share.expires_at,
+  };
+}
+
+/** Low-level share resolution — returns the raw Prisma objects for file serving */
+export async function resolvePublicShare(prisma: PrismaClient, token: string) {
   const share = await prisma.photoShare.findUnique({
     where: { token },
     include: {
@@ -159,20 +181,5 @@ export async function getPublicPhotoShare(prisma: PrismaClient, token: string) {
     throw new Error("文件不可用");
   }
 
-  return {
-    token: share.token,
-    url: `/share/${share.token}`,
-    originalName: share.media.original_name,
-    previewUrl: share.media.preview_url,
-    thumbnailUrl: share.media.thumbnail_url,
-    originalUrl: `/api/photos/${share.media.id}/download`,
-    mimeType: share.media.mime_type,
-    mediaType: share.media.media_type,
-    duration: share.media.duration_seconds,
-    width: share.media.width,
-    height: share.media.height,
-    albumName: share.media.album.name,
-    createdAt: share.created_at,
-    expiresAt: share.expires_at,
-  };
+  return share;
 }
