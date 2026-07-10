@@ -17,6 +17,8 @@
 | `lib/membership.ts` | 修改 | 统一相册权限守卫 |
 | `lib/albums/library.ts` | 修改 | 邀请状态和成员事务 |
 | `lib/albums/invite-status.ts` | 新建 | 邀请状态常量与转换 |
+| `prisma/schema.prisma` | 修改 | 记录查询索引；pending 唯一性由部分唯一索引强制 |
+| `prisma/migrations/*_unique_pending_album_invites/migration.sql` | 新建 | 数据库层阻止并发重复 pending 邀请 |
 | `app/api/albums/[id]/invites/route.ts` | 修改 | 列表与创建邀请 |
 | `app/api/albums/[id]/invites/[inviteId]/route.ts` | 新建 | 撤销邀请 |
 | `app/api/albums/[id]/invites/[inviteId]/resend/route.ts` | 新建 | 重新生成邀请 |
@@ -67,11 +69,13 @@ git commit -m "fix: enforce album permission matrix"
 **Files:**
 - Create: `lib/albums/invite-status.ts`
 - Modify: `lib/albums/library.ts`
+- Modify: `prisma/schema.prisma`
+- Create: `prisma/migrations/*_unique_pending_album_invites/migration.sql`
 - Create: `tests/album-invites.integration.test.ts`
 
 - [ ] **Step 1: 编写生命周期失败测试**
 
-覆盖未注册邮箱、重复 pending、错误邮箱、过期、撤销、重新发送、重复接受和并发接受。
+覆盖未注册邮箱、大小写/空白规范化、重复 pending、两个并发创建请求、错误邮箱、过期、撤销、重新发送、重复接受和并发接受。
 
 - [ ] **Step 2: 运行测试确认失败**
 
@@ -80,25 +84,29 @@ Expected: FAIL because revoke/resend/idempotency are missing.
 
 - [ ] **Step 3: 集中邀请状态**
 
-定义 `pending | accepted | expired | revoked`，所有写入和比较通过常量完成。空邮箱或非法邮箱在写数据库前返回验证错误。
+定义 `pending | accepted | expired | revoked`，所有写入和比较通过常量完成。邮箱在写数据库前统一执行 trim 和小写规范化；空邮箱或非法邮箱返回验证错误。
 
-- [ ] **Step 4: 实现创建、撤销和重新发送**
+- [ ] **Step 4: 增加数据库级 pending 唯一约束**
 
-创建默认 7 天有效；撤销只处理 pending；重新发送在一个事务中将旧记录标记为 expired 并创建新 token。
+先按 `album_id + lower(btrim(email))` 检查并处理现有重复 pending 数据，再用手写 PostgreSQL migration 创建表达式部分唯一索引：`CREATE UNIQUE INDEX ... ON "AlbumInvite" ("album_id", lower(btrim("email"))) WHERE "status" = 'pending'`。Prisma schema 保留普通查询索引并注明该唯一索引由 SQL migration 管理，因为 Prisma schema 不能表达表达式和谓词。迁移测试断言重复历史状态可共存，但同一相册中大小写或首尾空白不同的同一邮箱不能并发插入两个 pending 记录。
 
-- [ ] **Step 5: 实现幂等接受**
+- [ ] **Step 5: 实现创建、撤销和重新发送**
+
+创建默认 7 天有效；撤销只处理 pending；重新发送在一个事务中将旧记录标记为 expired 并创建新 token。创建时捕获部分唯一索引的唯一冲突并稳定映射为 409，而不是依赖“先查询、后插入”保证唯一性。
+
+- [ ] **Step 6: 实现幂等接受**
 
 事务内确认 token、邮箱、有效期和成员唯一性。已存在相同成员时返回 `{ albumId, alreadyMember: true }` 并关闭邀请。
 
-- [ ] **Step 6: 运行测试确认通过**
+- [ ] **Step 7: 运行测试确认通过**
 
 Run: `npm run test:integration -- tests/album-invites.integration.test.ts`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add lib/albums tests/album-invites.integration.test.ts
+git add prisma lib/albums tests/album-invites.integration.test.ts
 git commit -m "feat: complete album invitation lifecycle"
 ```
 

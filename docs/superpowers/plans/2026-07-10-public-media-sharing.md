@@ -17,7 +17,7 @@
 | `lib/media/shares.ts` | 修改 | 分享创建、查询、撤销和公开授权 |
 | `lib/media/public-files.ts` | 新建 | token 文件定位与流式响应 |
 | `app/api/photos/[id]/shares/route.ts` | 新建 | 创建和列出分享 |
-| `app/api/shares/[shareId]/route.ts` | 新建 | 撤销分享 |
+| `app/api/shares/manage/[shareId]/route.ts` | 新建 | 撤销分享；与公开 token 路由隔离 |
 | `app/api/shares/[token]/files/[variant]/route.ts` | 新建 | 匿名媒体读取 |
 | `app/share/[token]/page.tsx` | 修改 | 使用公开文件 URL |
 | `components/share/share-manager.tsx` | 新建 | 有效期、复制和撤销 UI |
@@ -96,7 +96,7 @@ git commit -m "fix: serve shared media through token authorization"
 
 **Files:**
 - Create: `app/api/photos/[id]/shares/route.ts`
-- Create: `app/api/shares/[shareId]/route.ts`
+- Create: `app/api/shares/manage/[shareId]/route.ts`
 - Modify: `app/api/photos/[id]/share/route.ts`
 
 - [ ] **Step 1: 编写 Route Handler 测试**
@@ -105,12 +105,15 @@ git commit -m "fix: serve shared media through token authorization"
 
 - [ ] **Step 2: 实现 GET/POST/DELETE**
 
-响应统一使用 `{ data }` 或 `{ error, code, issues? }`。旧单数 `/share` POST 暂时调用新服务并标记弃用，避免现有 UI 在同一提交中中断。
+响应统一使用 `{ data }` 或 `{ error, code, issues? }`。撤销使用静态前缀下的 `DELETE /api/shares/manage/:shareId`，避免与公开读取的 `/api/shares/:token/files/:variant` 在同一层使用不同动态参数名。旧单数 `/share` POST 暂时调用新服务并标记弃用，避免现有 UI 在同一提交中中断。
 
 - [ ] **Step 3: 验证 API 测试**
 
 Run: `npm run test:integration -- tests/photo-share-routes.integration.test.ts`
 Expected: PASS.
+
+Run: `npm run build`
+Expected: PASS，Next.js 路由树不存在动态 slug 名称冲突。
 
 - [ ] **Step 4: Commit**
 

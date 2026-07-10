@@ -4,7 +4,7 @@
 
 **Goal:** 统一媒体、收藏和回收站分页筛选体验，提供可靠清空能力，并安全移除废弃 Space 模型与路由。
 
-**Architecture:** 列表查询使用统一 schema 和 `PageResult`，UI 共享加载更多状态模型。领域错误改为稳定 code。Space 清理分成只读迁移审计和删除迁移两个步骤，审计不通过时禁止执行删除。
+**Architecture:** 列表查询使用统一 schema 和 `PageResult`，UI 共享加载更多状态模型。领域错误改为稳定 code。物理文件删除通过事务内持久化任务实现可重试。Space 清理同时提供开发预检和迁移内 SQL 守卫，每个目标数据库存在遗留记录时都会中止 DROP。
 
 **Tech Stack:** Next.js 15, React 19, TypeScript, Prisma, Zod, Vitest, Playwright, ESLint
 
@@ -23,8 +23,10 @@
 | `components/photos/favorites-gallery.tsx` | 修改 | 分页和加载更多 |
 | `components/photos/trash-gallery.tsx` | 修改 | 分页、保留期和清空 |
 | `components/photos/photo-gallery.tsx` | 修改 | 筛选和排序 |
+| `lib/media/file-cleanup.ts` | 新建 | 持久化文件清理任务与幂等重试 |
+| `scripts/retry-file-cleanup.ts` | 新建 | 重试未完成的文件删除任务 |
 | `scripts/audit-space-migration.ts` | 新建 | 旧数据只读审计 |
-| `prisma/schema.prisma` | 修改 | 删除废弃 Space 模型 |
+| `prisma/schema.prisma` | 修改 | 增加文件清理任务并删除废弃 Space 模型 |
 | `app/spaces/**`、`app/api/spaces/**` | 删除 | 移除兼容路由 |
 
 ### Task 1: 建立统一查询和错误契约
@@ -132,28 +134,37 @@ git commit -m "feat: paginate favorite media"
 - Modify: `app/api/trash/photos/route.ts`
 - Create: `app/api/trash/photos/clear/route.ts`
 - Modify: `components/photos/trash-gallery.tsx`
+- Modify: `prisma/schema.prisma`
+- Create: `prisma/migrations/*_add_file_cleanup_jobs/migration.sql`
+- Create: `lib/media/file-cleanup.ts`
+- Create: `scripts/retry-file-cleanup.ts`
 - Create: `tests/trash-pagination.integration.test.ts`
 - Create: `tests/trash-clear.integration.test.ts`
+- Create: `tests/file-cleanup-retry.integration.test.ts`
 
 - [ ] **Step 1: 编写分页与清空失败测试**
 
-覆盖超过 24 条、跨用户隔离、批量清空、存储扣减、文件不存在时幂等清理和数据库失败时不先删文件。
+覆盖超过 24 条、跨用户隔离、批量清空、存储扣减、文件不存在时幂等清理、数据库失败时不先删文件，以及文件删除失败后仍保留路径和可重试状态。
 
 - [ ] **Step 2: 实现分页和清空服务**
 
-先在事务中删除数据库记录并更新各上传者存储计数，再尽力删除文件；文件清理失败记录错误但不恢复已提交数据库事务。
+新增 `FileCleanupJob`，保存受控的文件路径列表、状态、重试次数、最近错误和重试时间。清空回收站时，在删除媒体记录和更新各上传者存储计数的同一事务内创建清理任务；事务提交后立即尝试执行任务。只有全部文件已删除或确认不存在时才将任务标记完成；失败时保留任务和路径并记录错误，供幂等重试命令继续处理。任务执行器必须再次校验路径位于媒体存储根目录内。
 
-- [ ] **Step 3: 更新回收站 UI**
+- [ ] **Step 3: 实现并验证清理重试**
+
+实现 `scripts/retry-file-cleanup.ts`，批量领取 pending/failed 任务并使用带锁或条件更新的状态转换避免重复执行。测试首次删除失败、下次成功、进程在部分删除后退出、重复执行和文件已不存在；断言数据库记录、存储计数不会被重复修改，任务成功后不再包含待重试路径。
+
+- [ ] **Step 4: 更新回收站 UI**
 
 增加剩余天数、加载更多和“清空回收站”二次确认。无限滚动保留显式加载按钮作为无障碍后备。
 
-- [ ] **Step 4: 运行测试并提交**
+- [ ] **Step 5: 运行测试并提交**
 
-Run: `npm run test:integration -- tests/trash-pagination.integration.test.ts tests/trash-clear.integration.test.ts`
+Run: `npm run test:integration -- tests/trash-pagination.integration.test.ts tests/trash-clear.integration.test.ts tests/file-cleanup-retry.integration.test.ts`
 Expected: PASS.
 
 ```bash
-git add lib/media/library.ts app/api/trash components/photos/trash-gallery.tsx tests/trash-*.integration.test.ts
+git add prisma lib/media scripts/retry-file-cleanup.ts app/api/trash components/photos/trash-gallery.tsx tests/trash-*.integration.test.ts tests/file-cleanup-retry.integration.test.ts
 git commit -m "feat: complete paginated trash management"
 ```
 
@@ -202,16 +213,16 @@ git commit -m "refactor: use stable api error codes"
 
 - [ ] **Step 1: 编写审计脚本测试**
 
-存在未映射 Space、成员或邀请时退出 1 并打印数量；全部迁移时退出 0。脚本只读，不修改数据。
+存在任何仍待处理的 Space、成员或邀请时退出 1 并打印数量；旧表已经确认完成回填并清空时退出 0。脚本只读，不修改数据。测试同时覆盖删除迁移的 SQL 守卫：遗留表任一非空时迁移必须抛错且不执行 DROP，全部为空时才允许继续。
 
 - [ ] **Step 2: 在目标数据库运行审计**
 
-Run: `dotenv -e .env.local -- tsx scripts/audit-space-migration.ts`
+Run（仅作为开发环境预检，不是部署安全边界）: `dotenv -e .env.local -- tsx scripts/audit-space-migration.ts`
 Expected: `Safe to remove deprecated Space tables`. 若失败，停止本任务并先制定数据回填方案。
 
 - [ ] **Step 3: 删除代码和 Prisma 模型**
 
-移除所有 Space 页面、API、库、模型和枚举；创建显式 DROP migration。不得手工编辑已有迁移。
+移除所有 Space 页面、API、库、模型和枚举；创建显式 DROP migration。迁移 SQL 必须显式使用 `BEGIN`/`COMMIT` 包裹 PostgreSQL `DO` 守卫和所有 DROP；守卫直接查询 `Space`、`SpaceMember`、`SpaceInvite`，任一表仍有记录就 `RAISE EXCEPTION`，整个迁移回滚，随后才允许 DROP 表和枚举。这样每个运行 `prisma migrate deploy` 的 CI、预发布和生产数据库都会执行不可绕过的检查；不得依赖 `.env.local` 审计结果，也不得手工编辑已有迁移。
 
 - [ ] **Step 4: 搜索残留引用**
 
@@ -222,6 +233,9 @@ Expected: no deprecated runtime references.
 
 Run: `npm run verify`
 Expected: all checks pass and build route table has no `/spaces` routes.
+
+Run（在一次性测试数据库分别构造非空和空遗留表）: `prisma migrate deploy`
+Expected: 非空数据库迁移失败且遗留表仍存在；空数据库迁移成功。
 
 - [ ] **Step 6: Commit**
 
