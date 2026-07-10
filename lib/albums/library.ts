@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import { assertAlbumMembership, assertAlbumOwner, assertCanUpload, assertCanDelete } from "@/lib/membership";
+import { INVITE_STATUS, INVITE_DURATION_MS } from "@/lib/albums/invite-status";
 
 // ── Types ──
 
@@ -584,12 +585,13 @@ export async function createAlbumInvite(
   await assertAlbumOwner(prisma, context.albumId, context.userId);
 
   const email = context.email.trim().toLowerCase();
+  if (!email || !email.includes("@")) throw new Error("请输入有效的邮箱地址");
 
   const existing = await prisma.albumInvite.findFirst({
     where: {
       album_id: context.albumId,
       email,
-      status: "pending",
+      status: INVITE_STATUS.PENDING,
     },
   });
 
@@ -597,6 +599,7 @@ export async function createAlbumInvite(
     throw new Error("此邮箱已有待处理的邀请");
   }
 
+  // Check if email already belongs to a member
   const user = await prisma.user.findUnique({ where: { email } });
   if (user) {
     const membership = await prisma.albumMember.findUnique({
@@ -611,7 +614,7 @@ export async function createAlbumInvite(
   }
 
   const token = randomUUID();
-  const expiredAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiredAt = new Date(Date.now() + INVITE_DURATION_MS);
 
   return prisma.albumInvite.create({
     data: {
@@ -635,11 +638,26 @@ export async function acceptAlbumInvite(
   });
 
   if (!invite) throw new Error("邀请不存在");
+
+  // Already accepted — check if membership exists (idempotent)
+  if (invite.status === INVITE_STATUS.ACCEPTED) {
+    const existingMember = await prisma.albumMember.findUnique({
+      where: {
+        album_id_user_id: { album_id: invite.album_id, user_id: context.userId },
+      },
+    });
+    if (existingMember) {
+      return { albumId: invite.album_id, alreadyMember: true };
+    }
+    throw new Error("邀请已失效");
+  }
+
   if (invite.status !== "pending") throw new Error("邀请已失效");
+
   if (invite.expired_at < new Date()) {
     await prisma.albumInvite.update({
       where: { id: invite.id },
-      data: { status: "expired" },
+      data: { status: INVITE_STATUS.EXPIRED },
     });
     throw new Error("邀请已过期");
   }
@@ -649,13 +667,18 @@ export async function acceptAlbumInvite(
     throw new Error("此邀请对应的邮箱与你的账号邮箱不一致");
   }
 
+  // Use transaction to ensure atomicity and avoid duplicate members
   await prisma.$transaction([
-    prisma.albumMember.create({
-      data: {
+    prisma.albumMember.upsert({
+      where: {
+        album_id_user_id: { album_id: invite.album_id, user_id: context.userId },
+      },
+      create: {
         album_id: invite.album_id,
         user_id: context.userId,
         role: invite.role,
       },
+      update: {}, // No-op if already exists
     }),
     prisma.albumInvite.update({
       where: { id: invite.id },
@@ -664,6 +687,60 @@ export async function acceptAlbumInvite(
   ]);
 
   return { albumId: invite.album_id };
+}
+
+export async function revokeAlbumInvite(
+  prisma: PrismaClient,
+  context: { inviteId: string; albumId: string; userId: string }
+) {
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
+
+  const invite = await prisma.albumInvite.findUnique({ where: { id: context.inviteId } });
+  if (!invite || invite.album_id !== context.albumId) throw new Error("邀请不存在");
+
+  if (invite.status !== INVITE_STATUS.PENDING) {
+    // Already revoked/accepted/expired — idempotent
+    return;
+  }
+
+  await prisma.albumInvite.update({
+    where: { id: context.inviteId },
+    data: { status: INVITE_STATUS.REVOKED },
+  });
+}
+
+export async function resendAlbumInvite(
+  prisma: PrismaClient,
+  context: { inviteId: string; albumId: string; userId: string }
+) {
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
+
+  const invite = await prisma.albumInvite.findUnique({ where: { id: context.inviteId } });
+  if (!invite || invite.album_id !== context.albumId) throw new Error("邀请不存在");
+
+  const newToken = randomUUID();
+  const newExpiredAt = new Date(Date.now() + INVITE_DURATION_MS);
+
+  // In a transaction: expire old, create new
+  const [newInvite] = await prisma.$transaction([
+    prisma.albumInvite.create({
+      data: {
+        album_id: invite.album_id,
+        email: invite.email,
+        role: invite.role,
+        invited_by: invite.invited_by,
+        token: newToken,
+        status: INVITE_STATUS.PENDING,
+        expired_at: newExpiredAt,
+      },
+    }),
+    prisma.albumInvite.update({
+      where: { id: invite.id },
+      data: { status: INVITE_STATUS.EXPIRED },
+    }),
+  ]);
+
+  return newInvite;
 }
 
 // ── Default Album ──
