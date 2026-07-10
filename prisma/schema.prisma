@@ -7,28 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── DEPRECATED enums (kept for migration) ──
-
-enum SpaceType {
-  personal
-  shared
-  // DEPRECATED: Remove after data migration
-}
-
-enum SpaceRole {
-  owner
-  admin
-  member
-  // DEPRECATED: Remove after data migration
-}
-
-enum InviteStatus {
-  pending
-  accepted
-  expired
-  // DEPRECATED: Remove after data migration
-}
-
 // ── Active enums ──
 
 enum PhotoProcessingStatus {
@@ -68,62 +46,6 @@ model User {
   photoShares      PhotoShare[]    @relation("ShareCreator")
   albumMemberships AlbumMember[]
   albumInvitesSent AlbumInvite[]   @relation("AlbumInviteSender")
-
-  // DEPRECATED: remove after migration
-  ownedSpaces      Space[]         @relation("SpaceOwner")
-  memberships      SpaceMember[]
-  invitesSent      SpaceInvite[]   @relation("InviteSender")
-}
-
-// DEPRECATED: remove after data migration
-model Space {
-  id             String     @id @default(uuid()) @db.Uuid
-  name           String
-  description    String?
-  type           SpaceType
-  owner_id       String     @db.Uuid
-  cover_photo_id String?    @db.Uuid
-  storage_used   BigInt     @default(0)
-  created_at     DateTime   @default(now())
-  updated_at     DateTime   @updatedAt
-
-  owner          User       @relation("SpaceOwner", fields: [owner_id], references: [id], onDelete: Cascade)
-  members        SpaceMember[]
-  invites        SpaceInvite[]
-
-  @@index([owner_id, type])
-}
-
-// DEPRECATED: remove after data migration
-model SpaceMember {
-  id         String   @id @default(uuid()) @db.Uuid
-  space_id   String   @db.Uuid
-  user_id    String   @db.Uuid
-  role       SpaceRole
-  joined_at  DateTime @default(now())
-
-  space      Space    @relation(fields: [space_id], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([space_id, user_id])
-  @@index([user_id, role])
-}
-
-// DEPRECATED: remove after data migration
-model SpaceInvite {
-  id         String       @id @default(uuid()) @db.Uuid
-  space_id   String       @db.Uuid
-  email      String
-  role       SpaceRole
-  invited_by String       @db.Uuid
-  status     InviteStatus @default(pending)
-  created_at DateTime     @default(now())
-  expired_at DateTime
-
-  space      Space        @relation(fields: [space_id], references: [id], onDelete: Cascade)
-  inviter    User         @relation("InviteSender", fields: [invited_by], references: [id], onDelete: Cascade)
-
-  @@index([space_id, email, status])
 }
 
 model Album {

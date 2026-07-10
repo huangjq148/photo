@@ -29,9 +29,6 @@ describe("photo upload", () => {
     await prisma.media.deleteMany();
     await prisma.albumMember.deleteMany();
     await prisma.album.deleteMany();
-    await prisma.spaceInvite.deleteMany();
-    await prisma.spaceMember.deleteMany();
-    await prisma.space.deleteMany();
     await prisma.user.deleteMany();
     await prisma.$disconnect();
     rmSync(storageRoot, { recursive: true, force: true });

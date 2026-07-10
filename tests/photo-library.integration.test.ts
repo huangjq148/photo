@@ -39,9 +39,7 @@ describe("photo library flows", () => {
     await prisma.media.deleteMany();
     await prisma.albumMember.deleteMany();
     await prisma.album.deleteMany();
-    await prisma.spaceInvite.deleteMany();
-    await prisma.spaceMember.deleteMany();
-    await prisma.space.deleteMany();
+    await prisma.album.deleteMany();
     await prisma.user.deleteMany();
     await prisma.$disconnect();
     rmSync(storageRoot, { recursive: true, force: true });
@@ -134,11 +132,11 @@ describe("photo library flows", () => {
 
     await toggleFavoritePhoto(prisma, { photoId, userId });
     const favorites = await getFavoritePhotos(prisma, userId);
-    expect(favorites).toHaveLength(1);
-    expect(favorites[0]?.id).toBe(photoId);
+    expect(favorites.items).toHaveLength(1);
+    expect(favorites.items[0]?.id).toBe(photoId);
 
     await toggleFavoritePhoto(prisma, { photoId, userId });
     const noFavorites = await getFavoritePhotos(prisma, userId);
-    expect(noFavorites).toHaveLength(0);
+    expect(noFavorites.items).toHaveLength(0);
   });
 });

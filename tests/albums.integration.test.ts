@@ -19,9 +19,6 @@ describe("album library", () => {
     await prisma.media.deleteMany();
     await prisma.albumMember.deleteMany();
     await prisma.album.deleteMany();
-    await prisma.spaceInvite.deleteMany();
-    await prisma.spaceMember.deleteMany();
-    await prisma.space.deleteMany();
     await prisma.user.deleteMany();
     await prisma.$disconnect();
   });

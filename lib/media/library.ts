@@ -473,14 +473,40 @@ export async function toggleFavoritePhoto(prisma: PrismaClient, context: MediaCo
   return { favorited: true };
 }
 
-export async function getFavoritePhotos(prisma: PrismaClient, userId: string) {
-  const items = await prisma.favorite.findMany({
-    where: { user_id: userId },
-    orderBy: { created_at: "desc" },
-    include: { media: true },
-  });
+export async function getFavoritePhotos(
+  prisma: PrismaClient,
+  userId: string,
+  page: number = 1,
+  pageSize: number = 24
+) {
+  const p = Math.max(1, Math.floor(page));
+  const ps = Math.min(Math.max(Math.floor(pageSize), 1), 50);
 
-  return items.map((item) => mapMediaListItem(item.media as unknown as MediaRecord));
+  const [total, items] = await Promise.all([
+    prisma.favorite.count({
+      where: {
+        user_id: userId,
+        media: { status: "normal" },
+      },
+    }),
+    prisma.favorite.findMany({
+      where: {
+        user_id: userId,
+        media: { status: "normal" },
+      },
+      orderBy: { created_at: "desc" },
+      include: { media: true },
+      skip: (p - 1) * ps,
+      take: ps,
+    }),
+  ]);
+
+  return {
+    items: items.map((item) => mapMediaListItem(item.media as unknown as MediaRecord)),
+    page: p,
+    pageSize: ps,
+    total,
+  };
 }
 
 // ── Delete / Restore ──
