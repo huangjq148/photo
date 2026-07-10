@@ -7,6 +7,7 @@ import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-
 import { useMessage } from "@/components/ui/message";
 import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
+import { ShareManager } from "@/components/share/share-manager";
 
 type PhotoItem = {
   id: string;
@@ -70,6 +71,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
   const [refreshToken, setRefreshToken] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [sharePhotoId, setSharePhotoId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
 
@@ -233,22 +235,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
   }
 
   async function sharePhoto(photoId: string) {
-    try {
-      const response = await fetch(`/api/photos/${photoId}/share`, {
-        method: "POST"
-      });
-
-      if (!response.ok) {
-        const json = await response.json();
-        throw new Error(json.error ?? "Failed to create share link");
-      }
-
-      const json = (await response.json()) as { data: { url: string } };
-      await navigator.clipboard.writeText(new URL(json.data.url, window.location.origin).toString());
-      message.success("分享链接已复制");
-    } catch (error) {
-      message.error(error instanceof Error ? error.message : "分享失败");
-    }
+    setSharePhotoId(photoId);
   }
 
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
@@ -457,6 +444,14 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
       {!hasMore && items.length > 0 && (
         <div className="py-4 text-center text-xs text-[var(--muted)]">已加载全部照片</div>
       )}
+
+      {sharePhotoId ? (
+        <ShareManager
+          photoId={sharePhotoId}
+          open={!!sharePhotoId}
+          onClose={() => setSharePhotoId(null)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -17,14 +17,19 @@ export default async function SharePage({ params }: SharePageProps) {
   try {
     const share = await getPublicPhotoShare(prisma, token);
 
+    // Use token-based public file URLs for anonymous access
+    const thumbnailUrl = `/api/shares/${token}/files/thumbnail`;
+    const previewUrl = `/api/shares/${token}/files/preview`;
+    const originalUrl = `/api/shares/${token}/files/original`;
+
     return (
       <main className="min-h-screen bg-black px-5 py-8 text-[var(--text)] sm:px-10">
         <div className="mx-auto max-w-6xl">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             <ShareImageClient
-              thumbnailUrl={share.previewUrl}
-              previewUrl={share.previewUrl}
-              originalUrl={share.originalUrl}
+              thumbnailUrl={thumbnailUrl}
+              previewUrl={previewUrl}
+              originalUrl={originalUrl}
               originalName={share.originalName}
               mimeType={share.mimeType}
               mediaType={share.mediaType}
@@ -44,7 +49,8 @@ export default async function SharePage({ params }: SharePageProps) {
               </div>
               <div className="flex flex-wrap gap-3">
                 <a
-                  href={share.originalUrl}
+                  href={originalUrl}
+                  download={share.originalName}
                   className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black"
                 >
                   下载原图
