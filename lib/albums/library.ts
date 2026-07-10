@@ -203,7 +203,7 @@ export async function updateAlbum(
   if (!album) throw new Error("相册不存在");
   if (album.is_immutable) throw new Error("此相册不可编辑");
 
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
 
   const data: Record<string, unknown> = {};
   if (context.name !== undefined) {
@@ -239,7 +239,7 @@ export async function setAlbumCover(
   prisma: PrismaClient,
   context: { albumId: string; userId: string; photoId: string }
 ) {
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
 
   const ref = await prisma.albumPhoto.findUnique({
     where: {
@@ -352,7 +352,7 @@ export async function addPhotosToAlbum(
     });
   }
 
-  await prisma.album.update({
+  return prisma.album.update({
     where: { id: context.albumId },
     data: { updated_at: new Date() },
   });
@@ -381,7 +381,7 @@ export async function removePhotoFromAlbum(
     },
   });
 
-  await prisma.album.update({
+  return prisma.album.update({
     where: { id: context.albumId },
     data: { updated_at: new Date() },
   });
@@ -481,7 +481,7 @@ export async function leaveAlbum(
     },
   });
 
-  await prisma.album.update({
+  return prisma.album.update({
     where: { id: context.albumId },
     data: { updated_at: new Date() },
   });
@@ -509,7 +509,7 @@ export async function addAlbumMemberByEmail(
   prisma: PrismaClient,
   context: { albumId: string; userId: string; email: string }
 ): Promise<AlbumMemberItem> {
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
 
   const email = context.email.trim().toLowerCase();
   if (!email) throw new Error("请输入邮箱");
@@ -559,7 +559,7 @@ export async function getAlbumInvites(
   prisma: PrismaClient,
   context: { albumId: string; userId: string }
 ): Promise<AlbumInviteItem[]> {
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
 
   const invites = await prisma.albumInvite.findMany({
     where: { album_id: context.albumId },
@@ -581,7 +581,7 @@ export async function createAlbumInvite(
   prisma: PrismaClient,
   context: { albumId: string; userId: string; email: string }
 ) {
-  await assertAlbumMembership(prisma, context.albumId, context.userId);
+  await assertAlbumOwner(prisma, context.albumId, context.userId);
 
   const email = context.email.trim().toLowerCase();
 
