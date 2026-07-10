@@ -5,45 +5,130 @@ import { getPhotoDetails } from "@/lib/media/library";
 type CreatePhotoShareContext = {
   photoId: string;
   userId: string;
-  expiresInHours?: number;
+  expiresInHours?: number | null;
 };
 
 type PublicShare = {
+  id: string;
   token: string;
   url: string;
+  createdAt: Date;
   expiresAt: Date | null;
+  revokedAt: Date | null;
 };
 
-export async function createPhotoShare(prisma: PrismaClient, context: CreatePhotoShareContext): Promise<PublicShare> {
+const ALLOWED_EXPIRY_HOURS = [null, 24, 168] as const;
+
+export async function createPhotoShare(
+  prisma: PrismaClient,
+  context: CreatePhotoShareContext
+): Promise<PublicShare> {
   const media = await getPhotoDetails(prisma, {
     photoId: context.photoId,
-    userId: context.userId
+    userId: context.userId,
   });
 
   if (media.status === "deleted") {
     throw new Error("无法分享已删除的文件");
   }
 
+  const expiresInHours = context.expiresInHours ?? null;
+  if (
+    expiresInHours !== null &&
+    !ALLOWED_EXPIRY_HOURS.includes(expiresInHours as 24 | 168)
+  ) {
+    throw new Error("请选择有效期限");
+  }
+
   const token = randomUUID().replaceAll("-", "");
   const expiresAt =
-    context.expiresInHours && context.expiresInHours > 0
-      ? new Date(Date.now() + context.expiresInHours * 60 * 60 * 1000)
+    expiresInHours !== null && expiresInHours > 0
+      ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
       : null;
 
-  await prisma.photoShare.create({
+  const record = await prisma.photoShare.create({
     data: {
       photo_id: media.id,
       created_by: context.userId,
       token,
-      expires_at: expiresAt
-    }
+      expires_at: expiresAt,
+    },
   });
 
   return {
-    token,
-    url: `/share/${token}`,
-    expiresAt
+    id: record.id,
+    token: record.token,
+    url: `/share/${record.token}`,
+    createdAt: record.created_at,
+    expiresAt: record.expires_at,
+    revokedAt: record.revoked_at,
   };
+}
+
+export async function listPhotoShares(
+  prisma: PrismaClient,
+  context: { photoId: string; userId: string }
+): Promise<PublicShare[]> {
+  // Check if the user can access this photo via album membership
+  const media = await prisma.media.findUnique({
+    where: { id: context.photoId },
+    include: {
+      album: {
+        include: {
+          members: { where: { user_id: context.userId } },
+        },
+      },
+    },
+  });
+
+  if (!media || media.album.members.length === 0) {
+    return [];
+  }
+
+  const shares = await prisma.photoShare.findMany({
+    where: {
+      photo_id: context.photoId,
+      created_by: context.userId,
+    },
+    orderBy: { created_at: "desc" },
+  });
+
+  return shares.map((s) => ({
+    id: s.id,
+    token: s.token,
+    url: `/share/${s.token}`,
+    createdAt: s.created_at,
+    expiresAt: s.expires_at,
+    revokedAt: s.revoked_at,
+  }));
+}
+
+export async function revokePhotoShare(
+  prisma: PrismaClient,
+  shareId: string,
+  userId: string
+): Promise<void> {
+  const share = await prisma.photoShare.findUnique({
+    where: { id: shareId },
+  });
+
+  if (!share) {
+    throw new Error("分享不存在");
+  }
+
+  if (share.created_by !== userId) {
+    throw new Error("无权管理此分享");
+  }
+
+  // Already revoked — idempotent
+  if (share.revoked_at) {
+    return;
+  }
+
+  await prisma.photoShare.update({
+    where: { id: shareId },
+    data: { revoked_at: new Date() },
+  });
 }
 
 export async function getPublicPhotoShare(prisma: PrismaClient, token: string) {
@@ -52,10 +137,10 @@ export async function getPublicPhotoShare(prisma: PrismaClient, token: string) {
     include: {
       media: {
         include: {
-          album: true
-        }
-      }
-    }
+          album: true,
+        },
+      },
+    },
   });
 
   if (!share) {
@@ -88,6 +173,6 @@ export async function getPublicPhotoShare(prisma: PrismaClient, token: string) {
     height: share.media.height,
     albumName: share.media.album.name,
     createdAt: share.created_at,
-    expiresAt: share.expires_at
+    expiresAt: share.expires_at,
   };
 }
