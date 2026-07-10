@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { AppError } from "@/lib/api/errors";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { createSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session";
 
@@ -16,6 +17,10 @@ type LoginInput = {
 type AppEnv = {
   JWT_SECRET: string;
 };
+
+function invalidCredentialsError() {
+  return new AppError("邮箱或密码错误", "INVALID_CREDENTIALS", 401);
+}
 
 export async function registerUser(
   prisma: PrismaClient,
@@ -82,13 +87,13 @@ export async function loginUser(
   });
 
   if (!user) {
-    throw new Error("邮箱或密码错误");
+    throw invalidCredentialsError();
   }
 
   const ok = await verifyPassword(input.password, user.password_hash);
 
   if (!ok) {
-    throw new Error("邮箱或密码错误");
+    throw invalidCredentialsError();
   }
 
   return {
