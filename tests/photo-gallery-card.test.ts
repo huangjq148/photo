@@ -37,6 +37,7 @@ describe("PhotoGalleryCard", () => {
           onDelete: () => undefined,
           onShare: () => undefined,
           onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
         }),
       ),
     );
@@ -47,6 +48,7 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("更多操作");
     expect(html).toContain("group-hover:opacity-100");
     expect(html).toContain("收藏");
+    expect(html).toContain("添加到相册");
     expect(html).not.toContain("1200 × 900");
   });
 
@@ -82,6 +84,7 @@ describe("PhotoGalleryCard", () => {
           onDelete: () => undefined,
           onShare: () => undefined,
           onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
         }),
       ),
     );
@@ -124,6 +127,7 @@ describe("PhotoGalleryCard", () => {
           onDelete: () => undefined,
           onShare: () => undefined,
           onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
         }),
       ),
     );
@@ -175,6 +179,7 @@ describe("PhotoGalleryCard", () => {
           onDelete: () => undefined,
           onShare: () => undefined,
           onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
         }),
       ),
     );
@@ -182,6 +187,7 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("点击播放视频");
     expect(html).toContain("/thumb-video.jpg");
     expect(html).toContain("取消收藏");
+    expect(html).toContain("添加到相册");
     expect(html).not.toContain("<video");
   });
 });

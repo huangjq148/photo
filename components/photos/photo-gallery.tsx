@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
+import { AddPhotoToAlbumModal } from "@/components/albums/add-photo-to-album-modal";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
 import { useMessage } from "@/components/ui/message";
@@ -85,6 +86,7 @@ export function PhotoGallery({
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [sharePhotoId, setSharePhotoId] = useState<string | null>(null);
+  const [addToAlbumPhoto, setAddToAlbumPhoto] = useState<PhotoItem | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
 
@@ -274,6 +276,10 @@ export function PhotoGallery({
     setSharePhotoId(photoId);
   }
 
+  async function openAddToAlbum(photo: PhotoItem) {
+    setAddToAlbumPhoto(photo);
+  }
+
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const isGrouped = groupMode !== "none";
@@ -414,11 +420,14 @@ export function PhotoGallery({
                     onShare={() => {
                       void sharePhoto(photo.id);
                     }}
-                  onSetCover={() => {
-                    if (onSetCover) onSetCover(photo.id);
-                  }}
-                  onDisplayNameChange={updatePhotoDisplayName}
-                  onRemove={removePhotoFromState}
+                    onSetCover={() => {
+                      if (onSetCover) onSetCover(photo.id);
+                    }}
+                    onAddToAlbum={() => {
+                      void openAddToAlbum(photo);
+                    }}
+                    onDisplayNameChange={updatePhotoDisplayName}
+                    onRemove={removePhotoFromState}
                 />
               ))}
               </div>
@@ -469,6 +478,9 @@ export function PhotoGallery({
               onSetCover={() => {
                 if (onSetCover) onSetCover(photo.id);
               }}
+              onAddToAlbum={() => {
+                void openAddToAlbum(photo);
+              }}
               onDisplayNameChange={updatePhotoDisplayName}
               onRemove={removePhotoFromState}
             />
@@ -492,6 +504,19 @@ export function PhotoGallery({
           photoId={sharePhotoId}
           open={!!sharePhotoId}
           onClose={() => setSharePhotoId(null)}
+        />
+      ) : null}
+
+      {addToAlbumPhoto ? (
+        <AddPhotoToAlbumModal
+          open={!!addToAlbumPhoto}
+          currentAlbumId={albumId}
+          photoId={addToAlbumPhoto.id}
+          photoName={addToAlbumPhoto.displayName?.trim() || addToAlbumPhoto.originalName}
+          onClose={() => setAddToAlbumPhoto(null)}
+          onAdded={() => {
+            setRefreshToken((current) => current + 1);
+          }}
         />
       ) : null}
     </div>

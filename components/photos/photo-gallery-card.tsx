@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Bookmark, Check, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
+import { Bookmark, Check, Ellipsis, FolderPlus, Heart, Info, Share2, Trash2 } from "lucide-react";
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
 import {
@@ -41,6 +41,7 @@ type PhotoGalleryCardProps = {
   onDelete: () => void;
   onShare: () => void;
   onSetCover: () => void;
+  onAddToAlbum: () => void;
   onDisplayNameChange?: (photoId: string, displayName: string | null) => void;
   onRemove?: (photoId: string) => void;
 };
@@ -77,6 +78,7 @@ export function PhotoGalleryCard({
   onDelete,
   onShare,
   onSetCover,
+  onAddToAlbum,
   onDisplayNameChange,
   onRemove,
 }: PhotoGalleryCardProps) {
@@ -385,6 +387,14 @@ export function PhotoGalleryCard({
             >
               <Share2 aria-hidden="true" size={15} />
               分享
+            </button>
+            <button
+              type="button"
+              onClick={onAddToAlbum}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/[0.08]"
+            >
+              <FolderPlus aria-hidden="true" size={15} />
+              添加到相册
             </button>
             <button
               type="button"
