@@ -137,13 +137,19 @@ export function PhotoGalleryCard({
         </div>
       )}
 
+      {photo.isFavorited && (
+        <div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-md bg-blue-500/90 px-2.5 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+          已收藏
+        </div>
+      )}
+
       <div className="absolute left-3 top-3 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
         <button
           type="button"
           onClick={onSelect}
           className={`inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition ${
             selected
-              ? "border-[var(--accent)] bg-[var(--accent)] text-black"
+              ? "border-blue-500 bg-blue-500 text-white"
               : "border-white/35 bg-black/65 text-[var(--text)]"
           }`}
           aria-pressed={selected}

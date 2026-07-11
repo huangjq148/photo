@@ -5,6 +5,7 @@ import { AddPhotosModal } from "@/components/albums/add-photos-modal";
 import { AlbumDetailHeader } from "@/components/albums/album-detail-header";
 import { AlbumManagementModal } from "@/components/albums/album-management-modal";
 import { PhotoGallery } from "@/components/photos/photo-gallery";
+import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { useMessage } from "@/components/ui/message";
 
 type AlbumDetailData = {
@@ -33,6 +34,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
   const [deleting, setDeleting] = useState(false);
   const [showAddPhotos, setShowAddPhotos] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
+  const [showTakenAt, setShowTakenAt] = useState(false);
+  const [photoSize, setPhotoSize] = useState<PhotoSize>("medium");
   const [refreshToken, setRefreshToken] = useState(0);
   const [photoRefreshToken, setPhotoRefreshToken] = useState(0);
   const message = useMessage();
@@ -154,7 +157,16 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
 
       <section className="space-y-4">
         <p className="text-sm font-medium text-[var(--film)]">PHOTOS</p>
-        <PhotoGallery key={photoRefreshToken} albumId={albumId} refreshSignal={photoRefreshToken} onSetCover={(photoId) => { void handleSetCover(photoId); }} />
+        <PhotoGallery
+          key={photoRefreshToken}
+          albumId={albumId}
+          refreshSignal={photoRefreshToken}
+          onSetCover={(photoId) => { void handleSetCover(photoId); }}
+          showTakenAt={showTakenAt}
+          onToggleTakenAt={() => setShowTakenAt((prev) => !prev)}
+          photoSize={photoSize}
+          onPhotoSizeChange={setPhotoSize}
+        />
       </section>
 
       <AlbumManagementModal
@@ -175,6 +187,10 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
           setRefreshToken((current) => current + 1);
           setPhotoRefreshToken((current) => current + 1);
         }}
+        showTakenAt={showTakenAt}
+        onToggleTakenAt={() => setShowTakenAt((prev) => !prev)}
+        photoSize={photoSize}
+        onPhotoSizeChange={setPhotoSize}
         onClose={() => setShowManagement(false)}
       />
 

@@ -20,6 +20,10 @@ describe("AlbumManagementModal", () => {
         editDesc: "周末整理",
         saving: false,
         deleting: false,
+        showTakenAt: true,
+        onToggleTakenAt: () => undefined,
+        photoSize: "medium",
+        onPhotoSizeChange: () => undefined,
         onEditNameChange: () => undefined,
         onEditDescChange: () => undefined,
         onSave: () => undefined,
@@ -35,5 +39,7 @@ describe("AlbumManagementModal", () => {
     expect(html).toContain("上传照片");
     expect(html).toContain("成员管理");
     expect(html).toContain("删除相册");
+    expect(html).toContain("显示时间");
+    expect(html).toContain("图片尺寸");
   });
 });

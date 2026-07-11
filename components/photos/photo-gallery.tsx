@@ -31,6 +31,10 @@ type PhotoGalleryProps = {
   albumId: string;
   refreshSignal?: number;
   onSetCover?: (photoId: string) => void;
+  showTakenAt: boolean;
+  onToggleTakenAt: () => void;
+  photoSize: PhotoSize;
+  onPhotoSizeChange: (value: PhotoSize) => void;
 };
 
 function getSortDate(photo: PhotoItem): Date {
@@ -58,17 +62,23 @@ function groupPhotos(photos: PhotoItem[], mode: GroupMode): Map<string, PhotoIte
   return groups;
 }
 
-export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGalleryProps) {
+export function PhotoGallery({
+  albumId,
+  refreshSignal = 0,
+  onSetCover,
+  showTakenAt,
+  onToggleTakenAt,
+  photoSize,
+  onPhotoSizeChange,
+}: PhotoGalleryProps) {
   const [items, setItems] = useState<PhotoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState("");
   const [layoutMode, setLayoutMode] = useState<"grid" | "waterfall">("grid");
-  const [photoSize, setPhotoSize] = useState<PhotoSize>("medium");
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showTakenAt, setShowTakenAt] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -339,9 +349,9 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
 
       <PhotoGalleryFloatTools
         showTakenAt={showTakenAt}
-        onToggleTakenAt={() => setShowTakenAt((prev) => !prev)}
+        onToggleTakenAt={onToggleTakenAt}
         photoSize={photoSize}
-        onPhotoSizeChange={setPhotoSize}
+        onPhotoSizeChange={onPhotoSizeChange}
         layoutMode={layoutMode}
         onLayoutModeChange={setLayoutMode}
         groupMode={groupMode}

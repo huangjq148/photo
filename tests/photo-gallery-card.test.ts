@@ -41,6 +41,74 @@ describe("PhotoGalleryCard", () => {
     expect(html).not.toContain("1200 × 900");
   });
 
+  it("renders the selection control in blue when selected", () => {
+    const html = renderToStaticMarkup(
+      createElement(PhotoGalleryCard, {
+        photo: {
+          id: "photo-selected",
+          originalName: "selected.jpg",
+          thumbnailUrl: "/thumb-selected.jpg",
+          previewUrl: "/preview-selected.jpg",
+          originalUrl: "/api/files/originals/selected.jpg",
+          mimeType: "image/jpeg",
+          mediaType: "image",
+          duration: null,
+          width: 1600,
+          height: 900,
+          takenAt: null,
+          uploadedAt: "2026-01-01T00:00:00.000Z",
+          isFavorited: false,
+        },
+        selected: true,
+        waterfall: false,
+        showTakenAt: false,
+        onSelect: () => true,
+        onFavorite: () => true,
+        onDelete: () => undefined,
+        onShare: () => undefined,
+        onSetCover: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("border-blue-500");
+    expect(html).toContain("bg-blue-500");
+    expect(html).toContain("text-white");
+  });
+
+  it("shows a favorite badge in the bottom right when favorited", () => {
+    const html = renderToStaticMarkup(
+      createElement(PhotoGalleryCard, {
+        photo: {
+          id: "photo-fav",
+          originalName: "favorite.jpg",
+          thumbnailUrl: "/thumb-favorite.jpg",
+          previewUrl: "/preview-favorite.jpg",
+          originalUrl: "/api/files/originals/favorite.jpg",
+          mimeType: "image/jpeg",
+          mediaType: "image",
+          duration: null,
+          width: 1200,
+          height: 800,
+          takenAt: null,
+          uploadedAt: "2026-01-01T00:00:00.000Z",
+          isFavorited: true,
+        },
+        selected: false,
+        waterfall: false,
+        showTakenAt: false,
+        onSelect: () => true,
+        onFavorite: () => true,
+        onDelete: () => undefined,
+        onShare: () => undefined,
+        onSetCover: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("已收藏");
+    expect(html).toContain("bottom-3 right-3");
+    expect(html).toContain("bg-blue-500/90");
+  });
+
   it("uses the shared media preview trigger for videos", () => {
     const html = renderToStaticMarkup(
       createElement(PhotoGalleryCard, {
