@@ -41,7 +41,7 @@ describe("POST /api/auth/login", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.data.user.id).toBe(userId);
+    expect(body.data.id).toBe(userId);
     expect(response.headers.get("set-cookie")).toContain("photo_session=");
   });
 });

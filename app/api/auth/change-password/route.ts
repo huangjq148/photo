@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getAppEnv } from "@/lib/config";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
 import { changePassword } from "@/lib/users/auth";
+import { serializeSetCookieHeader } from "@/lib/auth/session";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUserFromRequest(request);
@@ -50,13 +51,16 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ data: { success: true } });
 
     // Set new cookie with updated session version
-    response.cookies.set(result.cookieName, result.sessionToken, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: result.maxAge,
-      secure: process.env.NODE_ENV === "production",
-    });
+    response.headers.set(
+      "Set-Cookie",
+      serializeSetCookieHeader(result.cookieName, result.sessionToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: result.maxAge,
+        secure: process.env.NODE_ENV === "production",
+      })
+    );
 
     return response;
   } catch (error) {

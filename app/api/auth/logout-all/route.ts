@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getAppEnv } from "@/lib/config";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
 import { logoutAllDevices } from "@/lib/users/auth";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME, serializeSetCookieHeader } from "@/lib/auth/session";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUserFromRequest(request);
@@ -19,13 +19,16 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ data: { success: true } });
 
     // Clear the current cookie
-    response.cookies.set(SESSION_COOKIE_NAME, "", {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0,
-      secure: process.env.NODE_ENV === "production",
-    });
+    response.headers.set(
+      "Set-Cookie",
+      serializeSetCookieHeader(SESSION_COOKIE_NAME, "", {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+        secure: process.env.NODE_ENV === "production",
+      })
+    );
 
     return response;
   } catch (error) {

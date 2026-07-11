@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getAppEnv } from "@/lib/config";
 import { registerSchema } from "@/lib/auth/schemas";
 import { registerUser } from "@/lib/users/auth";
-import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session";
+import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS, serializeSetCookieHeader } from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -18,15 +18,18 @@ export async function POST(request: Request) {
 
   try {
     const result = await registerUser(prisma, getAppEnv(), parsed.data);
-    const response = NextResponse.json({ data: result }, { status: 201 });
+    const response = NextResponse.json({ data: { user: result.user, album: result.album } }, { status: 201 });
 
-    response.cookies.set(SESSION_COOKIE_NAME, result.sessionToken, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_MAX_AGE_SECONDS,
-      secure: process.env.NODE_ENV === "production"
-    });
+    response.headers.set(
+      "Set-Cookie",
+      serializeSetCookieHeader(SESSION_COOKIE_NAME, result.sessionToken, {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: SESSION_MAX_AGE_SECONDS,
+        secure: process.env.NODE_ENV === "production",
+      })
+    );
 
     return response;
   } catch (error) {

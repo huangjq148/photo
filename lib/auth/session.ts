@@ -63,13 +63,13 @@ export function verifySessionToken(
 ): VerifiedSession {
   const parts = token.split(".");
   if (parts.length !== 2) {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (wrong format)");
   }
 
   const [encoded, signature] = parts;
 
   if (!encoded || !signature) {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (empty part)");
   }
 
   // Verify HMAC signature
@@ -81,7 +81,7 @@ export function verifySessionToken(
     actualBytes.length !== expectedBytes.length ||
     !timingSafeEqual(actualBytes, expectedBytes)
   ) {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (signature mismatch)");
   }
 
   // Parse and validate payload
@@ -89,7 +89,7 @@ export function verifySessionToken(
   try {
     payload = JSON.parse(decoder.decode(base64urlDecode(encoded)));
   } catch {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (payload parse error)");
   }
 
   if (
@@ -101,19 +101,19 @@ export function verifySessionToken(
     !("iat" in payload) ||
     !("exp" in payload)
   ) {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (missing payload fields)");
   }
 
   const p = payload as Record<string, unknown>;
 
   if (typeof p.v !== "number" || p.v !== CURRENT_VERSION) {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (wrong version)");
   }
   if (typeof p.uid !== "string" || !p.uid) {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (missing uid)");
   }
   if (typeof p.sv !== "number") {
-    throw new Error("Invalid session token");
+    throw new Error("Invalid session token (missing sv)");
   }
   if (typeof p.exp !== "number" || p.exp <= now) {
     throw new Error("Session 已过期");
@@ -132,3 +132,30 @@ export function verifySessionToken(
 
 export const SESSION_COOKIE_NAME = "photo_session";
 export const SESSION_MAX_AGE_SECONDS = Math.floor(SESSION_TTL_MS / 1000);
+
+export type SetCookieOptions = {
+  maxAge: number;
+  httpOnly?: boolean;
+  sameSite?: "lax" | "strict" | "none";
+  path?: string;
+  secure?: boolean;
+};
+
+export function serializeSetCookieHeader(
+  name: string,
+  value: string,
+  options: SetCookieOptions
+): string {
+  const parts: string[] = [`${name}=${value}`];
+
+  if (options.httpOnly) parts.push("HttpOnly");
+  if (options.sameSite) {
+    const s = options.sameSite;
+    parts.push(`SameSite=${s.charAt(0).toUpperCase() + s.slice(1)}`);
+  }
+  if (options.path) parts.push(`Path=${options.path}`);
+  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
+  if (options.secure) parts.push("Secure");
+
+  return parts.join("; ");
+}
