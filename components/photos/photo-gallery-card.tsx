@@ -1,11 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Bookmark, Check, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
+import { useMessage } from "@/components/ui/message";
+import {
+  getCodePointLength,
+  getOriginalNameWithoutExtension,
+  normalizeDisplayName,
+  resolveDisplayName,
+} from "@/lib/media/display-name";
 
 export type PhotoGalleryCardItem = {
   id: string;
+  displayName: string | null;
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
@@ -18,33 +26,32 @@ export type PhotoGalleryCardItem = {
   takenAt: string | null;
   uploadedAt: string;
   isFavorited: boolean;
+  canEditName: boolean;
 };
 
 type PhotoGalleryCardProps = {
+  albumId: string;
   photo: PhotoGalleryCardItem;
   selected: boolean;
   waterfall: boolean;
   showTakenAt: boolean;
-  /** 用于全屏预览时左右切换的同组照片 */
   navigableItems?: ImageViewerNavigationItem[];
   onSelect: () => void;
   onFavorite: () => Promise<boolean> | boolean;
   onDelete: () => void;
   onShare: () => void;
   onSetCover: () => void;
+  onDisplayNameChange?: (photoId: string, displayName: string | null) => void;
+  onRemove?: (photoId: string) => void;
 };
+
+const MAX_DISPLAY_NAME_LENGTH = 100;
 
 function formatDuration(seconds?: number): string {
   if (!seconds || seconds <= 0) return "";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatDateTime(dateStr: string) {
@@ -59,6 +66,7 @@ function formatDateTime(dateStr: string) {
 }
 
 export function PhotoGalleryCard({
+  albumId,
   photo,
   selected,
   waterfall,
@@ -69,16 +77,135 @@ export function PhotoGalleryCard({
   onDelete,
   onShare,
   onSetCover,
+  onDisplayNameChange,
+  onRemove,
 }: PhotoGalleryCardProps) {
   const [showInfo, setShowInfo] = useState(false);
   const [favoriteState, setFavoriteState] = useState(photo.isFavorited);
+  const [displayName, setDisplayName] = useState(photo.displayName);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [draftName, setDraftName] = useState(photo.displayName ?? "");
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [isComposing, setIsComposing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const message = useMessage();
   const isVideo = photo.mediaType === "video" || photo.mimeType.startsWith("video/");
   const isGif = photo.mimeType === "image/gif";
   const favoriteLabel = favoriteState ? "取消收藏" : "收藏";
+  const resolvedName = resolveDisplayName(displayName, photo.originalName);
+  const placeholderName = getOriginalNameWithoutExtension(photo.originalName);
+  const isCustomName = !!normalizeDisplayName(displayName);
 
   useEffect(() => {
     setFavoriteState(photo.isFavorited);
   }, [photo.isFavorited]);
+
+  useEffect(() => {
+    if (!isEditingName) {
+      setDisplayName(photo.displayName);
+      setDraftName(photo.displayName ?? "");
+      setNameError(null);
+    }
+  }, [photo.displayName, isEditingName]);
+
+  useEffect(() => {
+    if (isEditingName) {
+      window.requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [isEditingName]);
+
+  function startEditing() {
+    if (!photo.canEditName || isSavingName) {
+      return;
+    }
+
+    setNameError(null);
+    setDraftName(displayName ?? "");
+    setIsEditingName(true);
+  }
+
+  function cancelEditing() {
+    setIsEditingName(false);
+    setIsComposing(false);
+    setNameError(null);
+    setDraftName(displayName ?? "");
+  }
+
+  async function commitDisplayName() {
+    if (isSavingName) {
+      return;
+    }
+
+    const nextValue = draftName.trim();
+    const currentValue = normalizeDisplayName(displayName);
+
+    if (nextValue === (currentValue ?? "")) {
+      setIsEditingName(false);
+      setNameError(null);
+      setDraftName(displayName ?? "");
+      return;
+    }
+
+    if (getCodePointLength(nextValue) > MAX_DISPLAY_NAME_LENGTH) {
+      setNameError("名称最多 100 个字符");
+      window.requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+      return;
+    }
+
+    setIsSavingName(true);
+    setNameError(null);
+
+    try {
+      const response = await fetch(`/api/albums/${albumId}/photos/${photo.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ displayName: nextValue || null }),
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          setIsEditingName(false);
+          setDraftName(displayName ?? "");
+          message.error("你没有权限编辑此名称");
+          return;
+        }
+
+        if (response.status === 404) {
+          setIsEditingName(false);
+          setDraftName(displayName ?? "");
+          onRemove?.(photo.id);
+          message.error("该媒体已不存在");
+          return;
+        }
+
+        throw new Error(json.error ?? "名称保存失败，请重试");
+      }
+
+      const updated = json.data as { displayName: string | null; originalName: string };
+      setDisplayName(updated.displayName);
+      onDisplayNameChange?.(photo.id, updated.displayName);
+      setDraftName(updated.displayName ?? "");
+      setIsEditingName(false);
+      message.success(updated.displayName ? "名称已更新" : "名称已清除");
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "名称保存失败，请重试";
+      setNameError(text);
+      message.error(text);
+      window.requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+    } finally {
+      setIsSavingName(false);
+    }
+  }
 
   return (
     <article
@@ -89,7 +216,7 @@ export function PhotoGalleryCard({
       <div className="overflow-hidden rounded-t-xl">
         <ImageViewer
           src={photo.thumbnailUrl}
-          alt={photo.originalName}
+          alt={resolvedName}
           {...(isVideo
             ? { videoSrc: photo.originalUrl, mediaType: "video" as const }
             : { previewSrc: isGif ? photo.originalUrl : photo.previewUrl })}
@@ -100,14 +227,83 @@ export function PhotoGalleryCard({
         />
       </div>
 
-      {/* Media info overlay */}
+      <div className="border-t border-[var(--border)] px-4 py-3">
+        {isEditingName ? (
+          <div className="space-y-1.5">
+            <label className="sr-only" htmlFor={`display-name-${photo.id}`}>
+              编辑 {resolvedName} 的名称
+            </label>
+            <input
+              ref={inputRef}
+              id={`display-name-${photo.id}`}
+              value={draftName}
+              placeholder={displayName?.trim() ? "" : placeholderName}
+              onChange={(event) => {
+                setDraftName(event.target.value);
+                if (nameError) {
+                  setNameError(null);
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelEditing();
+                  return;
+                }
+
+                if (event.key === "Enter" && !isComposing) {
+                  event.preventDefault();
+                  void commitDisplayName();
+                }
+              }}
+              onBlur={() => {
+                void commitDisplayName();
+              }}
+              onCompositionStart={() => setIsComposing(true)}
+              onCompositionEnd={() => setIsComposing(false)}
+              disabled={isSavingName}
+              className="h-9 w-full rounded-md border border-[var(--border)] bg-black/25 px-2.5 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--film)] disabled:opacity-70"
+            />
+            {nameError ? (
+              <p className="text-xs text-[var(--danger)]" role="alert">
+                {nameError}
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startEditing}
+            disabled={!photo.canEditName}
+            aria-label={photo.canEditName ? `编辑 ${resolvedName} 的名称` : resolvedName}
+            title={resolvedName}
+            className={`min-w-0 text-left ${photo.canEditName ? "cursor-pointer" : "cursor-default"}`}
+          >
+            <p
+              className={`text-sm font-semibold leading-5 ${
+                isCustomName ? "text-[var(--text)]" : "text-[var(--muted)]"
+              } max-sm:line-clamp-2 sm:truncate`}
+            >
+              {resolvedName}
+            </p>
+          </button>
+        )}
+      </div>
+
       {showInfo && (
         <div
           className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/92 via-black/68 to-black/26 p-4"
           onClick={() => setShowInfo(false)}
         >
-          <div className="space-y-2 text-white">
-            <p className="text-sm font-bold">{photo.originalName}</p>
+          <div className="space-y-3 text-white">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.24em] text-white/48">名称</p>
+              <p className="text-sm font-bold">{normalizeDisplayName(displayName) || "未命名"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-[0.24em] text-white/48">原始文件名</p>
+              <p className="text-sm font-medium text-white/84">{photo.originalName}</p>
+            </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-white/70">
               <span>尺寸</span>
               <span>
@@ -128,7 +324,6 @@ export function PhotoGalleryCard({
         </div>
       )}
 
-      {/* Taken time badge */}
       {showTakenAt && (photo.takenAt || photo.uploadedAt) && (
         <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md noir-glass-chip px-2.5 py-1">
           <p className="text-xs font-medium text-white/80">
@@ -148,18 +343,12 @@ export function PhotoGalleryCard({
           type="button"
           onClick={onSelect}
           className={`inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition ${
-            selected
-              ? "border-blue-500 bg-blue-500 text-white"
-              : "noir-glass-chip text-[var(--text)]"
+            selected ? "border-blue-500 bg-blue-500 text-white" : "noir-glass-chip text-[var(--text)]"
           }`}
           aria-pressed={selected}
-          aria-label={`选择 ${photo.originalName}`}
+          aria-label={`选择 ${resolvedName}`}
         >
-          <Check
-            aria-hidden="true"
-            size={18}
-            className={selected ? "opacity-100" : "opacity-45"}
-          />
+          <Check aria-hidden="true" size={18} className={selected ? "opacity-100" : "opacity-45"} />
         </button>
       </div>
 

@@ -106,6 +106,7 @@ model Media {
   id                String                @id @default(uuid()) @db.Uuid
   album_id          String                @db.Uuid
   uploader_id       String                @db.Uuid
+  display_name      String?               @db.VarChar(100)
   original_name     String
   file_name         String
   mime_type         String
@@ -140,6 +141,7 @@ model Media {
 
   @@index([album_id, status, uploaded_at])
   @@index([uploader_id])
+  @@index([display_name])
   @@index([checksum])
   @@index([deleted_at])
 }

@@ -1,10 +1,12 @@
 import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
+import { resolveDisplayName } from "@/lib/media/display-name";
 
 export type MediaNavigationSource = {
   id: string;
   thumbnailUrl: string;
   previewUrl: string;
   originalUrl: string;
+  displayName?: string | null;
   originalName: string;
   mimeType: string;
   mediaType: string;
@@ -27,8 +29,8 @@ export function buildMediaViewerNavigationItems(items: MediaNavigationSource[]):
       ? (item.mimeType === "image/gif" ? item.originalUrl : item.previewUrl)
       : undefined,
     videoSrc: isVideoMedia(item) ? item.originalUrl : undefined,
-    alt: item.originalName,
-    title: item.originalName,
+    alt: resolveDisplayName(item.displayName, item.originalName),
+    title: resolveDisplayName(item.displayName, item.originalName),
   }));
 }
 

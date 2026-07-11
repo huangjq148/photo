@@ -11,6 +11,7 @@ import { ShareManager } from "@/components/share/share-manager";
 
 type PhotoItem = {
   id: string;
+  displayName: string | null;
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
@@ -23,6 +24,7 @@ type PhotoItem = {
   takenAt: string | null;
   uploadedAt: string;
   isFavorited: boolean;
+  canEditName: boolean;
 };
 
 type GroupMode = "none" | "month" | "year";
@@ -201,6 +203,19 @@ export function PhotoGallery({
     }
   }
 
+  function updatePhotoDisplayName(photoId: string, displayName: string | null) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === photoId ? { ...item, displayName } : item
+      )
+    );
+  }
+
+  function removePhotoFromState(photoId: string) {
+    setItems((current) => current.filter((item) => item.id !== photoId));
+    setSelectedIds((current) => current.filter((id) => id !== photoId));
+  }
+
   async function toggleFavorite(photoId: string) {
     try {
       const response = await fetch(`/api/photos/${photoId}/favorite`, {
@@ -375,13 +390,14 @@ export function PhotoGallery({
                 }
               >
                 {photos.map((photo) => (
-                  <PhotoGalleryCard
-                    key={photo.id}
-                    photo={photo}
-                    selected={selectedIdSet.has(photo.id)}
-                    waterfall={false}
-                    showTakenAt={showTakenAt}
-                    navigableItems={navigableItems}
+                <PhotoGalleryCard
+                  key={photo.id}
+                  albumId={albumId}
+                  photo={photo}
+                  selected={selectedIdSet.has(photo.id)}
+                  waterfall={false}
+                  showTakenAt={showTakenAt}
+                  navigableItems={navigableItems}
                     onSelect={() => {
                       setSelectedIds((current) =>
                         current.includes(photo.id)
@@ -398,11 +414,13 @@ export function PhotoGallery({
                     onShare={() => {
                       void sharePhoto(photo.id);
                     }}
-                    onSetCover={() => {
-                      if (onSetCover) onSetCover(photo.id);
-                    }}
-                  />
-                ))}
+                  onSetCover={() => {
+                    if (onSetCover) onSetCover(photo.id);
+                  }}
+                  onDisplayNameChange={updatePhotoDisplayName}
+                  onRemove={removePhotoFromState}
+                />
+              ))}
               </div>
             </section>
           ))}
@@ -426,6 +444,7 @@ export function PhotoGallery({
           {items.map((photo) => (
             <PhotoGalleryCard
               key={photo.id}
+              albumId={albumId}
               photo={photo}
               selected={selectedIdSet.has(photo.id)}
               waterfall={layoutMode === "waterfall"}
@@ -450,6 +469,8 @@ export function PhotoGallery({
               onSetCover={() => {
                 if (onSetCover) onSetCover(photo.id);
               }}
+              onDisplayNameChange={updatePhotoDisplayName}
+              onRemove={removePhotoFromState}
             />
           ))}
         </div>

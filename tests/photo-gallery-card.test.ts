@@ -2,39 +2,48 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
+import { MessageProvider } from "@/components/ui/message";
 
 describe("PhotoGalleryCard", () => {
   it("shows the photo first and moves actions behind a hover menu", () => {
     const html = renderToStaticMarkup(
-      createElement(PhotoGalleryCard, {
-        photo: {
-          id: "photo-1",
-          originalName: "family.jpg",
-          thumbnailUrl: "/thumb.jpg",
-          previewUrl: "/preview.jpg",
-          originalUrl: "/api/files/originals/test.jpg",
-          mimeType: "image/jpeg",
-          mediaType: "image",
-          duration: null,
-          width: 1200,
-          height: 900,
-          takenAt: "2026-01-01T00:00:00.000Z",
-          uploadedAt: "2026-01-01T00:00:00.000Z",
-          isFavorited: false,
-        },
-        selected: false,
-        waterfall: false,
-        showTakenAt: false,
-        onSelect: () => undefined,
-        onFavorite: () => true,
-        onDelete: () => undefined,
-        onShare: () => undefined,
-        onSetCover: () => undefined,
-      }),
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-1",
+          photo: {
+            id: "photo-1",
+            displayName: null,
+            originalName: "family.jpg",
+            thumbnailUrl: "/thumb.jpg",
+            previewUrl: "/preview.jpg",
+            originalUrl: "/api/files/originals/test.jpg",
+            mimeType: "image/jpeg",
+            mediaType: "image",
+            duration: null,
+            width: 1200,
+            height: 900,
+            takenAt: "2026-01-01T00:00:00.000Z",
+            uploadedAt: "2026-01-01T00:00:00.000Z",
+            isFavorited: false,
+            canEditName: true,
+          },
+          selected: false,
+          waterfall: false,
+          showTakenAt: false,
+          onSelect: () => undefined,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+        }),
+      ),
     );
 
     expect(html).toContain("<img");
-    expect(html).toContain("family.jpg");
+    expect(html).toContain("family");
+    expect(html).not.toContain("family.jpg");
     expect(html).toContain("更多操作");
     expect(html).toContain("group-hover:opacity-100");
     expect(html).toContain("收藏");
@@ -43,65 +52,80 @@ describe("PhotoGalleryCard", () => {
 
   it("renders the selection control in blue when selected", () => {
     const html = renderToStaticMarkup(
-      createElement(PhotoGalleryCard, {
-        photo: {
-          id: "photo-selected",
-          originalName: "selected.jpg",
-          thumbnailUrl: "/thumb-selected.jpg",
-          previewUrl: "/preview-selected.jpg",
-          originalUrl: "/api/files/originals/selected.jpg",
-          mimeType: "image/jpeg",
-          mediaType: "image",
-          duration: null,
-          width: 1600,
-          height: 900,
-          takenAt: null,
-          uploadedAt: "2026-01-01T00:00:00.000Z",
-          isFavorited: false,
-        },
-        selected: true,
-        waterfall: false,
-        showTakenAt: false,
-        onSelect: () => true,
-        onFavorite: () => true,
-        onDelete: () => undefined,
-        onShare: () => undefined,
-        onSetCover: () => undefined,
-      }),
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-1",
+          photo: {
+            id: "photo-selected",
+            displayName: null,
+            originalName: "selected.jpg",
+            thumbnailUrl: "/thumb-selected.jpg",
+            previewUrl: "/preview-selected.jpg",
+            originalUrl: "/api/files/originals/selected.jpg",
+            mimeType: "image/jpeg",
+            mediaType: "image",
+            duration: null,
+            width: 1600,
+            height: 900,
+            takenAt: null,
+            uploadedAt: "2026-01-01T00:00:00.000Z",
+            isFavorited: false,
+            canEditName: false,
+          },
+          selected: true,
+          waterfall: false,
+          showTakenAt: false,
+          onSelect: () => true,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+        }),
+      ),
     );
 
     expect(html).toContain("border-blue-500");
     expect(html).toContain("bg-blue-500");
     expect(html).toContain("text-white");
+    expect(html).toContain("selected");
   });
 
   it("shows a favorite badge in the bottom right when favorited", () => {
     const html = renderToStaticMarkup(
-      createElement(PhotoGalleryCard, {
-        photo: {
-          id: "photo-fav",
-          originalName: "favorite.jpg",
-          thumbnailUrl: "/thumb-favorite.jpg",
-          previewUrl: "/preview-favorite.jpg",
-          originalUrl: "/api/files/originals/favorite.jpg",
-          mimeType: "image/jpeg",
-          mediaType: "image",
-          duration: null,
-          width: 1200,
-          height: 800,
-          takenAt: null,
-          uploadedAt: "2026-01-01T00:00:00.000Z",
-          isFavorited: true,
-        },
-        selected: false,
-        waterfall: false,
-        showTakenAt: false,
-        onSelect: () => true,
-        onFavorite: () => true,
-        onDelete: () => undefined,
-        onShare: () => undefined,
-        onSetCover: () => undefined,
-      }),
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-1",
+          photo: {
+            id: "photo-fav",
+            displayName: null,
+            originalName: "favorite.jpg",
+            thumbnailUrl: "/thumb-favorite.jpg",
+            previewUrl: "/preview-favorite.jpg",
+            originalUrl: "/api/files/originals/favorite.jpg",
+            mimeType: "image/jpeg",
+            mediaType: "image",
+            duration: null,
+            width: 1200,
+            height: 800,
+            takenAt: null,
+            uploadedAt: "2026-01-01T00:00:00.000Z",
+            isFavorited: true,
+            canEditName: false,
+          },
+          selected: false,
+          waterfall: false,
+          showTakenAt: false,
+          onSelect: () => true,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+        }),
+      ),
     );
 
     expect(html).toContain("已收藏");
@@ -111,41 +135,48 @@ describe("PhotoGalleryCard", () => {
 
   it("uses the shared media preview trigger for videos", () => {
     const html = renderToStaticMarkup(
-      createElement(PhotoGalleryCard, {
-        photo: {
-          id: "video-1",
-          originalName: "clip.mp4",
-          thumbnailUrl: "/thumb-video.jpg",
-          previewUrl: "/preview-video.jpg",
-          originalUrl: "/api/files/originals/clip.mp4",
-          mimeType: "video/mp4",
-          mediaType: "video",
-          duration: 12,
-          width: 1920,
-          height: 1080,
-          takenAt: null,
-          uploadedAt: "2026-01-01T00:00:00.000Z",
-          isFavorited: true,
-        },
-        selected: false,
-        waterfall: false,
-        showTakenAt: false,
-        navigableItems: [
-          {
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-1",
+          photo: {
             id: "video-1",
+            displayName: null,
+            originalName: "clip.mp4",
+            thumbnailUrl: "/thumb-video.jpg",
+            previewUrl: "/preview-video.jpg",
+            originalUrl: "/api/files/originals/clip.mp4",
+            mimeType: "video/mp4",
             mediaType: "video",
-            src: "/thumb-video.jpg",
-            videoSrc: "/api/files/originals/clip.mp4",
-            alt: "clip.mp4",
-            title: "clip.mp4",
+            duration: 12,
+            width: 1920,
+            height: 1080,
+            takenAt: null,
+            uploadedAt: "2026-01-01T00:00:00.000Z",
+            isFavorited: true,
+            canEditName: false,
           },
-        ],
-        onSelect: () => undefined,
-        onFavorite: () => true,
-        onDelete: () => undefined,
-        onShare: () => undefined,
-        onSetCover: () => undefined,
-      }),
+          selected: false,
+          waterfall: false,
+          showTakenAt: false,
+          navigableItems: [
+            {
+              id: "video-1",
+              mediaType: "video",
+              src: "/thumb-video.jpg",
+              videoSrc: "/api/files/originals/clip.mp4",
+              alt: "clip.mp4",
+              title: "clip.mp4",
+            },
+          ],
+          onSelect: () => undefined,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+        }),
+      ),
     );
 
     expect(html).toContain("点击播放视频");

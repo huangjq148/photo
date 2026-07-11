@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import { assertAlbumMembership, assertAlbumOwner, assertCanUpload, assertCanDelete } from "@/lib/membership";
 import { INVITE_STATUS, INVITE_DURATION_MS } from "@/lib/albums/invite-status";
+import { getCodePointLength, normalizeDisplayName } from "@/lib/media/display-name";
 
 // ── Types ──
 
@@ -40,15 +41,34 @@ export type AlbumDetail = {
 
 export type AlbumPhotoItem = {
   id: string;
+  displayName: string | null;
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
+  originalUrl: string;
   mimeType: string;
+  mediaType: string;
+  duration: number | null;
   width: number;
   height: number;
   takenAt: Date | null;
   uploadedAt: Date;
+  status: "normal" | "deleted";
   isFavorited: boolean;
+  canEditName: boolean;
+};
+
+export type MediaDisplayNameUpdate = {
+  id: string;
+  displayName: string | null;
+  originalName: string;
+};
+
+type MediaPage<T> = {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
 };
 
 export type AlbumMemberItem = {
@@ -271,8 +291,16 @@ export async function getAlbumPhotos(
     pageSize: number;
     keyword?: string;
   }
-) {
+): Promise<MediaPage<AlbumPhotoItem>> {
   await assertAlbumMembership(prisma, context.albumId, context.userId);
+  const album = await prisma.album.findUnique({
+    where: { id: context.albumId },
+    select: { creator_id: true },
+  });
+
+  if (!album) {
+    throw new Error("相册不存在");
+  }
 
   const page = Math.max(1, Math.floor(context.page));
   const pageSize = Math.min(Math.max(Math.floor(context.pageSize), 1), 50);
@@ -322,6 +350,7 @@ export async function getAlbumPhotos(
     total,
     items: refs.map((ref) => ({
       id: ref.media.id,
+      displayName: ref.media.display_name ?? null,
       originalName: ref.media.original_name,
       thumbnailUrl: ref.media.thumbnail_url,
       previewUrl: ref.media.preview_url,
@@ -333,8 +362,89 @@ export async function getAlbumPhotos(
       height: ref.media.height,
       takenAt: ref.media.taken_at,
       uploadedAt: ref.media.uploaded_at,
+      status: ref.media.status,
       isFavorited: ref.media.favorites.length > 0,
+      canEditName: ref.media.uploader_id === context.userId || album.creator_id === context.userId,
     })),
+  };
+}
+
+export async function updateAlbumPhotoDisplayName(
+  prisma: PrismaClient,
+  context: {
+    albumId: string;
+    photoId: string;
+    userId: string;
+    displayName?: string | null;
+  }
+): Promise<MediaDisplayNameUpdate> {
+  const album = await prisma.album.findUnique({
+    where: { id: context.albumId },
+    select: { creator_id: true },
+  });
+
+  if (!album) {
+    throw new Error("相册不存在");
+  }
+
+  await assertAlbumMembership(prisma, context.albumId, context.userId);
+
+  const ref = await prisma.albumPhoto.findUnique({
+    where: {
+      album_id_photo_id: {
+        album_id: context.albumId,
+        photo_id: context.photoId,
+      },
+    },
+    include: {
+      media: {
+        select: {
+          id: true,
+          uploader_id: true,
+          original_name: true,
+          display_name: true,
+          status: true,
+        },
+      },
+    },
+  });
+
+  if (!ref || ref.media.status === "deleted") {
+    throw new Error("该媒体已不存在");
+  }
+
+  const canEdit = ref.media.uploader_id === context.userId || album.creator_id === context.userId;
+  if (!canEdit) {
+    throw new Error("你没有权限编辑此名称");
+  }
+
+  if (context.displayName === undefined) {
+    return {
+      id: ref.media.id,
+      displayName: ref.media.display_name ?? null,
+      originalName: ref.media.original_name,
+    };
+  }
+
+  const nextDisplayName = normalizeDisplayName(context.displayName);
+  if (nextDisplayName !== null && getCodePointLength(nextDisplayName) > 100) {
+    throw new Error("名称最多 100 个字符");
+  }
+
+  const updated = await prisma.media.update({
+    where: { id: ref.media.id },
+    data: { display_name: nextDisplayName },
+    select: {
+      id: true,
+      display_name: true,
+      original_name: true,
+    },
+  });
+
+  return {
+    id: updated.id,
+    displayName: updated.display_name ?? null,
+    originalName: updated.original_name,
   };
 }
 
