@@ -58,13 +58,11 @@ function formatDuration(seconds?: number): string {
 
 function formatDateTime(dateStr: string) {
   const d = new Date(dateStr);
-  return d.toLocaleString("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const hour = d.getHours().toString().padStart(2, "0");
+  const minute = d.getMinutes().toString().padStart(2, "0");
+  return `${month}月${day}日 ${hour}:${minute}`;
 }
 
 export function PhotoGalleryCard({
@@ -104,8 +102,8 @@ export function PhotoGalleryCard({
     childAgeLabel || showTakenAt
       ? childAgeLabel
         ? showTakenAt
-          ? `拍摄时 ${childAgeLabel} · ${formatDateTime(photo.takenAt || photo.uploadedAt)}`
-          : `拍摄时 ${childAgeLabel}`
+          ? `${childAgeLabel} · ${formatDateTime(photo.takenAt || photo.uploadedAt)}`
+          : childAgeLabel
         : formatDateTime(photo.takenAt || photo.uploadedAt)
       : null;
 

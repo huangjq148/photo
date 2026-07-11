@@ -229,6 +229,6 @@ describe("PhotoGalleryCard", () => {
       ),
     );
 
-    expect(html).toContain("拍摄时 1岁2个月");
+    expect(html).toContain("1岁2个月");
   });
 });

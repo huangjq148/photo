@@ -5,6 +5,7 @@ import { AddPhotosModal } from "@/components/albums/add-photos-modal";
 import { AlbumDetailHeader } from "@/components/albums/album-detail-header";
 import { AlbumManagementModal } from "@/components/albums/album-management-modal";
 import { PhotoGallery } from "@/components/photos/photo-gallery";
+import { shouldConfirmDisableChildAlbum, validateChildBirthDate } from "@/lib/albums/child-album-rules";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { useMessage } from "@/components/ui/message";
 
@@ -68,9 +69,13 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
 
   async function handleSave() {
     if (!editName.trim()) return;
-    if (editIsChildAlbum && !editChildBirthDate.trim()) {
-      setError("请先填写孩子生日");
-      message.error("请先填写孩子生日");
+    const birthDateError = validateChildBirthDate(editIsChildAlbum, editChildBirthDate);
+    if (birthDateError) {
+      setError(birthDateError);
+      message.error(birthDateError);
+      window.requestAnimationFrame(() => {
+        document.getElementById("child-birth-date-input")?.focus();
+      });
       return;
     }
     setSaving(true);
@@ -97,6 +102,23 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
       message.error(text);
     } finally {
       setSaving(false);
+    }
+  }
+
+  function handleEditIsChildAlbumChange(nextValue: boolean) {
+    if (shouldConfirmDisableChildAlbum(editIsChildAlbum, nextValue)) {
+      const confirmed = window.confirm("关闭孩子相册后，照片上的年龄信息会消失。确定要继续吗？");
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    setEditIsChildAlbum(nextValue);
+
+    if (nextValue && !editChildBirthDate.trim()) {
+      window.requestAnimationFrame(() => {
+        document.getElementById("child-birth-date-input")?.focus();
+      });
     }
   }
 
@@ -201,7 +223,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         deleting={deleting}
         onEditNameChange={setEditName}
         onEditDescChange={setEditDesc}
-        onEditIsChildAlbumChange={setEditIsChildAlbum}
+        onEditIsChildAlbumChange={handleEditIsChildAlbumChange}
         onEditChildBirthDateChange={setEditChildBirthDate}
         onSave={() => void handleSave()}
         onDelete={() => void handleDelete()}

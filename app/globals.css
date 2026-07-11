@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "@rc-component/picker/assets/index.css";
+@import "@rc-component/trigger/assets/index.css";
 
 :root {
   color-scheme: dark;
@@ -117,6 +119,193 @@ button:disabled {
 
 .hover\:bg-white:hover {
   color: #030303 !important;
+}
+
+.photo-date-picker {
+  width: 100%;
+}
+
+.photo-date-picker .rc-picker {
+  width: 100%;
+}
+
+.photo-date-picker .rc-picker-input {
+  width: 100%;
+}
+
+.photo-date-picker .rc-picker-input input {
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: #000;
+  color: var(--text);
+  padding: 0 1rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.photo-date-picker .rc-picker-input input::placeholder {
+  color: var(--muted);
+}
+
+.photo-date-picker.rc-picker-focused .rc-picker-input input,
+.photo-date-picker .rc-picker-focused .rc-picker-input input,
+.photo-date-picker .rc-picker-input input:focus {
+  border-color: var(--film);
+}
+
+.photo-date-picker .rc-picker-suffix {
+  color: var(--muted);
+}
+
+.photo-date-picker-popup.rc-picker-dropdown {
+  min-width: 0 !important;
+  width: fit-content !important;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  background: rgba(12, 12, 14, 0.96);
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+.photo-date-picker-popup .rc-picker-panel-container {
+  padding: 12px;
+  background: transparent;
+}
+
+.photo-date-picker-popup .rc-picker-panel {
+  background: linear-gradient(180deg, rgba(20, 20, 24, 0.98), rgba(11, 11, 13, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.photo-date-picker-popup .rc-picker-cell-in-view {
+  color: var(--text);
+}
+
+.photo-date-picker-popup .rc-picker-cell-selected .rc-picker-cell-inner,
+.photo-date-picker-popup .rc-picker-cell-today .rc-picker-cell-inner {
+  border-color: var(--film);
+}
+
+.photo-date-picker-popup .rc-picker-cell-selected .rc-picker-cell-inner {
+  background: var(--film);
+  color: #030303;
+}
+
+.photo-date-picker-popup .rc-picker-header,
+.photo-date-picker-popup .rc-picker-content {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.photo-date-picker-popup .rc-picker-header button,
+.photo-date-picker-popup .rc-picker-header-view,
+.photo-date-picker-popup .rc-picker-cell-inner,
+.photo-date-picker-popup .rc-picker-time-panel-cell-inner {
+  color: var(--text);
+}
+
+.photo-date-picker-popup .rc-picker-cell-inner {
+  border-radius: 999px;
+}
+
+.photo-date-picker-popup .rc-picker-header {
+  padding: 0.2rem 0.25rem 0.35rem;
+  align-items: center;
+}
+
+.photo-date-picker-popup .rc-picker-header-view {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.photo-date-picker-popup .rc-picker-header button {
+  border-radius: 999px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.photo-date-picker-popup .rc-picker-header button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.photo-date-picker-popup .rc-picker-cell {
+  padding: 2px 0;
+}
+
+.photo-date-picker-popup .rc-picker-cell-inner {
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  margin-inline: auto;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.photo-date-picker-popup .rc-picker-cell-inner:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.photo-date-picker-popup .rc-picker-cell-today > .rc-picker-cell-inner {
+  box-shadow: inset 0 0 0 1px rgba(214, 180, 108, 0.7);
+  background: rgba(214, 180, 108, 0.08);
+}
+
+.photo-date-picker-popup .rc-picker-cell-selected > .rc-picker-cell-inner {
+  background: linear-gradient(180deg, #f4f0e8, #d6b46c);
+  color: #030303;
+  box-shadow: 0 10px 22px rgba(214, 180, 108, 0.28);
+}
+
+.photo-date-picker-popup .rc-picker-cell-selected > .rc-picker-cell-inner:hover {
+  background: linear-gradient(180deg, #f7f3ed, #dfbe78);
+  color: #030303;
+}
+
+.photo-date-picker-popup .rc-picker-cell-disabled .rc-picker-cell-inner {
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.28);
+  transform: none;
+}
+
+.photo-date-picker-popup .rc-picker-today-btn {
+  color: var(--film);
+}
+
+.photo-date-picker-popup .rc-picker-decade-panel .rc-picker-cell-inner,
+.photo-date-picker-popup .rc-picker-year-panel .rc-picker-cell-inner,
+.photo-date-picker-popup .rc-picker-month-panel .rc-picker-cell-inner {
+  width: 5.75rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.photo-date-picker-popup .rc-picker-decade-panel .rc-picker-cell-inner {
+  width: 6.25rem;
+}
+
+.photo-date-picker-popup .rc-picker-decade-panel .rc-picker-content,
+.photo-date-picker-popup .rc-picker-year-panel .rc-picker-content,
+.photo-date-picker-popup .rc-picker-month-panel .rc-picker-content {
+  padding-bottom: 0.25rem;
 }
 
 @keyframes background-drift {

@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { AlbumInviteForm } from "@/components/albums/album-invite-form";
 import { AlbumInviteList } from "@/components/albums/album-invite-list";
 import { AlbumMembers } from "@/components/albums/album-members";
+import { DatePicker } from "@/components/ui/date-picker";
 import { PhotoUploadForm } from "@/components/upload/photo-upload-form";
 import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
 
@@ -178,11 +179,12 @@ export function AlbumManagementModal({
                   {editIsChildAlbum ? (
                     <label className="block">
                       <span className="text-sm font-medium text-[var(--muted-strong)]">孩子生日</span>
-                      <input
-                        type="date"
+                      <DatePicker
+                        id="child-birth-date-input"
                         value={editChildBirthDate}
-                        onChange={(event) => onEditChildBirthDateChange(event.target.value)}
-                        className="mt-2 h-11 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none focus:border-[var(--film)]"
+                        onChange={onEditChildBirthDateChange}
+                        placeholder="请选择生日"
+                        className="mt-2 w-full"
                       />
                     </label>
                   ) : null}
