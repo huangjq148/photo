@@ -19,7 +19,7 @@ const sizes: { value: PhotoSize; label: string }[] = [
 export function PhotoGallerySizeControl({ value, onChange, compact = false }: PhotoGallerySizeControlProps) {
   if (compact) {
     return (
-      <div className="grid grid-cols-3 gap-2 rounded-2xl border border-[var(--border)] bg-black p-1">
+      <div className="noir-glass-chip grid grid-cols-3 gap-2 rounded-2xl p-1">
         {sizes.map((size) => (
           <button
             key={size.value}
@@ -41,7 +41,7 @@ export function PhotoGallerySizeControl({ value, onChange, compact = false }: Ph
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm text-[var(--muted)]">图片尺寸</span>
-      <div className="flex rounded-full border border-[var(--border)] bg-black p-1">
+      <div className="noir-glass-chip flex rounded-full p-1">
         {sizes.map((size) => (
           <button
             key={size.value}

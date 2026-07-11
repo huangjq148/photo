@@ -7,14 +7,14 @@ type HomeRecentPhotosProps = {
 
 function PhotoSkeleton() {
   return (
-    <div className="aspect-square animate-pulse rounded-lg bg-[var(--surface-raised)]" />
+    <div className="aspect-square animate-pulse rounded-2xl noir-glass-panel" />
   );
 }
 
 export function HomeRecentPhotosSkeleton() {
   return (
-    <section className="mx-auto max-w-4xl">
-      <div className="mb-4 h-6 w-32 animate-pulse rounded bg-[var(--surface-raised)]" />
+    <section className="mx-auto max-w-5xl">
+      <div className="mb-4 h-6 w-32 animate-pulse rounded-full noir-glass-chip" />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <PhotoSkeleton key={i} />
@@ -27,9 +27,9 @@ export function HomeRecentPhotosSkeleton() {
 export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
   if (photos.length === 0) {
     return (
-      <section className="mx-auto max-w-4xl text-center">
+      <section className="mx-auto max-w-5xl text-center">
         <h2 className="mb-4 text-lg font-bold text-[var(--text)]">最近上传</h2>
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] py-12">
+        <div className="noir-glass-panel rounded-[2rem] py-12">
           <p className="mb-4 text-[var(--muted)]">还没有照片，开始上传吧</p>
           <Link
             href="/albums"
@@ -43,7 +43,7 @@ export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
   }
 
   return (
-    <section className="mx-auto max-w-4xl">
+    <section className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-bold text-[var(--text)]">最近上传</h2>
         <Link
@@ -59,7 +59,7 @@ export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
           <Link
             key={photo.id}
             href={`/albums/${photo.albumId}`}
-            className="group relative aspect-square overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] transition hover:border-[var(--border-strong)]"
+            className="group relative aspect-square overflow-hidden rounded-2xl noir-glass-panel transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
           >
             <img
               src={photo.thumbnailUrl}

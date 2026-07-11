@@ -60,7 +60,6 @@ export function TrashGallery() {
 
   useEffect(() => {
     loadPage(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken]);
 
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);

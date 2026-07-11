@@ -31,7 +31,7 @@ export function PhotoGalleryControlsModal({
   return (
     <Modal open={open} title="照片操作" size="sm" onClose={onClose}>
       <div className="space-y-3">
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/70 p-4">
+        <section className="noir-glass-panel-strong rounded-2xl p-4">
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
@@ -72,7 +72,7 @@ export function PhotoGalleryControlsModal({
                     className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-medium transition ${
                       layoutMode === "grid"
                         ? "bg-[var(--accent)] text-black"
-                        : "border border-[var(--border)] text-[var(--muted)] hover:border-white/20 hover:bg-white/[0.04] hover:text-[var(--text)]"
+                        : "noir-glass-chip text-[var(--muted)] hover:text-[var(--text)]"
                     }`}
                   >
                     <Grid2x2 aria-hidden="true" size={16} />
@@ -84,7 +84,7 @@ export function PhotoGalleryControlsModal({
                     className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-medium transition ${
                       layoutMode === "waterfall"
                         ? "bg-[var(--accent)] text-black"
-                        : "border border-[var(--border)] text-[var(--muted)] hover:border-white/20 hover:bg-white/[0.04] hover:text-[var(--text)]"
+                        : "noir-glass-chip text-[var(--muted)] hover:text-[var(--text)]"
                     }`}
                   >
                     <Rows3 aria-hidden="true" size={16} />

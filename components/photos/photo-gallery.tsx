@@ -274,7 +274,7 @@ export function PhotoGallery({
   }, [items, groupMode]);
 
   if (loading) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">加载照片...</div>;
+    return <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">加载照片...</div>;
   }
 
   if (error) {
@@ -282,12 +282,12 @@ export function PhotoGallery({
   }
 
   if (items.length === 0) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">暂无照片</div>;
+    return <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">暂无照片</div>;
   }
 
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="noir-glass-panel rounded-[2rem] p-4">
         <div className="space-y-3">
           <div className="flex-1 space-y-2">
             <input
@@ -295,14 +295,14 @@ export function PhotoGallery({
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder="按文件名搜索"
-              className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--film)]"
+              className="h-12 w-full rounded-lg noir-glass-chip px-4 text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--film)]"
             />
           </div>
         </div>
 
         <div className="mt-3 flex items-center gap-2">
           <span className="text-xs font-medium text-[var(--muted)]">展示方式</span>
-          <nav className="inline-flex h-10 items-center rounded-lg border border-[var(--border)] bg-black p-1">
+          <nav className="inline-flex h-10 items-center rounded-lg noir-glass-chip p-1">
             {([
               ["none", "时间倒序"],
               ["month", "按月"],
@@ -325,7 +325,7 @@ export function PhotoGallery({
         </div>
 
         {selectedCount > 0 ? (
-          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-black px-4 py-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl noir-glass-chip px-4 py-3">
             <span className="text-sm font-medium text-[var(--text)]">已选择 {selectedCount} 张</span>
             <button
               type="button"
@@ -339,7 +339,7 @@ export function PhotoGallery({
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
+              className="inline-flex h-9 items-center justify-center rounded-lg noir-glass-chip px-4 text-sm font-bold text-[var(--text)]"
             >
               取消选择
             </button>
@@ -408,51 +408,51 @@ export function PhotoGallery({
           ))}
         </div>
       ) : (
-      <div
-        className={
-          layoutMode === "waterfall"
-            ? {
-                small: "columns-3 gap-3 sm:columns-4 xl:columns-5",
-                medium: "columns-2 gap-4 sm:columns-3 xl:columns-4",
-                large: "columns-1 gap-5 sm:columns-2 xl:columns-3",
-              }[photoSize]
-            : {
-                small: "grid gap-3 grid-cols-3 sm:grid-cols-4 xl:grid-cols-5",
-                medium: "grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4",
-                large: "grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
-              }[photoSize]
-        }
-      >
-        {items.map((photo) => (
-          <PhotoGalleryCard
-            key={photo.id}
-            photo={photo}
-            selected={selectedIdSet.has(photo.id)}
-            waterfall={layoutMode === "waterfall"}
-            showTakenAt={showTakenAt}
-            navigableItems={navigableItems}
-            onSelect={() => {
-              setSelectedIds((current) =>
-                current.includes(photo.id)
-                  ? current.filter((item) => item !== photo.id)
-                  : [...current, photo.id]
-              );
-            }}
-            onFavorite={() => {
-              return toggleFavorite(photo.id);
-            }}
-            onDelete={() => {
-              void removePhoto(photo.id);
-            }}
-            onShare={() => {
-              void sharePhoto(photo.id);
-            }}
-            onSetCover={() => {
-              if (onSetCover) onSetCover(photo.id);
-            }}
-          />
-        ))}
-      </div>
+        <div
+          className={
+            layoutMode === "waterfall"
+              ? {
+                  small: "columns-3 gap-3 sm:columns-4 xl:columns-5",
+                  medium: "columns-2 gap-4 sm:columns-3 xl:columns-4",
+                  large: "columns-1 gap-5 sm:columns-2 xl:columns-3",
+                }[photoSize]
+              : {
+                  small: "grid gap-3 grid-cols-3 sm:grid-cols-4 xl:grid-cols-5",
+                  medium: "grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4",
+                  large: "grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
+                }[photoSize]
+          }
+        >
+          {items.map((photo) => (
+            <PhotoGalleryCard
+              key={photo.id}
+              photo={photo}
+              selected={selectedIdSet.has(photo.id)}
+              waterfall={layoutMode === "waterfall"}
+              showTakenAt={showTakenAt}
+              navigableItems={navigableItems}
+              onSelect={() => {
+                setSelectedIds((current) =>
+                  current.includes(photo.id)
+                    ? current.filter((item) => item !== photo.id)
+                    : [...current, photo.id]
+                );
+              }}
+              onFavorite={() => {
+                return toggleFavorite(photo.id);
+              }}
+              onDelete={() => {
+                void removePhoto(photo.id);
+              }}
+              onShare={() => {
+                void sharePhoto(photo.id);
+              }}
+              onSetCover={() => {
+                if (onSetCover) onSetCover(photo.id);
+              }}
+            />
+          ))}
+        </div>
       )}
 
       {/* Infinite scroll sentinel */}

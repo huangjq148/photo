@@ -80,7 +80,7 @@ export function FavoritesGallery() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">
+      <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">
         加载收藏...
       </div>
     );
@@ -96,7 +96,7 @@ export function FavoritesGallery() {
 
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">
+      <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">
         暂无收藏
       </div>
     );
@@ -111,7 +111,7 @@ export function FavoritesGallery() {
         {items.map((photo) => (
           <article
             key={photo.id}
-            className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30"
+            className="overflow-hidden rounded-2xl noir-glass-panel transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
           >
             {photo.mediaType === "video" || photo.mimeType.startsWith("video/") ? (
               <ImageViewer
@@ -145,7 +145,7 @@ export function FavoritesGallery() {
               <button
                 type="button"
                 onClick={() => { void removeFavorite(photo.id); }}
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
+                className="inline-flex h-9 items-center justify-center rounded-lg noir-glass-chip px-4 text-sm font-bold text-[var(--text)]"
               >
                 取消收藏
               </button>

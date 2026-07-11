@@ -1,7 +1,0 @@
-.agents/
-.next/
-node_modules/
-data/
-coverage/
-test-results/
-playwright-report/

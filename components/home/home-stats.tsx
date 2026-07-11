@@ -38,14 +38,16 @@ export function HomeStats({ albumCount, photoCount, storageUsed, storageLimit }:
   ];
 
   return (
-    <section className="mx-auto max-w-4xl">
+    <section className="mx-auto max-w-5xl">
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
         {stats.map((item) => (
           <div
             key={item.label}
-            className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition hover:border-[var(--border-strong)] sm:p-5"
+            className="noir-glass-panel flex flex-col items-center gap-3 rounded-2xl p-4 transition hover:border-[var(--border-strong)] sm:p-5"
           >
-            {item.icon}
+            <span className="flex h-11 w-11 items-center justify-center rounded-full noir-glass-chip">
+              {item.icon}
+            </span>
             <p className="text-lg font-black text-[var(--text)] sm:text-2xl">
               {item.value}
             </p>

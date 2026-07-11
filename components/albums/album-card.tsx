@@ -41,7 +41,7 @@ export function AlbumCard({
   const displayCover = coverUrl || lastPhotoUrl;
 
   return (
-    <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition duration-200 hover:-translate-y-1 hover:border-white/30">
+    <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl noir-glass-panel transition duration-200 hover:-translate-y-1 hover:border-[var(--border-strong)]">
       {/* Cover layer */}
       {displayCover ? (
         <img
@@ -51,7 +51,7 @@ export function AlbumCard({
           loading="lazy"
         />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[var(--surface)] via-[var(--surface)] to-zinc-800/40">
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[rgba(17,17,20,0.9)] via-[rgba(10,10,12,0.86)] to-zinc-800/40">
           <span className="text-6xl opacity-15">📷</span>
         </div>
       )}
@@ -63,7 +63,7 @@ export function AlbumCard({
 
       {/* Dark overlay when info is shown */}
       {showInfo && (
-        <div className="absolute inset-0 z-[5] bg-black/60 backdrop-blur-sm transition duration-300" />
+        <div className="absolute inset-0 z-[5] bg-black/54 backdrop-blur-md transition duration-300" />
       )}
 
       {/* Info layer */}
@@ -83,15 +83,15 @@ export function AlbumCard({
 
         <div className="mt-auto space-y-4">
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-[var(--border)] bg-zinc-900/40 px-4 py-3">
+            <div className="rounded-xl noir-glass-chip px-4 py-3">
               <p className="text-xs text-[var(--muted)]">照片</p>
               <p className="mt-1 text-lg font-black text-[var(--text)]">{photoCount}</p>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-zinc-900/40 px-4 py-3">
+            <div className="rounded-xl noir-glass-chip px-4 py-3">
               <p className="text-xs text-[var(--muted)]">成员</p>
               <p className="mt-1 text-lg font-black text-[var(--text)]">{memberCount}</p>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-zinc-900/40 px-4 py-3">
+            <div className="rounded-xl noir-glass-chip px-4 py-3">
               <p className="text-xs text-[var(--muted)]">更新</p>
               <p className="mt-1 text-lg font-black text-[var(--text)]">{formatTime(updatedAt)}</p>
             </div>
@@ -117,7 +117,7 @@ export function AlbumCard({
         className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full transition ${
           showInfo
             ? "bg-[var(--accent)] text-black"
-            : "bg-black/45 text-white/90 hover:bg-black/70 hover:text-white"
+            : "noir-glass-chip text-white/90 hover:text-white"
         }`}
         aria-label={showInfo ? "关闭相册信息" : "查看相册信息"}
       >
@@ -135,11 +135,11 @@ export function AlbumCard({
           </div>
           <div className="ml-3 flex shrink-0 gap-1.5">
             {isDefault ? (
-              <span className="rounded-md border border-white/30 bg-black/45 px-2 py-0.5 text-[10px] font-medium text-[var(--film)]">
+              <span className="rounded-md noir-glass-chip px-2 py-0.5 text-[10px] font-medium text-[var(--film)]">
                 全部
               </span>
             ) : null}
-            <span className="rounded-md border border-white/30 bg-black/45 px-2 py-0.5 text-[10px] font-medium text-white/70">
+            <span className="rounded-md noir-glass-chip px-2 py-0.5 text-[10px] font-medium text-white/70">
               {role === "owner" ? "拥有者" : "成员"}
             </span>
           </div>

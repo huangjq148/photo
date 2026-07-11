@@ -52,7 +52,7 @@ export function PhotoGalleryFloatTools({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-black/80 text-[var(--text)] shadow-2xl backdrop-blur-xl transition hover:border-[var(--border-strong)] hover:bg-black"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full noir-glass-chip text-[var(--text)] shadow-2xl transition hover:border-[var(--border-strong)]"
           aria-label="更多操作"
           aria-haspopup="dialog"
           aria-expanded={open}
@@ -66,7 +66,7 @@ export function PhotoGalleryFloatTools({
           onClick={() => {
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-black/80 text-[var(--text)] shadow-2xl backdrop-blur-xl transition hover:border-[var(--border-strong)] hover:bg-black"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full noir-glass-chip text-[var(--text)] shadow-2xl transition hover:border-[var(--border-strong)]"
           aria-label="返回顶部"
           title="返回顶部"
         >

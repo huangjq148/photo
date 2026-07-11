@@ -21,8 +21,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className={`${isHome ? "flex min-h-dvh flex-col overflow-x-hidden" : "min-h-dvh"} bg-[var(--background)] text-[var(--text)]`}>
-      <header className="sticky top-0 z-20 shrink-0 border-b border-[var(--border)] bg-black/86 backdrop-blur-xl">
+    <div className={`${isHome ? "flex min-h-dvh flex-col overflow-x-hidden" : "min-h-dvh"} text-[var(--text)]`}>
+      <header className="sticky top-0 z-20 shrink-0 border-b border-[var(--border)] noir-glass-shell">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:px-8">
           <Link href="/" className="inline-flex items-baseline gap-3 self-start">
             <span className="text-base font-black uppercase text-[var(--text)]">
@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-2 min-w-0 lg:justify-self-center">
             <nav
               aria-label="主导航"
-              className="flex h-[50px] min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 lg:justify-self-center lg:h-auto"
+              className="flex h-[50px] min-w-0 flex-1 items-center gap-1 overflow-x-auto rounded-xl noir-glass-chip p-1 lg:justify-self-center lg:h-auto"
             >
               {navItems.map((item) => {
                 const active = pathname.startsWith(item.href);

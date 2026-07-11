@@ -83,7 +83,7 @@ export function AlbumList() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">
+      <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">
         加载相册...
       </div>
     );
@@ -91,7 +91,7 @@ export function AlbumList() {
 
   if (authRequired) {
     return (
-      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
+      <section className="noir-glass-panel rounded-[2rem] p-6 sm:p-8">
         <div className="max-w-2xl space-y-5">
           <h2 className="text-3xl font-black text-[var(--text)]">
             请先
@@ -151,7 +151,7 @@ export function AlbumList() {
       />
 
       {albums.length === 0 ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-[var(--muted)]">
+        <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">
           暂无相册，创建一个开始吧！
         </div>
       ) : (

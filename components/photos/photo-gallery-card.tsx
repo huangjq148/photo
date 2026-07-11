@@ -82,7 +82,7 @@ export function PhotoGalleryCard({
 
   return (
     <article
-      className={`group relative mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30 ${
+      className={`group relative mb-4 rounded-2xl noir-glass-panel transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] ${
         waterfall ? "break-inside-avoid" : ""
       }`}
     >
@@ -103,7 +103,7 @@ export function PhotoGalleryCard({
       {/* Media info overlay */}
       {showInfo && (
         <div
-          className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/95 via-black/70 to-black/30 p-4"
+          className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/92 via-black/68 to-black/26 p-4"
           onClick={() => setShowInfo(false)}
         >
           <div className="space-y-2 text-white">
@@ -130,7 +130,7 @@ export function PhotoGalleryCard({
 
       {/* Taken time badge */}
       {showTakenAt && (photo.takenAt || photo.uploadedAt) && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md bg-black/55 px-2.5 py-1 backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md noir-glass-chip px-2.5 py-1">
           <p className="text-xs font-medium text-white/80">
             {formatDateTime(photo.takenAt || photo.uploadedAt)}
           </p>
@@ -150,7 +150,7 @@ export function PhotoGalleryCard({
           className={`inline-flex h-10 w-10 items-center justify-center rounded-full border backdrop-blur transition ${
             selected
               ? "border-blue-500 bg-blue-500 text-white"
-              : "border-white/35 bg-black/65 text-[var(--text)]"
+              : "noir-glass-chip text-[var(--text)]"
           }`}
           aria-pressed={selected}
           aria-label={`选择 ${photo.originalName}`}
@@ -167,12 +167,12 @@ export function PhotoGalleryCard({
         <div className="group/menu relative">
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/35 bg-black/70 text-white backdrop-blur transition hover:bg-black"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full noir-glass-chip text-white transition hover:border-[var(--border-strong)]"
             aria-label="更多操作"
           >
             <Ellipsis aria-hidden="true" size={20} />
           </button>
-          <div className="absolute right-0 top-11 hidden min-w-32 overflow-hidden rounded-xl border border-[var(--border)] bg-black/90 p-1 shadow-2xl backdrop-blur group-hover/menu:block group-focus-within/menu:block">
+          <div className="absolute right-0 top-11 hidden min-w-32 overflow-hidden rounded-xl noir-glass-panel-strong p-1 shadow-2xl group-hover/menu:block group-focus-within/menu:block">
             <button
               type="button"
               onClick={async () => {

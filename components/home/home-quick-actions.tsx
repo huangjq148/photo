@@ -61,16 +61,18 @@ export function HomeQuickActions() {
 
   return (
     <>
-      <section className="mx-auto max-w-4xl">
+      <section className="mx-auto max-w-5xl">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           {actions.map((action) =>
             action.href ? (
               <Link
                 key={action.key}
                 href={action.href}
-                className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center transition hover:border-[var(--border-strong)] hover:scale-[1.02] sm:p-5"
+                className="noir-glass-panel flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] sm:p-5"
               >
-                {action.icon}
+                <span className="flex h-12 w-12 items-center justify-center rounded-full noir-glass-chip">
+                  {action.icon}
+                </span>
                 <p className="text-sm font-bold text-[var(--text)]">{action.label}</p>
                 <p className="text-xs text-[var(--muted)]">{action.desc}</p>
               </Link>
@@ -79,9 +81,11 @@ export function HomeQuickActions() {
                 key={action.key}
                 type="button"
                 onClick={() => handleClick(action.key)}
-                className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center transition hover:border-[var(--border-strong)] hover:scale-[1.02] sm:p-5"
+                className="noir-glass-panel flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] sm:p-5"
               >
-                {action.icon}
+                <span className="flex h-12 w-12 items-center justify-center rounded-full noir-glass-chip">
+                  {action.icon}
+                </span>
                 <p className="text-sm font-bold text-[var(--text)]">{action.label}</p>
                 <p className="text-xs text-[var(--muted)]">{action.desc}</p>
               </button>
@@ -91,7 +95,7 @@ export function HomeQuickActions() {
       </section>
 
       {message ? (
-        <div className="fixed right-5 top-5 z-[100] rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-sm text-[var(--text)] shadow-2xl">
+        <div className="fixed right-5 top-5 z-[100] rounded-lg noir-glass-panel-strong px-4 py-3 text-sm text-[var(--text)] shadow-2xl">
           {message.text}
         </div>
       ) : null}

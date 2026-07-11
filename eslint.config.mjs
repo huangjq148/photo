@@ -1,34 +1,47 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextPlugin from "@next/eslint-plugin-next";
+import tsPlugin from "@typescript-eslint/eslint-plugin";
+import tsParser from "@typescript-eslint/parser";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const sharedFiles = ["**/*.{js,mjs,cjs,ts,tsx}"];
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  {
-    ignores: [
-      ".agents/**",
-      ".next/**",
-      "node_modules/**",
-      "data/**",
-      "coverage/**",
-      "test-results/**",
-      "playwright-report/**",
-      ".worktrees/**",
-      "next-env.d.ts",
-    ],
-  },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  {
-    rules: {
-      "@typescript-eslint/no-unused-vars": "warn",
-    },
-  },
+const ignores = [
+  ".agents/**",
+  ".next/**",
+  "node_modules/**",
+  "data/**",
+  "coverage/**",
+  "test-results/**",
+  "playwright-report/**",
+  ".worktrees/**",
+  "next-env.d.ts"
 ];
 
-export default eslintConfig;
+export default [
+  {
+    ignores
+  },
+  {
+    files: sharedFiles,
+    languageOptions: {
+      parser: tsParser,
+      ecmaVersion: "latest",
+      sourceType: "module"
+    },
+    plugins: {
+      "@next/next": nextPlugin,
+      "@typescript-eslint": tsPlugin,
+      "react-hooks": reactHooksPlugin
+    },
+    rules: {
+      ...nextPlugin.flatConfig.coreWebVitals.rules,
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_"
+        }
+      ]
+    }
+  }
+];
