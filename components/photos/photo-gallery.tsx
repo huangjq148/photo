@@ -9,6 +9,7 @@ import { useMessage } from "@/components/ui/message";
 import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 import { ShareManager } from "@/components/share/share-manager";
+import { formatChildAgeLabel } from "@/lib/media/child-age";
 
 type PhotoItem = {
   id: string;
@@ -34,6 +35,7 @@ type PhotoGalleryProps = {
   albumId: string;
   refreshSignal?: number;
   onSetCover?: (photoId: string) => void;
+  childBirthDate?: string | null;
   showTakenAt: boolean;
   onToggleTakenAt: () => void;
   photoSize: PhotoSize;
@@ -69,6 +71,7 @@ export function PhotoGallery({
   albumId,
   refreshSignal = 0,
   onSetCover,
+  childBirthDate = null,
   showTakenAt,
   onToggleTakenAt,
   photoSize,
@@ -404,6 +407,7 @@ export function PhotoGallery({
                   waterfall={false}
                   showTakenAt={showTakenAt}
                   navigableItems={navigableItems}
+                  childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                     onSelect={() => {
                       setSelectedIds((current) =>
                         current.includes(photo.id)
@@ -459,6 +463,7 @@ export function PhotoGallery({
               waterfall={layoutMode === "waterfall"}
               showTakenAt={showTakenAt}
               navigableItems={navigableItems}
+              childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
               onSelect={() => {
                 setSelectedIds((current) =>
                   current.includes(photo.id)

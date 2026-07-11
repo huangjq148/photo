@@ -15,6 +15,8 @@ type ManageAlbum = {
   description: string | null;
   isImmutable: boolean;
   role: string;
+  isChildAlbum: boolean;
+  childBirthDate: string | null;
 };
 
 type AlbumManagementModalProps = {
@@ -24,6 +26,8 @@ type AlbumManagementModalProps = {
   currentUserId: string;
   editName: string;
   editDesc: string;
+  editIsChildAlbum: boolean;
+  editChildBirthDate: string;
   saving: boolean;
   deleting: boolean;
   showTakenAt: boolean;
@@ -32,6 +36,8 @@ type AlbumManagementModalProps = {
   onPhotoSizeChange: (value: PhotoSize) => void;
   onEditNameChange: (value: string) => void;
   onEditDescChange: (value: string) => void;
+  onEditIsChildAlbumChange: (value: boolean) => void;
+  onEditChildBirthDateChange: (value: string) => void;
   onSave: () => void;
   onDelete: () => void;
   onRefresh: () => void;
@@ -52,6 +58,8 @@ export function AlbumManagementModal({
   currentUserId,
   editName,
   editDesc,
+  editIsChildAlbum,
+  editChildBirthDate,
   saving,
   deleting,
   showTakenAt,
@@ -60,6 +68,8 @@ export function AlbumManagementModal({
   onPhotoSizeChange,
   onEditNameChange,
   onEditDescChange,
+  onEditIsChildAlbumChange,
+  onEditChildBirthDateChange,
   onSave,
   onDelete,
   onRefresh,
@@ -149,10 +159,38 @@ export function AlbumManagementModal({
                     className="mt-2 w-full resize-none rounded-lg border border-[var(--border)] bg-black px-4 py-3 text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--film)]"
                   />
                 </label>
+                <section className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/70 p-4">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={editIsChildAlbum}
+                      onChange={(event) => onEditIsChildAlbumChange(event.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-[var(--border)] bg-black text-[var(--accent)] focus:ring-0"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-[var(--muted-strong)]">孩子相册</span>
+                      <span className="mt-1 block text-xs text-[var(--muted)]">
+                        开启后会根据孩子生日计算照片拍摄时年龄
+                      </span>
+                    </span>
+                  </label>
+
+                  {editIsChildAlbum ? (
+                    <label className="block">
+                      <span className="text-sm font-medium text-[var(--muted-strong)]">孩子生日</span>
+                      <input
+                        type="date"
+                        value={editChildBirthDate}
+                        onChange={(event) => onEditChildBirthDateChange(event.target.value)}
+                        className="mt-2 h-11 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none focus:border-[var(--film)]"
+                      />
+                    </label>
+                  ) : null}
+                </section>
                 <button
                   type="button"
                   onClick={onSave}
-                  disabled={saving || !editName.trim()}
+                  disabled={saving || !editName.trim() || (editIsChildAlbum && !editChildBirthDate.trim())}
                   className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? "保存中..." : "保存资料"}

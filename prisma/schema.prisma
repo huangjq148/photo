@@ -53,6 +53,8 @@ model Album {
   creator_id     String      @db.Uuid
   name           String
   description    String?
+  is_child_album Boolean     @default(false)
+  child_birth_date DateTime? @db.Date
   cover_photo_id String?     @db.Uuid
   is_default     Boolean     @default(false)
   is_immutable   Boolean     @default(false)

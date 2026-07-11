@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import {
+  getAlbumDetail,
   updateAlbum,
   setAlbumCover,
   getAlbumInvites,
@@ -227,6 +228,21 @@ describe("album permission matrix", () => {
     await expect(
       updateAlbum(prisma, { albumId: album.id, userId: owner.id, name: "New Name" })
     ).resolves.toBeDefined();
+  });
+
+  it("allows owner to mark an album as a child album", async () => {
+    const { album, owner } = await setupUsers();
+
+    await updateAlbum(prisma, {
+      albumId: album.id,
+      userId: owner.id,
+      isChildAlbum: true,
+      childBirthDate: "2024-01-11",
+    });
+
+    const detail = await getAlbumDetail(prisma, { albumId: album.id, userId: owner.id });
+    expect(detail.isChildAlbum).toBe(true);
+    expect(detail.childBirthDate).toBe("2024-01-11");
   });
 
   it("rejects member from editing album", async () => {

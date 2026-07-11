@@ -42,6 +42,7 @@ type PhotoGalleryCardProps = {
   onShare: () => void;
   onSetCover: () => void;
   onAddToAlbum: () => void;
+  childAgeLabel?: string | null;
   onDisplayNameChange?: (photoId: string, displayName: string | null) => void;
   onRemove?: (photoId: string) => void;
 };
@@ -79,6 +80,7 @@ export function PhotoGalleryCard({
   onShare,
   onSetCover,
   onAddToAlbum,
+  childAgeLabel,
   onDisplayNameChange,
   onRemove,
 }: PhotoGalleryCardProps) {
@@ -326,10 +328,14 @@ export function PhotoGalleryCard({
         </div>
       )}
 
-      {showTakenAt && (photo.takenAt || photo.uploadedAt) && (
+      {(showTakenAt || childAgeLabel) && (photo.takenAt || photo.uploadedAt) && (
         <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md noir-glass-chip px-2.5 py-1">
           <p className="text-xs font-medium text-white/80">
-            {formatDateTime(photo.takenAt || photo.uploadedAt)}
+            {childAgeLabel
+              ? showTakenAt
+                ? `拍摄时 ${childAgeLabel} · ${formatDateTime(photo.takenAt || photo.uploadedAt)}`
+                : `拍摄时 ${childAgeLabel}`
+              : formatDateTime(photo.takenAt || photo.uploadedAt)}
           </p>
         </div>
       )}

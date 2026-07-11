@@ -15,9 +15,13 @@ describe("AlbumManagementModal", () => {
           description: "周末整理",
           isImmutable: false,
           role: "owner",
+          isChildAlbum: true,
+          childBirthDate: "2024-01-01",
         },
         editName: "家庭相册",
         editDesc: "周末整理",
+        editIsChildAlbum: true,
+        editChildBirthDate: "2024-01-01",
         saving: false,
         deleting: false,
         showTakenAt: true,
@@ -26,6 +30,8 @@ describe("AlbumManagementModal", () => {
         onPhotoSizeChange: () => undefined,
         onEditNameChange: () => undefined,
         onEditDescChange: () => undefined,
+        onEditIsChildAlbumChange: () => undefined,
+        onEditChildBirthDateChange: () => undefined,
         onSave: () => undefined,
         onDelete: () => undefined,
         onRefresh: () => undefined,
@@ -41,5 +47,7 @@ describe("AlbumManagementModal", () => {
     expect(html).toContain("删除相册");
     expect(html).toContain("显示时间");
     expect(html).toContain("图片尺寸");
+    expect(html).toContain("孩子相册");
+    expect(html).toContain("孩子生日");
   });
 });

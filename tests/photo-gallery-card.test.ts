@@ -190,4 +190,45 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("添加到相册");
     expect(html).not.toContain("<video");
   });
+
+  it("shows child age when a birth date is provided", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-child",
+          photo: {
+            id: "child-photo",
+            displayName: null,
+            originalName: "child.jpg",
+            thumbnailUrl: "/thumb-child.jpg",
+            previewUrl: "/preview-child.jpg",
+            originalUrl: "/api/files/originals/child.jpg",
+            mimeType: "image/jpeg",
+            mediaType: "image",
+            duration: null,
+            width: 1200,
+            height: 900,
+            takenAt: "2026-03-15T00:00:00.000Z",
+            uploadedAt: "2026-03-15T00:00:00.000Z",
+            isFavorited: false,
+            canEditName: false,
+          },
+          selected: false,
+          waterfall: false,
+          showTakenAt: false,
+          childAgeLabel: "1岁2个月",
+          onSelect: () => undefined,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
+        }),
+      ),
+    );
+
+    expect(html).toContain("拍摄时 1岁2个月");
+  });
 });

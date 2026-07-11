@@ -27,6 +27,8 @@ export type AlbumDetail = {
   currentUserId: string;
   name: string;
   description: string | null;
+  isChildAlbum: boolean;
+  childBirthDate: string | null;
   coverPhotoId: string | null;
   coverUrl: string | null;
   previewUrl: string | null;
@@ -36,6 +38,15 @@ export type AlbumDetail = {
   memberCount: number;
   role: string;
   createdAt: Date;
+  updatedAt: Date;
+};
+
+export type AlbumEditableResult = {
+  id: string;
+  name: string;
+  description: string | null;
+  isChildAlbum: boolean;
+  childBirthDate: string | null;
   updatedAt: Date;
 };
 
@@ -63,6 +74,24 @@ export type MediaDisplayNameUpdate = {
   displayName: string | null;
   originalName: string;
 };
+
+function parseBirthDateInput(value: string | null | undefined): Date | null {
+  if (value == null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = new Date(`${trimmed}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("孩子生日格式不正确");
+  }
+
+  return parsed;
+}
 
 type MediaPage<T> = {
   items: T[];
@@ -204,6 +233,8 @@ export async function getAlbumDetail(
     currentUserId: context.userId,
     name: album.name,
     description: album.description,
+    isChildAlbum: album.is_child_album,
+    childBirthDate: album.child_birth_date ? album.child_birth_date.toISOString().slice(0, 10) : null,
     coverPhotoId: album.cover_photo_id,
     coverUrl: album.coverPhoto?.thumbnail_url ?? null,
     previewUrl: album.coverPhoto?.preview_url ?? null,
@@ -219,9 +250,24 @@ export async function getAlbumDetail(
 
 export async function updateAlbum(
   prisma: PrismaClient,
-  context: { albumId: string; userId: string; name?: string; description?: string }
-) {
-  const album = await prisma.album.findUnique({ where: { id: context.albumId } });
+  context: {
+    albumId: string;
+    userId: string;
+    name?: string;
+    description?: string | null;
+    isChildAlbum?: boolean;
+    childBirthDate?: string | null;
+  }
+): Promise<AlbumEditableResult> {
+  const album = await prisma.album.findUnique({
+    where: { id: context.albumId },
+    select: {
+      id: true,
+      is_immutable: true,
+      is_child_album: true,
+      child_birth_date: true,
+    },
+  });
   if (!album) throw new Error("相册不存在");
   if (album.is_immutable) throw new Error("此相册不可编辑");
 
@@ -233,13 +279,50 @@ export async function updateAlbum(
     data.name = context.name.trim();
   }
   if (context.description !== undefined) {
-    data.description = context.description.trim() || null;
+    data.description = context.description?.trim() || null;
+  }
+  if (context.isChildAlbum !== undefined) {
+    data.is_child_album = context.isChildAlbum;
+    if (!context.isChildAlbum) {
+      data.child_birth_date = null;
+    }
   }
 
-  return prisma.album.update({
+  if (context.childBirthDate !== undefined) {
+    const parsedBirthDate = parseBirthDateInput(context.childBirthDate);
+    if (context.isChildAlbum ?? album.is_child_album) {
+      if (!parsedBirthDate) {
+        throw new Error("孩子生日不能为空");
+      }
+      data.child_birth_date = parsedBirthDate;
+    } else {
+      data.child_birth_date = null;
+    }
+  } else if (context.isChildAlbum === true && !album.child_birth_date && data.child_birth_date === undefined) {
+    throw new Error("孩子生日不能为空");
+  }
+
+  const updated = await prisma.album.update({
     where: { id: context.albumId },
     data,
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      is_child_album: true,
+      child_birth_date: true,
+      updated_at: true,
+    },
   });
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    description: updated.description,
+    isChildAlbum: updated.is_child_album,
+    childBirthDate: updated.child_birth_date ? updated.child_birth_date.toISOString().slice(0, 10) : null,
+    updatedAt: updated.updated_at,
+  };
 }
 
 export async function deleteAlbum(

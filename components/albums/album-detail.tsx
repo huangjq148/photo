@@ -19,6 +19,8 @@ type AlbumDetailData = {
   previewUrl: string | null;
   isDefault: boolean;
   isImmutable: boolean;
+  isChildAlbum: boolean;
+  childBirthDate: string | null;
   photoCount: number;
   memberCount: number;
   role: string;
@@ -30,6 +32,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
+  const [editIsChildAlbum, setEditIsChildAlbum] = useState(false);
+  const [editChildBirthDate, setEditChildBirthDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showAddPhotos, setShowAddPhotos] = useState(false);
@@ -49,6 +53,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
       setAlbum(json.data);
       setEditName(json.data.name);
       setEditDesc(json.data.description ?? "");
+      setEditIsChildAlbum(!!json.data.isChildAlbum);
+      setEditChildBirthDate(json.data.childBirthDate ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load album");
     } finally {
@@ -62,12 +68,22 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
 
   async function handleSave() {
     if (!editName.trim()) return;
+    if (editIsChildAlbum && !editChildBirthDate.trim()) {
+      setError("请先填写孩子生日");
+      message.error("请先填写孩子生日");
+      return;
+    }
     setSaving(true);
     try {
       const response = await fetch(`/api/albums/${albumId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: editName.trim(), description: editDesc.trim() || null }),
+        body: JSON.stringify({
+          name: editName.trim(),
+          description: editDesc.trim() || null,
+          isChildAlbum: editIsChildAlbum,
+          childBirthDate: editIsChildAlbum ? editChildBirthDate || null : null,
+        }),
       });
       if (!response.ok) {
         const json = await response.json();
@@ -151,6 +167,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         onManage={() => {
           setEditName(album.name);
           setEditDesc(album.description ?? "");
+          setEditIsChildAlbum(album.isChildAlbum);
+          setEditChildBirthDate(album.childBirthDate ?? "");
           setShowManagement(true);
         }}
       />
@@ -166,6 +184,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
           onToggleTakenAt={() => setShowTakenAt((prev) => !prev)}
           photoSize={photoSize}
           onPhotoSizeChange={setPhotoSize}
+          childBirthDate={album.childBirthDate}
         />
       </section>
 
@@ -176,10 +195,14 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         currentUserId={album.currentUserId}
         editName={editName}
         editDesc={editDesc}
+        editIsChildAlbum={editIsChildAlbum}
+        editChildBirthDate={editChildBirthDate}
         saving={saving}
         deleting={deleting}
         onEditNameChange={setEditName}
         onEditDescChange={setEditDesc}
+        onEditIsChildAlbumChange={setEditIsChildAlbum}
+        onEditChildBirthDateChange={setEditChildBirthDate}
         onSave={() => void handleSave()}
         onDelete={() => void handleDelete()}
         onRefresh={() => setRefreshToken((current) => current + 1)}

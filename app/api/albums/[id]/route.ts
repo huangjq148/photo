@@ -33,12 +33,19 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as { name?: string; description?: string };
+    const body = (await request.json()) as {
+      name?: string;
+      description?: string | null;
+      isChildAlbum?: boolean;
+      childBirthDate?: string | null;
+    };
     const data = await updateAlbum(prisma, {
       albumId: id,
       userId: user.id,
       name: body.name,
-      description: body.description,
+      description: body.description ?? undefined,
+      isChildAlbum: body.isChildAlbum,
+      childBirthDate: body.childBirthDate,
     });
     return NextResponse.json({ data });
   } catch (error) {
