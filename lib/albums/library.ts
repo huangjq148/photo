@@ -48,6 +48,7 @@ export type AlbumPhotoItem = {
   height: number;
   takenAt: Date | null;
   uploadedAt: Date;
+  isFavorited: boolean;
 };
 
 export type AlbumMemberItem = {
@@ -299,7 +300,16 @@ export async function getAlbumPhotos(
     prisma.albumPhoto.count({ where }),
     prisma.albumPhoto.findMany({
       where,
-      include: { media: true },
+      include: {
+        media: {
+          include: {
+            favorites: {
+              where: { user_id: context.userId },
+              select: { id: true },
+            },
+          },
+        },
+      },
       orderBy: { added_at: "desc" },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -323,6 +333,7 @@ export async function getAlbumPhotos(
       height: ref.media.height,
       takenAt: ref.media.taken_at,
       uploadedAt: ref.media.uploaded_at,
+      isFavorited: ref.media.favorites.length > 0,
     })),
   };
 }

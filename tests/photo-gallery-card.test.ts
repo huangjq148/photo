@@ -20,12 +20,13 @@ describe("PhotoGalleryCard", () => {
           height: 900,
           takenAt: "2026-01-01T00:00:00.000Z",
           uploadedAt: "2026-01-01T00:00:00.000Z",
+          isFavorited: false,
         },
         selected: false,
         waterfall: false,
         showTakenAt: false,
         onSelect: () => undefined,
-        onFavorite: () => undefined,
+        onFavorite: () => true,
         onDelete: () => undefined,
         onShare: () => undefined,
         onSetCover: () => undefined,
@@ -36,6 +37,7 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("family.jpg");
     expect(html).toContain("更多操作");
     expect(html).toContain("group-hover:opacity-100");
+    expect(html).toContain("收藏");
     expect(html).not.toContain("1200 × 900");
   });
 
@@ -55,6 +57,7 @@ describe("PhotoGalleryCard", () => {
           height: 1080,
           takenAt: null,
           uploadedAt: "2026-01-01T00:00:00.000Z",
+          isFavorited: true,
         },
         selected: false,
         waterfall: false,
@@ -70,7 +73,7 @@ describe("PhotoGalleryCard", () => {
           },
         ],
         onSelect: () => undefined,
-        onFavorite: () => undefined,
+        onFavorite: () => true,
         onDelete: () => undefined,
         onShare: () => undefined,
         onSetCover: () => undefined,
@@ -79,6 +82,7 @@ describe("PhotoGalleryCard", () => {
 
     expect(html).toContain("点击播放视频");
     expect(html).toContain("/thumb-video.jpg");
+    expect(html).toContain("取消收藏");
     expect(html).not.toContain("<video");
   });
 });

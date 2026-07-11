@@ -46,6 +46,7 @@ type MediaListItem = {
   status: "normal" | "deleted";
   uploadedAt: Date;
   deletedAt: Date | null;
+  isFavorited: boolean;
 };
 
 type MediaDetail = MediaListItem & {
@@ -139,6 +140,7 @@ function mapMediaListItem(media: MediaRecord): MediaListItem {
     status: media.status,
     uploadedAt: media.uploaded_at,
     deletedAt: media.deleted_at,
+    isFavorited: !!media.favorites?.length,
   };
 }
 
@@ -341,6 +343,12 @@ export async function getAlbumPhotos(
       orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: {
+        favorites: {
+          where: { user_id: context.userId },
+          select: { id: true },
+        },
+      },
     }),
   ]);
 

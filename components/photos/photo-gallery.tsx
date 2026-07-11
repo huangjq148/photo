@@ -22,6 +22,7 @@ type PhotoItem = {
   height: number;
   takenAt: string | null;
   uploadedAt: string;
+  isFavorited: boolean;
 };
 
 type GroupMode = "none" | "month" | "year";
@@ -200,10 +201,20 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
         throw new Error(json.error ?? "Failed to toggle favorite");
       }
 
-      message.success("收藏状态已更新");
-      setRefreshToken((current) => current + 1);
+      const json = (await response.json()) as { data?: { favorited?: boolean } };
+      const nextFavorited = !!json.data?.favorited;
+      setItems((current) =>
+        current.map((item) =>
+          item.id === photoId
+            ? { ...item, isFavorited: nextFavorited }
+            : item
+        ),
+      );
+      message.success(nextFavorited ? "收藏成功" : "已取消收藏");
+      return true;
     } catch (error) {
       message.error(error instanceof Error ? error.message : "收藏操作失败");
+      return false;
     }
   }
 
@@ -369,7 +380,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
                       );
                     }}
                     onFavorite={() => {
-                      void toggleFavorite(photo.id);
+                      return toggleFavorite(photo.id);
                     }}
                     onDelete={() => {
                       void removePhoto(photo.id);
@@ -418,7 +429,7 @@ export function PhotoGallery({ albumId, refreshSignal = 0, onSetCover }: PhotoGa
               );
             }}
             onFavorite={() => {
-              void toggleFavorite(photo.id);
+              return toggleFavorite(photo.id);
             }}
             onDelete={() => {
               void removePhoto(photo.id);

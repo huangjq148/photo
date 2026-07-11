@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bookmark, Check, Ellipsis, Heart, Info, Share2, Trash2 } from "lucide-react";
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 
@@ -17,6 +17,7 @@ export type PhotoGalleryCardItem = {
   height: number;
   takenAt: string | null;
   uploadedAt: string;
+  isFavorited: boolean;
 };
 
 type PhotoGalleryCardProps = {
@@ -27,7 +28,7 @@ type PhotoGalleryCardProps = {
   /** 用于全屏预览时左右切换的同组照片 */
   navigableItems?: ImageViewerNavigationItem[];
   onSelect: () => void;
-  onFavorite: () => void;
+  onFavorite: () => Promise<boolean> | boolean;
   onDelete: () => void;
   onShare: () => void;
   onSetCover: () => void;
@@ -70,8 +71,14 @@ export function PhotoGalleryCard({
   onSetCover,
 }: PhotoGalleryCardProps) {
   const [showInfo, setShowInfo] = useState(false);
+  const [favoriteState, setFavoriteState] = useState(photo.isFavorited);
   const isVideo = photo.mediaType === "video" || photo.mimeType.startsWith("video/");
   const isGif = photo.mimeType === "image/gif";
+  const favoriteLabel = favoriteState ? "取消收藏" : "收藏";
+
+  useEffect(() => {
+    setFavoriteState(photo.isFavorited);
+  }, [photo.isFavorited]);
 
   return (
     <article
@@ -162,11 +169,19 @@ export function PhotoGalleryCard({
           <div className="absolute right-0 top-11 hidden min-w-32 overflow-hidden rounded-xl border border-[var(--border)] bg-black/90 p-1 shadow-2xl backdrop-blur group-hover/menu:block group-focus-within/menu:block">
             <button
               type="button"
-              onClick={onFavorite}
+              onClick={async () => {
+                const nextFavoriteState = !favoriteState;
+                setFavoriteState(nextFavoriteState);
+
+                const ok = await onFavorite();
+                if (!ok) {
+                  setFavoriteState(!nextFavoriteState);
+                }
+              }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-white/[0.08]"
             >
               <Heart aria-hidden="true" size={15} />
-              收藏
+              {favoriteLabel}
             </button>
             <button
               type="button"
