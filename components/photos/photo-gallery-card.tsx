@@ -100,6 +100,14 @@ export function PhotoGalleryCard({
   const resolvedName = resolveDisplayName(displayName, photo.originalName);
   const placeholderName = getOriginalNameWithoutExtension(photo.originalName);
   const isCustomName = !!normalizeDisplayName(displayName);
+  const dateLabel =
+    childAgeLabel || showTakenAt
+      ? childAgeLabel
+        ? showTakenAt
+          ? `拍摄时 ${childAgeLabel} · ${formatDateTime(photo.takenAt || photo.uploadedAt)}`
+          : `拍摄时 ${childAgeLabel}`
+        : formatDateTime(photo.takenAt || photo.uploadedAt)
+      : null;
 
   useEffect(() => {
     setFavoriteState(photo.isFavorited);
@@ -292,6 +300,9 @@ export function PhotoGalleryCard({
             </p>
           </button>
         )}
+        {dateLabel ? (
+          <p className="mt-1 text-xs text-[var(--muted)]">{dateLabel}</p>
+        ) : null}
       </div>
 
       {showInfo && (
@@ -328,20 +339,8 @@ export function PhotoGalleryCard({
         </div>
       )}
 
-      {(showTakenAt || childAgeLabel) && (photo.takenAt || photo.uploadedAt) && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md noir-glass-chip px-2.5 py-1">
-          <p className="text-xs font-medium text-white/80">
-            {childAgeLabel
-              ? showTakenAt
-                ? `拍摄时 ${childAgeLabel} · ${formatDateTime(photo.takenAt || photo.uploadedAt)}`
-                : `拍摄时 ${childAgeLabel}`
-              : formatDateTime(photo.takenAt || photo.uploadedAt)}
-          </p>
-        </div>
-      )}
-
       {photo.isFavorited && (
-        <div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-md bg-blue-500/90 px-2.5 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-3 right-3 z-0 rounded-md bg-blue-500/90 px-2.5 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
           已收藏
         </div>
       )}
@@ -360,7 +359,7 @@ export function PhotoGalleryCard({
         </button>
       </div>
 
-      <div className="absolute right-3 top-3 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="absolute right-3 top-3 z-20 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
         <div className="group/menu relative">
           <button
             type="button"
@@ -369,7 +368,7 @@ export function PhotoGalleryCard({
           >
             <Ellipsis aria-hidden="true" size={16} />
           </button>
-          <div className="absolute right-0 top-10 hidden min-w-44 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[rgba(10,10,12,0.92)] p-1.5 shadow-2xl backdrop-blur-xl group-hover/menu:block group-focus-within/menu:block">
+          <div className="absolute right-0 top-10 hidden z-30 min-w-44 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[rgba(10,10,12,0.92)] p-1.5 shadow-2xl backdrop-blur-xl group-hover/menu:block group-focus-within/menu:block">
             <button
               type="button"
               onClick={async () => {
