@@ -126,6 +126,7 @@ model Media {
   taken_at          DateTime?
   latitude          Float?
   longitude         Float?
+  location_hidden   Boolean               @default(false)
   uploaded_at       DateTime              @default(now())
   status            PhotoStatus           @default(normal)
   deleted_at        DateTime?

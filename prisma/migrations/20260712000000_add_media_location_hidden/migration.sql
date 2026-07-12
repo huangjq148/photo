@@ -1,0 +1,2 @@
+ALTER TABLE "Media"
+ADD COLUMN IF NOT EXISTS "location_hidden" BOOLEAN NOT NULL DEFAULT false;

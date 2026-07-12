@@ -3,6 +3,8 @@ export {
   getTrashPhotos,
   getPhotoDetails,
   updatePhotoTakenAt,
+  updatePhotoMetadata,
+  updatePhotoLocationHidden,
   toggleFavoritePhoto,
   getFavoritePhotos,
   softDeletePhoto,

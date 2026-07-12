@@ -10,6 +10,7 @@ const navItems = [
   { href: "/albums", label: "相册" },
   { href: "/timeline", label: "时间线" },
   { href: "/duplicates", label: "重复" },
+  { href: "/map", label: "地图" },
   { href: "/trash", label: "回收站" },
   { href: "/favorites", label: "收藏" }
 ] as const satisfies ReadonlyArray<{ href: Route; label: string }>;

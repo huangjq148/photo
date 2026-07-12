@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
-import { getPhotoDetails, softDeletePhoto, updatePhotoTakenAt } from "@/lib/photos/library";
+import { getPhotoDetails, softDeletePhoto, updatePhotoMetadata } from "@/lib/photos/library";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUserFromRequest(request);
@@ -54,11 +54,12 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   const { id } = await context.params;
 
   try {
-    const body = (await request.json()) as { takenAt?: string | null };
-    const data = await updatePhotoTakenAt(prisma, {
+    const body = (await request.json()) as { takenAt?: string | null; locationHidden?: boolean };
+    const data = await updatePhotoMetadata(prisma, {
       photoId: id,
       userId: user.id,
       takenAt: body.takenAt,
+      locationHidden: body.locationHidden,
     });
 
     return NextResponse.json({ data });
