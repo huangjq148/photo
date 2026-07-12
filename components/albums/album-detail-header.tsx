@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Settings, Upload } from "lucide-react";
+import { ArrowLeft, Settings, Share2, Upload } from "lucide-react";
 
 type HeaderAlbum = {
   name: string;
@@ -17,9 +17,10 @@ type AlbumDetailHeaderProps = {
   album: HeaderAlbum;
   onAddPhotos: () => void;
   onManage: () => void;
+  onShare: () => void;
 };
 
-export function AlbumDetailHeader({ album, onAddPhotos, onManage }: AlbumDetailHeaderProps) {
+export function AlbumDetailHeader({ album, onAddPhotos, onManage, onShare }: AlbumDetailHeaderProps) {
   return (
     <section className="border-b border-[var(--border)] pb-4 pt-1 sm:pb-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -71,6 +72,14 @@ export function AlbumDetailHeader({ album, onAddPhotos, onManage }: AlbumDetailH
           >
             <Settings aria-hidden="true" size={17} />
             管理
+          </button>
+          <button
+            type="button"
+            onClick={onShare}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+          >
+            <Share2 aria-hidden="true" size={17} />
+            公开分享
           </button>
         </div>
       </div>

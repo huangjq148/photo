@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AddPhotosModal } from "@/components/albums/add-photos-modal";
 import { AlbumDetailHeader } from "@/components/albums/album-detail-header";
 import { AlbumManagementModal } from "@/components/albums/album-management-modal";
+import { AlbumShareManager } from "@/components/albums/album-share-manager";
 import { PhotoGallery } from "@/components/photos/photo-gallery";
 import { shouldConfirmDisableChildAlbum, validateChildBirthDate } from "@/lib/albums/child-album-rules";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
@@ -39,6 +40,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
   const [deleting, setDeleting] = useState(false);
   const [showAddPhotos, setShowAddPhotos] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
+  const [showShareManager, setShowShareManager] = useState(false);
   const [showTakenAt, setShowTakenAt] = useState(false);
   const [photoSize, setPhotoSize] = useState<PhotoSize>("medium");
   const [refreshToken, setRefreshToken] = useState(0);
@@ -193,6 +195,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
           setEditChildBirthDate(album.childBirthDate ?? "");
           setShowManagement(true);
         }}
+        onShare={() => setShowShareManager(true)}
       />
 
       <section className="space-y-4">
@@ -237,6 +240,12 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         photoSize={photoSize}
         onPhotoSizeChange={setPhotoSize}
         onClose={() => setShowManagement(false)}
+      />
+
+      <AlbumShareManager
+        albumId={albumId}
+        open={showShareManager}
+        onClose={() => setShowShareManager(false)}
       />
 
       {showAddPhotos ? (

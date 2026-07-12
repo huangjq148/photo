@@ -44,6 +44,7 @@ model User {
   favorites        Favorite[]
   albumPhotosAdded AlbumPhoto[]
   photoShares      PhotoShare[]    @relation("ShareCreator")
+  albumShares      AlbumShare[]    @relation("AlbumShareCreator")
   albumMemberships AlbumMember[]
   albumInvitesSent AlbumInvite[]   @relation("AlbumInviteSender")
 }
@@ -67,6 +68,7 @@ model Album {
   photos         AlbumPhoto[]
   members        AlbumMember[]
   invites        AlbumInvite[]
+  shares         AlbumShare[]
 
   @@index([creator_id, created_at])
 }
@@ -189,4 +191,20 @@ model PhotoShare {
   creator    User     @relation("ShareCreator", fields: [created_by], references: [id], onDelete: Cascade)
 
   @@index([photo_id, revoked_at])
+}
+
+model AlbumShare {
+  id              String   @id @default(uuid()) @db.Uuid
+  album_id        String   @db.Uuid
+  created_by      String   @db.Uuid
+  token           String   @unique
+  allow_download  Boolean  @default(true)
+  created_at      DateTime @default(now())
+  expires_at      DateTime?
+  revoked_at      DateTime?
+
+  album           Album    @relation(fields: [album_id], references: [id], onDelete: Cascade)
+  creator         User     @relation("AlbumShareCreator", fields: [created_by], references: [id], onDelete: Cascade)
+
+  @@index([album_id, revoked_at])
 }

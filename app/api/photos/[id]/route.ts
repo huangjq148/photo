@@ -64,9 +64,11 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
 
     return NextResponse.json({ data });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "拍摄时间保存失败，请重试";
+    const message = error instanceof Error ? error.message : "媒体信息保存失败，请重试";
     const status =
-      message === "你不在这个相册中" || message === "你没有权限修改拍摄时间"
+      message === "你不在这个相册中" ||
+      message === "你没有权限修改拍摄时间" ||
+      message === "你没有权限修改此信息"
         ? 403
         : message === "媒体文件不存在"
           ? 404

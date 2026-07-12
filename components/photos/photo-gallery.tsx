@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
+import { TakenAtEditorModal } from "@/components/photos/taken-at-editor-modal";
 import { AddPhotoToAlbumModal } from "@/components/albums/add-photo-to-album-modal";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
@@ -27,6 +28,7 @@ type PhotoItem = {
   uploadedAt: string;
   isFavorited: boolean;
   canEditName: boolean;
+  locationHidden: boolean;
 };
 
 type GroupMode = "none" | "month" | "year";
@@ -90,6 +92,7 @@ export function PhotoGallery({
   const [hasMore, setHasMore] = useState(true);
   const [sharePhotoId, setSharePhotoId] = useState<string | null>(null);
   const [addToAlbumPhoto, setAddToAlbumPhoto] = useState<PhotoItem | null>(null);
+  const [editTakenAtPhoto, setEditTakenAtPhoto] = useState<PhotoItem | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
 
@@ -216,6 +219,20 @@ export function PhotoGallery({
     );
   }
 
+  function updatePhotoMetadata(photoId: string, next: { takenAt?: string | null; locationHidden?: boolean }) {
+    setItems((current) =>
+      current.map((item) =>
+        item.id === photoId
+          ? {
+              ...item,
+              ...(next.takenAt !== undefined ? { takenAt: next.takenAt } : {}),
+              ...(next.locationHidden !== undefined ? { locationHidden: next.locationHidden } : {}),
+            }
+          : item
+      )
+    );
+  }
+
   function removePhotoFromState(photoId: string) {
     setItems((current) => current.filter((item) => item.id !== photoId));
     setSelectedIds((current) => current.filter((id) => id !== photoId));
@@ -275,12 +292,69 @@ export function PhotoGallery({
     }
   }
 
-  async function sharePhoto(photoId: string) {
+  function sharePhoto(photoId: string) {
     setSharePhotoId(photoId);
   }
 
-  async function openAddToAlbum(photo: PhotoItem) {
+  function openAddToAlbum(photo: PhotoItem) {
     setAddToAlbumPhoto(photo);
+  }
+
+  function openEditTakenAt(photo: PhotoItem) {
+    setEditTakenAtPhoto(photo);
+  }
+
+  async function toggleLocationHidden(photo: PhotoItem) {
+    const nextHidden = !photo.locationHidden;
+    const confirmed = window.confirm(
+      nextHidden ? "确认隐藏这张照片的位置？" : "确认显示这张照片的位置？"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/photos/${photo.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ locationHidden: nextHidden }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(json.error ?? "位置可见性保存失败");
+      }
+
+      updatePhotoMetadata(photo.id, { locationHidden: !!json.data?.locationHidden });
+      message.success(nextHidden ? "位置已隐藏" : "位置已显示");
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "位置可见性保存失败");
+    }
+  }
+
+  async function saveTakenAt(photo: PhotoItem, takenAt: string | null) {
+    try {
+      const response = await fetch(`/api/photos/${photo.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ takenAt }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(json.error ?? "拍摄时间保存失败");
+      }
+
+      updatePhotoMetadata(photo.id, { takenAt: json.data?.takenAt ?? takenAt });
+      message.success(takenAt ? "拍摄时间已更新" : "拍摄时间已清除");
+      setEditTakenAtPhoto(null);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "拍摄时间保存失败");
+      throw error instanceof Error ? error : new Error("拍摄时间保存失败");
+    }
   }
 
   const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
@@ -430,6 +504,12 @@ export function PhotoGallery({
                     onAddToAlbum={() => {
                       void openAddToAlbum(photo);
                     }}
+                    onEditTakenAt={() => {
+                      void openEditTakenAt(photo);
+                    }}
+                    onToggleLocationHidden={() => {
+                      void toggleLocationHidden(photo);
+                    }}
                     onDisplayNameChange={updatePhotoDisplayName}
                     onRemove={removePhotoFromState}
                 />
@@ -486,6 +566,12 @@ export function PhotoGallery({
               onAddToAlbum={() => {
                 void openAddToAlbum(photo);
               }}
+              onEditTakenAt={() => {
+                void openEditTakenAt(photo);
+              }}
+              onToggleLocationHidden={() => {
+                void toggleLocationHidden(photo);
+              }}
               onDisplayNameChange={updatePhotoDisplayName}
               onRemove={removePhotoFromState}
             />
@@ -522,6 +608,17 @@ export function PhotoGallery({
           onAdded={() => {
             setRefreshToken((current) => current + 1);
           }}
+        />
+      ) : null}
+
+      {editTakenAtPhoto ? (
+        <TakenAtEditorModal
+          open={!!editTakenAtPhoto}
+          photoName={editTakenAtPhoto.displayName?.trim() || editTakenAtPhoto.originalName}
+          currentTakenAt={editTakenAtPhoto.takenAt}
+          uploadedAt={editTakenAtPhoto.uploadedAt}
+          onClose={() => setEditTakenAtPhoto(null)}
+          onSave={(takenAt) => saveTakenAt(editTakenAtPhoto, takenAt)}
         />
       ) : null}
     </div>

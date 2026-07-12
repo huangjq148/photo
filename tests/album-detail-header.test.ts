@@ -17,6 +17,7 @@ describe("AlbumDetailHeader", () => {
         },
         onAddPhotos: () => undefined,
         onManage: () => undefined,
+        onShare: () => undefined,
       }),
     );
 

@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Bookmark, Check, Ellipsis, FolderPlus, Heart, Info, Share2, Trash2 } from "lucide-react";
+import {
+  Bookmark,
+  CalendarClock,
+  Check,
+  Ellipsis,
+  FolderPlus,
+  Heart,
+  Info,
+  MapPinned,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
 import {
@@ -27,6 +38,7 @@ export type PhotoGalleryCardItem = {
   uploadedAt: string;
   isFavorited: boolean;
   canEditName: boolean;
+  locationHidden: boolean;
 };
 
 type PhotoGalleryCardProps = {
@@ -42,6 +54,8 @@ type PhotoGalleryCardProps = {
   onShare: () => void;
   onSetCover: () => void;
   onAddToAlbum: () => void;
+  onEditTakenAt: () => void;
+  onToggleLocationHidden: () => void;
   childAgeLabel?: string | null;
   onDisplayNameChange?: (photoId: string, displayName: string | null) => void;
   onRemove?: (photoId: string) => void;
@@ -78,6 +92,8 @@ export function PhotoGalleryCard({
   onShare,
   onSetCover,
   onAddToAlbum,
+  onEditTakenAt,
+  onToggleLocationHidden,
   childAgeLabel,
   onDisplayNameChange,
   onRemove,
@@ -343,6 +359,12 @@ export function PhotoGalleryCard({
         </div>
       )}
 
+      {photo.locationHidden ? (
+        <div className="pointer-events-none absolute bottom-3 left-3 z-0 rounded-md bg-amber-500/90 px-2.5 py-1 text-xs font-medium text-black shadow-lg backdrop-blur-sm">
+          位置已隐藏
+        </div>
+      ) : null}
+
       <div className="absolute left-3 top-3 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
         <button
           type="button"
@@ -390,6 +412,22 @@ export function PhotoGalleryCard({
             >
               <Share2 aria-hidden="true" size={15} />
               分享
+            </button>
+            <button
+              type="button"
+              onClick={onEditTakenAt}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
+            >
+              <CalendarClock aria-hidden="true" size={15} />
+              修改拍摄时间
+            </button>
+            <button
+              type="button"
+              onClick={onToggleLocationHidden}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
+            >
+              <MapPinned aria-hidden="true" size={15} />
+              {photo.locationHidden ? "显示位置" : "隐藏位置"}
             </button>
             <button
               type="button"

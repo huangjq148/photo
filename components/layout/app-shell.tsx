@@ -9,6 +9,7 @@ import { UserMenu } from "@/components/layout/user-menu";
 const navItems = [
   { href: "/albums", label: "相册" },
   { href: "/timeline", label: "时间线" },
+  { href: "/memory", label: "回忆" },
   { href: "/duplicates", label: "重复" },
   { href: "/map", label: "地图" },
   { href: "/trash", label: "回收站" },
