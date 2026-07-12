@@ -6,7 +6,6 @@ import { getUserAlbums } from "@/lib/albums/library";
 import { getUserPhotoCount, getRecentPhotos } from "@/lib/home/queries";
 import { getMemoryDashboard } from "@/lib/memory/dashboard";
 import { HomeHero } from "@/components/home/home-hero";
-import { HomeMemorySpotlight } from "@/components/home/home-memory-spotlight";
 import { HomeStats } from "@/components/home/home-stats";
 import { HomeQuickActions } from "@/components/home/home-quick-actions";
 import { HomeRecentPhotos, HomeRecentPhotosSkeleton } from "@/components/home/home-recent-photos";
@@ -20,23 +19,14 @@ async function AuthenticatedContent({
   storageUsed: string;
   storageLimit: string;
 }) {
-  const [albums, photoCount, recentPhotos, dashboard] = await Promise.all([
+  const [albums, photoCount, recentPhotos] = await Promise.all([
     getUserAlbums(prisma, userId).catch(() => []),
     getUserPhotoCount(prisma, userId).catch(() => 0),
     getRecentPhotos(prisma, userId, 12).catch(() => []),
-    getMemoryDashboard(prisma, userId).catch(() => ({
-      onThisDay: { title: "今天的回忆", items: [] },
-      childReports: [],
-      annualHighlights: [],
-    })),
   ]);
 
   return (
     <>
-      <section>
-        <HomeMemorySpotlight onThisDay={dashboard.onThisDay} />
-      </section>
-
       <section>
         <HomeStats
           albumCount={albums.length}
@@ -59,11 +49,21 @@ async function AuthenticatedContent({
 
 export default async function HomePage() {
   const user = await getCurrentUserFromCookieStore(await cookies());
+  const memoryDashboard = user
+    ? await getMemoryDashboard(prisma, user.id).catch(() => ({
+        onThisDay: { title: "今天的回忆", items: [] },
+        childReports: [],
+        annualHighlights: [],
+      }))
+    : null;
 
   return (
     <main className="overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10 lg:px-12 lg:py-12">
       <div className="space-y-10 sm:space-y-14">
-        <HomeHero user={user ? { nickname: user.nickname } : null} />
+        <HomeHero
+          user={user ? { nickname: user.nickname } : null}
+          memorySpotlight={memoryDashboard?.onThisDay ?? null}
+        />
 
         {user ? (
           <Suspense fallback={<HomeRecentPhotosSkeleton />}>
