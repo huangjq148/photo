@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/layout/user-menu";
 
 const navItems = [
   { href: "/albums", label: "相册" },
+  { href: "/timeline", label: "时间线" },
   { href: "/trash", label: "回收站" },
   { href: "/favorites", label: "收藏" }
 ] as const satisfies ReadonlyArray<{ href: Route; label: string }>;
