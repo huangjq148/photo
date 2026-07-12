@@ -162,7 +162,7 @@ describe("photo shares", () => {
   });
 
   it("rejects share for deleted media", async () => {
-    const { user, photo, album } = await createUserWithPhoto(prisma, storageRoot, "-del");
+    const { user, photo, album: _album } = await createUserWithPhoto(prisma, storageRoot, "-del");
 
     const share = await createPhotoShare(prisma, {
       photoId: photo.id,

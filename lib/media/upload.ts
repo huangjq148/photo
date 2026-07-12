@@ -9,7 +9,6 @@ import { getStorageLayout } from "@/lib/storage/paths";
 import { assertCanUpload } from "@/lib/membership";
 import {
   SUPPORTED_MIME_TYPES,
-  SUPPORTED_IMAGE_TYPES,
   SUPPORTED_VIDEO_TYPES,
   MAX_IMAGE_SIZE,
   MAX_VIDEO_SIZE,

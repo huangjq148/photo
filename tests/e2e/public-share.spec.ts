@@ -14,8 +14,12 @@ test.describe("anonymous public share", () => {
     await page.fill("#register-email", email);
     await page.fill("#register-password", password);
     await page.fill("#register-confirmPassword", password);
+    const navigation = page.waitForURL("**/albums", {
+      timeout: 15_000,
+      waitUntil: "commit",
+    });
     await page.click('button[type="submit"]');
-    await page.waitForURL("**/albums", { timeout: 15_000 });
+    await navigation;
 
     // Create a share via API using the authenticated session
     const result = await page.evaluate(async () => {
@@ -70,8 +74,12 @@ test.describe("anonymous public share", () => {
     await page.fill("#register-email", revokeEmail);
     await page.fill("#register-password", password);
     await page.fill("#register-confirmPassword", password);
+    const navigation = page.waitForURL("**/albums", {
+      timeout: 15_000,
+      waitUntil: "commit",
+    });
     await page.click('button[type="submit"]');
-    await page.waitForURL("**/albums", { timeout: 15_000 });
+    await navigation;
 
     // Create and revoke a share
     const result = await page.evaluate(async () => {
@@ -106,7 +114,7 @@ test.describe("anonymous public share", () => {
       const revokeRes = await fetch(`/api/photos/shares/${share.id}`, {
         method: "DELETE",
       });
-      const revokeJson = await revokeRes.json();
+      await revokeRes.json();
 
       // List again — should be empty (revoked shares are not shown)
       const listRes2 = await fetch(`/api/photos/${photos[0].id}/shares`);

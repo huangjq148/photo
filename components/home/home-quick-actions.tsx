@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import type { Route } from "next";
 import { Upload, FolderPlus, Heart, Trash2 } from "lucide-react";
 import { CreateAlbumModal } from "@/components/albums/create-album-modal";
 

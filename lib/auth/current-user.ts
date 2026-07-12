@@ -15,30 +15,13 @@ export async function getCurrentUserFromCookieStore(cookieStore: CookieStore) {
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
-    console.log("[auth] no photo_session cookie found");
     return null;
   }
 
-  console.log("[auth] cookie found, token length:", token.length);
-
   let session;
   try {
-    // First, verify the token with a dummy version to extract userId
     session = verifySessionToken(token, 0, getAppEnv().JWT_SECRET);
-    console.log("[auth] first verify OK, userId:", session.userId, "sv:", session.sessionVersion);
-  } catch (e) {
-    console.log("[auth] first verify FAILED:", e instanceof Error ? e.message : e);
-    // Debug: try to decode token manually
-    try {
-      const parts = token.split(".");
-      console.log("[auth] token parts count:", parts.length);
-      if (parts.length === 2 && parts[0]) {
-        const decoded = Buffer.from(parts[0], "base64url").toString("utf-8");
-        console.log("[auth] decoded payload:", decoded);
-      }
-    } catch (debugErr) {
-      console.log("[auth] manual decode failed:", debugErr);
-    }
+  } catch {
     return null;
   }
 
@@ -47,18 +30,12 @@ export async function getCurrentUserFromCookieStore(cookieStore: CookieStore) {
   });
 
   if (!user) {
-    console.log("[auth] user not found in DB:", session.userId);
     return null;
   }
 
-  console.log("[auth] user found, db session_version:", user.session_version);
-
-  // Re-verify with the actual session_version from DB
   try {
     verifySessionToken(token, user.session_version, getAppEnv().JWT_SECRET);
-    console.log("[auth] second verify OK");
-  } catch (e) {
-    console.log("[auth] second verify FAILED:", e instanceof Error ? e.message : e);
+  } catch {
     return null;
   }
 

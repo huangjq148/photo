@@ -13,7 +13,6 @@ const tinyPng = Buffer.from(
 describe("photo upload", () => {
   const storageRoot = mkdtempSync(join(tmpdir(), "photo-upload-"));
   let prisma: PrismaClient;
-  let userId = "";
   let albumId = "";
 
   beforeAll(() => {
@@ -42,8 +41,6 @@ describe("photo upload", () => {
         nickname: "Uploader"
       }
     });
-
-    userId = user.id;
 
     const album = await prisma.album.create({
       data: {

@@ -4,7 +4,6 @@ import { getUserAlbums, getAlbumDetail, createAlbum } from "@/lib/albums/library
 
 describe("album library", () => {
   let prisma: PrismaClient;
-  let userId = "";
   let albumId = "";
 
   beforeAll(() => {
@@ -31,8 +30,6 @@ describe("album library", () => {
         nickname: "Album User"
       }
     });
-
-    userId = user.id;
 
     const album = await createAlbum(prisma, {
       userId: user.id,

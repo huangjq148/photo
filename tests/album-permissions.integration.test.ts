@@ -12,7 +12,6 @@ import {
   addAlbumMemberByEmail,
   removeAlbumMember,
   deleteAlbum,
-  updateMemberPermissions,
   leaveAlbum,
   addPhotosToAlbum,
   removePhotoFromAlbum,
@@ -129,7 +128,7 @@ describe("album permission matrix", () => {
   // ── Upload ──
 
   it("allows owner to upload/add photos", async () => {
-    const { album, owner, photo } = await setupUsers();
+    const { album: _album, owner, photo: _photo } = await setupUsers();
     // Create a new album for upload test
     const album2 = await prisma.album.create({ data: { creator_id: owner.id, name: "Upload Test" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: owner.id, role: "owner" } });
@@ -147,7 +146,7 @@ describe("album permission matrix", () => {
   });
 
   it("allows can_upload member to upload", async () => {
-    const { album, uploader } = await setupUsers();
+    const { album: _album, uploader } = await setupUsers();
     const album2 = await prisma.album.create({ data: { creator_id: uploader.id, name: "UL Test" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: uploader.id, role: "owner" } });
     const photo2 = await prisma.media.create({
@@ -164,7 +163,7 @@ describe("album permission matrix", () => {
   });
 
   it("rejects regular member from uploading", async () => {
-    const { album, member, owner } = await setupUsers();
+    const { album: _album, member, owner } = await setupUsers();
     const album2 = await prisma.album.create({ data: { creator_id: owner.id, name: "ULR Test" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: owner.id, role: "owner" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: member.id, role: "member", can_upload: false, can_delete: false } });
@@ -184,7 +183,7 @@ describe("album permission matrix", () => {
   // ── Delete ──
 
   it("allows can_delete member to remove photo", async () => {
-    const { album, deleter, owner } = await setupUsers();
+    const { album: _album, deleter, owner } = await setupUsers();
     const album2 = await prisma.album.create({ data: { creator_id: owner.id, name: "DEL Test" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: owner.id, role: "owner" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: deleter.id, role: "member", can_upload: false, can_delete: true } });
@@ -203,7 +202,7 @@ describe("album permission matrix", () => {
   });
 
   it("rejects regular member from deleting", async () => {
-    const { album, member, owner } = await setupUsers();
+    const { album: _album, member, owner } = await setupUsers();
     const album2 = await prisma.album.create({ data: { creator_id: owner.id, name: "DELR Test" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: owner.id, role: "owner" } });
     await prisma.albumMember.create({ data: { album_id: album2.id, user_id: member.id, role: "member", can_upload: false, can_delete: false } });

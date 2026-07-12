@@ -21,17 +21,29 @@ export function isVideoMedia(item: Pick<MediaNavigationSource, "mediaType" | "mi
 }
 
 export function buildMediaViewerNavigationItems(items: MediaNavigationSource[]): ImageViewerNavigationItem[] {
-  return items.filter((item) => isImageMedia(item) || isVideoMedia(item)).map((item) => ({
-    id: item.id,
-    mediaType: isVideoMedia(item) ? "video" : "image",
-    src: item.thumbnailUrl,
-    previewSrc: isImageMedia(item)
-      ? (item.mimeType === "image/gif" ? item.originalUrl : item.previewUrl)
-      : undefined,
-    videoSrc: isVideoMedia(item) ? item.originalUrl : undefined,
-    alt: resolveDisplayName(item.displayName, item.originalName),
-    title: resolveDisplayName(item.displayName, item.originalName),
-  }));
+  return items
+    .filter((item) => isImageMedia(item) || isVideoMedia(item))
+    .map((item) => {
+      const mediaType: "image" | "video" = isVideoMedia(item) ? "video" : "image";
+      const displayName = resolveDisplayName(item.displayName, item.originalName);
+      const baseItem: Omit<ImageViewerNavigationItem, "previewSrc" | "videoSrc"> = {
+        id: item.id,
+        mediaType,
+        src: item.thumbnailUrl,
+        alt: displayName,
+        title: displayName,
+      };
+
+      return mediaType === "video"
+        ? {
+            ...baseItem,
+            videoSrc: item.originalUrl,
+          }
+        : {
+            ...baseItem,
+            previewSrc: item.mimeType === "image/gif" ? item.originalUrl : item.previewUrl,
+          };
+    });
 }
 
 export const buildImageViewerNavigationItems = buildMediaViewerNavigationItems;

@@ -3,7 +3,7 @@ import { stat } from "node:fs/promises";
 import { join, basename, extname } from "node:path";
 import { Readable } from "node:stream";
 import type { PrismaClient } from "@prisma/client";
-import { getPublicPhotoShare, resolvePublicShare } from "@/lib/media/shares";
+import { resolvePublicShare } from "@/lib/media/shares";
 import { getStorageLayout } from "@/lib/storage/paths";
 
 const ALLOWED_VARIANTS = ["thumbnail", "preview", "original"] as const;
@@ -22,9 +22,7 @@ function getVariantDirName(variant: Variant): "originals" | "previews" | "thumbn
 
 function resolveFileName(share: Awaited<ReturnType<typeof resolvePublicShare>>, variant: Variant): string {
   const storagePath = share.media.storage_path;
-  const isVideo = share.media.media_type === "video";
-
-  if (variant === "original" || !isVideo) {
+  if (variant === "original" || share.media.media_type !== "video") {
     // For images or original video files, use the storage_path directly
     return storagePath;
   }
@@ -64,7 +62,6 @@ export async function servePublicShareFile(
     });
   }
 
-  const isVideo = share.media.mime_type.startsWith("video/");
   const isThumbnail = v !== "original" && share.media.media_type === "video";
   const contentType = isThumbnail ? "image/jpeg" : share.media.mime_type;
   const fileSize = fileStats.size;

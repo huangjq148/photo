@@ -96,8 +96,6 @@ export async function loginUser(
     throw invalidCredentialsError();
   }
 
-  console.log("[login] user.session_version:", user.session_version, "typeof:", typeof user.session_version);
-
   return {
     user: {
       id: user.id,

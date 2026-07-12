@@ -3,7 +3,6 @@ import { createHmac } from "node:crypto";
 import { createSessionToken, verifySessionToken } from "@/lib/auth/session";
 
 const TEST_SECRET = "x".repeat(32);
-const FIXED_NOW = 1700000000000; // A fixed timestamp for deterministic tests
 
 describe("session tokens", () => {
   it("round-trips user id and session version", () => {
@@ -66,7 +65,9 @@ describe("session tokens", () => {
 
   it("rejects tampered tokens", () => {
     const token = createSessionToken("user-123", 1, TEST_SECRET);
-    const tampered = `${token.slice(0, -1)}a`;
+    const [encoded, signature] = token.split(".");
+    const tamperedEncoded = `${encoded.slice(0, -1)}${encoded.slice(-1) === "a" ? "b" : "a"}`;
+    const tampered = `${tamperedEncoded}.${signature}`;
     expect(() => verifySessionToken(tampered, 1, TEST_SECRET)).toThrow();
   });
 

@@ -18,10 +18,14 @@ test.describe("smoke", () => {
     await page.fill("#register-confirmPassword", password);
 
     // 3. Submit
+    const navigation = page.waitForURL("**/albums", {
+      timeout: 15_000,
+      waitUntil: "commit",
+    });
     await page.click('button[type="submit"]');
+    await navigation;
 
     // 4. Should redirect to albums page
-    await page.waitForURL("**/albums", { timeout: 15_000 });
     await expect(page).toHaveURL(/\/albums/);
 
     // 5. Album view should be visible

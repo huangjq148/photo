@@ -112,7 +112,6 @@ export async function GET(
     return NextResponse.json({ error: "文件不存在" }, { status: 404 });
   }
 
-  const isVideo = media.mime_type.startsWith("video/");
   const contentType = isThumbnail ? "image/jpeg" : media.mime_type;
   const fileSize = fileStats.size;
 

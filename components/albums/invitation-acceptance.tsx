@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, XCircle, Clock, LogIn } from "lucide-react";
+import { CheckCircle, XCircle, Clock } from "lucide-react";
 
 type InvitationAcceptanceProps = {
   token: string;

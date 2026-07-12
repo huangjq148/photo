@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 import { InvitationAcceptance } from "@/components/albums/invitation-acceptance";
 
