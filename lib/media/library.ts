@@ -44,6 +44,7 @@ type MediaListItem = {
   width: number;
   height: number;
   status: "normal" | "deleted";
+  takenAt: Date | null;
   uploadedAt: Date;
   deletedAt: Date | null;
   isFavorited: boolean;
@@ -55,6 +56,12 @@ type MediaDetail = MediaListItem & {
   deletedBy: string | null;
   storagePath: string;
   isFavorited: boolean;
+};
+
+type PhotoTakenAtUpdate = {
+  id: string;
+  originalName: string;
+  takenAt: Date | null;
 };
 
 type MediaPage<T> = {
@@ -82,6 +89,7 @@ type MediaRecord = {
   duration_seconds: number | null;
   width: number;
   height: number;
+  taken_at: Date | null;
   uploaded_at: Date;
   album: {
     creator_id: string;
@@ -138,6 +146,7 @@ function mapMediaListItem(media: MediaRecord): MediaListItem {
     width: media.width,
     height: media.height,
     status: media.status,
+    takenAt: media.taken_at,
     uploadedAt: media.uploaded_at,
     deletedAt: media.deleted_at,
     isFavorited: !!media.favorites?.length,
@@ -437,11 +446,59 @@ export async function getPhotoDetails(
     width: media.width,
     height: media.height,
     status: media.status,
+    takenAt: media.taken_at,
     uploadedAt: media.uploaded_at,
     deletedAt: media.deleted_at,
     deletedBy: media.deleted_by,
     storagePath: media.storage_path,
     isFavorited: media.favorites.length > 0,
+  };
+}
+
+export async function updatePhotoTakenAt(
+  prisma: PrismaClient,
+  context: {
+    photoId: string;
+    userId: string;
+    takenAt?: string | null;
+  }
+): Promise<PhotoTakenAtUpdate> {
+  const media = await loadAccessibleMedia(prisma, context.photoId, context.userId);
+
+  if (!canManageMedia(media, context.userId)) {
+    throw new Error("你没有权限修改拍摄时间");
+  }
+
+  let nextTakenAt: Date | null;
+
+  if (context.takenAt === undefined) {
+    nextTakenAt = media.taken_at ?? null;
+  } else if (context.takenAt === null || context.takenAt.trim() === "") {
+    nextTakenAt = null;
+  } else {
+    const parsed = new Date(context.takenAt);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new Error("拍摄时间格式不正确");
+    }
+    nextTakenAt = parsed;
+  }
+
+  const updated = await prisma.media.update({
+    where: { id: media.id },
+    data: {
+      taken_at: nextTakenAt,
+    },
+    select: {
+      id: true,
+      original_name: true,
+      taken_at: true,
+    },
+  });
+
+  return {
+    id: updated.id,
+    originalName: updated.original_name,
+    takenAt: updated.taken_at,
   };
 }
 

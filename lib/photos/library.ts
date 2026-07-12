@@ -2,6 +2,7 @@ export {
   getAlbumPhotos,
   getTrashPhotos,
   getPhotoDetails,
+  updatePhotoTakenAt,
   toggleFavoritePhoto,
   getFavoritePhotos,
   softDeletePhoto,

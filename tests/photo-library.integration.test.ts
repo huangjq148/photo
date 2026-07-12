@@ -11,7 +11,8 @@ import {
   restorePhoto,
   permanentlyDeletePhoto,
   toggleFavoritePhoto,
-  getFavoritePhotos
+  getFavoritePhotos,
+  updatePhotoTakenAt
 } from "@/lib/photos/library";
 
 const tinyPng = Buffer.from(
@@ -138,5 +139,34 @@ describe("photo library flows", () => {
     await toggleFavoritePhoto(prisma, { photoId, userId });
     const noFavorites = await getFavoritePhotos(prisma, userId);
     expect(noFavorites.items).toHaveLength(0);
+  });
+
+  it("updates and clears taken time", async () => {
+    await seedPhoto();
+
+    const updated = await updatePhotoTakenAt(prisma, {
+      photoId,
+      userId,
+      takenAt: "2026-07-12T10:11:00.000Z",
+    });
+
+    expect(updated.takenAt?.toISOString()).toBe("2026-07-12T10:11:00.000Z");
+
+    const listed = await getAlbumPhotos(prisma, {
+      albumId,
+      userId,
+      page: 1,
+      pageSize: 20,
+    });
+
+    expect(listed.items[0]?.takenAt?.toISOString()).toBe("2026-07-12T10:11:00.000Z");
+
+    const cleared = await updatePhotoTakenAt(prisma, {
+      photoId,
+      userId,
+      takenAt: null,
+    });
+
+    expect(cleared.takenAt).toBeNull();
   });
 });

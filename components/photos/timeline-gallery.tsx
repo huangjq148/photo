@@ -6,6 +6,7 @@ import ImageViewer from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
 import { BatchAddPhotosToAlbumModal } from "@/components/albums/batch-add-photos-to-album-modal";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
+import { TakenAtEditorModal } from "@/components/photos/taken-at-editor-modal";
 import {
   getTimelineEffectiveDate,
   groupTimelinePhotos,
@@ -47,6 +48,7 @@ export function TimelineGallery() {
   const [hasMore, setHasMore] = useState(true);
   const [refreshToken, setRefreshToken] = useState(0);
   const [batchAddOpen, setBatchAddOpen] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState<TimelinePhotoItem | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const message = useMessage();
@@ -199,6 +201,34 @@ export function TimelineGallery() {
     } catch (err) {
       message.error(err instanceof Error ? err.message : "删除失败");
     }
+  }
+
+  async function saveTakenAt(photoId: string, nextTakenAt: string | null) {
+    const response = await fetch(`/api/photos/${photoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ takenAt: nextTakenAt }),
+    });
+
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(json.error ?? "拍摄时间保存失败");
+    }
+
+    const updated = json.data as { id: string; takenAt: string | null };
+    setItems((current) =>
+      current.map((item) =>
+        item.id === updated.id
+          ? {
+              ...item,
+              takenAt: updated.takenAt,
+              effectiveAt: updated.takenAt ?? item.uploadedAt,
+            }
+          : item
+      )
+    );
+    setRefreshToken((current) => current + 1);
+    message.success(updated.takenAt ? "拍摄时间已更新" : "拍摄时间已清除");
   }
 
   if (loading) {
@@ -354,6 +384,13 @@ export function TimelineGallery() {
                         </a>
                         <button
                           type="button"
+                          onClick={() => setEditingPhoto(photo)}
+                          className="inline-flex h-8 items-center justify-center rounded-full bg-black/70 px-3 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black"
+                        >
+                          修改时间
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             setSelectedIds((current) =>
                               current.includes(photo.id) ? current : [...current, photo.id]
@@ -404,6 +441,19 @@ export function TimelineGallery() {
         onAdded={() => {
           setBatchAddOpen(false);
           setRefreshToken((current) => current + 1);
+        }}
+      />
+
+      <TakenAtEditorModal
+        open={!!editingPhoto}
+        photoName={editingPhoto ? resolveDisplayName(editingPhoto.displayName, editingPhoto.originalName) : ""}
+        currentTakenAt={editingPhoto?.takenAt ?? null}
+        uploadedAt={editingPhoto?.uploadedAt ?? ""}
+        onClose={() => setEditingPhoto(null)}
+        onSave={async (takenAt) => {
+          if (!editingPhoto) return;
+          await saveTakenAt(editingPhoto.id, takenAt);
+          setEditingPhoto(null);
         }}
       />
     </div>
