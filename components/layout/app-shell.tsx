@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
-  if (pathname.startsWith("/share/")) {
+  if (pathname.startsWith("/share/") || pathname.startsWith("/admin")) {
     return <>{children}</>;
   }
 

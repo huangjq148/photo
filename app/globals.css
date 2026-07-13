@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "@rc-component/picker/assets/index.css";
-@import "@rc-component/trigger/assets/index.css";
 
 :root {
   color-scheme: dark;
