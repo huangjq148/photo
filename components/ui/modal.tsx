@@ -2,9 +2,10 @@
 
 import React from "react";
 import type { ReactNode } from "react";
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
 import clsx from "clsx";
+import { getFocusableElements, handleModalKeyDown } from "@/hooks/use-focus-trap";
 
 type ModalSize = "sm" | "md" | "lg" | "xl";
 
@@ -36,23 +37,30 @@ export function Modal({
 }: ModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
   useEffect(() => {
     if (!open) return;
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
+    previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
+    const focusables = getFocusableElements(dialogRef.current);
+    const autofocusTarget =
+      dialogRef.current?.querySelector<HTMLElement>("[autofocus]") ?? focusables[0] ?? dialogRef.current;
+    window.requestAnimationFrame(() => {
+      autofocusTarget?.focus();
+      setActiveIndex(focusables.findIndex((element) => element === autofocusTarget));
+    });
 
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
+      window.requestAnimationFrame(() => {
+        previousActiveElementRef.current?.focus();
+      });
+      previousActiveElementRef.current = null;
     };
   }, [open, onClose]);
 
@@ -68,14 +76,32 @@ export function Modal({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
+        tabIndex={-1}
         className={clsx(
           "max-h-[90dvh] w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl",
           sizeClass[size],
         )}
+        onKeyDown={(event) => {
+          const nextFocusables = getFocusableElements(dialogRef.current);
+          const currentFocus = document.activeElement as HTMLElement | null;
+          const currentIndex = currentFocus ? nextFocusables.indexOf(currentFocus) : activeIndex;
+          const nextIndex = handleModalKeyDown(
+            event,
+            nextFocusables,
+            currentIndex,
+            onClose,
+            dialogRef.current,
+          );
+
+          if (event.key === "Tab") {
+            setActiveIndex(nextIndex);
+          }
+        }}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-6 py-4">
           <div>

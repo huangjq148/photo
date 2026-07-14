@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { Modal } from "@/components/ui/modal";
 
 type CreateAlbumModalProps = {
@@ -24,6 +24,8 @@ export function CreateAlbumModal({
   onCreate,
   onClose,
 }: CreateAlbumModalProps) {
+  const formId = useId();
+
   return (
     <Modal
       open={open}
@@ -40,8 +42,8 @@ export function CreateAlbumModal({
             取消
           </button>
           <button
-            type="button"
-            onClick={onCreate}
+            type="submit"
+            form={formId}
             disabled={creating || !name.trim()}
             className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -50,10 +52,18 @@ export function CreateAlbumModal({
         </div>
       }
     >
-      <div className="space-y-4">
+      <form
+        id={formId}
+        className="space-y-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onCreate();
+        }}
+      >
         <label className="block">
           <span className="text-sm font-medium text-[var(--muted-strong)]">相册名称</span>
           <input
+            autoFocus
             value={name}
             onChange={(event) => onNameChange(event.target.value)}
             placeholder="例如：夏日旅行"
@@ -71,7 +81,7 @@ export function CreateAlbumModal({
             className="mt-2 w-full resize-none rounded-lg border border-[var(--border)] bg-black px-4 py-3 text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--film)]"
           />
         </label>
-      </div>
+      </form>
     </Modal>
   );
 }

@@ -23,5 +23,8 @@ describe("CreateAlbumModal", () => {
     expect(html).toContain("相册名称");
     expect(html).toContain("相册描述（可选）");
     expect(html).toContain("创建");
+    expect(html).toContain("<form");
+    expect(html).toContain('autofocus=""');
+    expect(html).toContain('type="submit"');
   });
 });

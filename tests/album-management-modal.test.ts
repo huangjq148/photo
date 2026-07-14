@@ -51,6 +51,8 @@ describe("AlbumManagementModal", () => {
     expect(html).toContain("图片尺寸");
     expect(html).toContain("孩子相册");
     expect(html).toContain("孩子生日");
+    expect(html).toContain("<form");
+    expect(html).toContain('type="submit"');
   });
 
   it("shows save errors without hiding the current form state", () => {

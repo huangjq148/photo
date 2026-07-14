@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AlbumInviteForm } from "@/components/albums/album-invite-form";
 import { AlbumInviteList } from "@/components/albums/album-invite-list";
@@ -89,6 +89,7 @@ export function AlbumManagementModal({
   const [activeTab, setActiveTab] = useState<ManageTab>("details");
   const controllerRef = useRef<UploadQueueController | null>(null);
   const [queueState, setQueueState] = useState<UploadQueueState>(createInitialState());
+  const detailsFormId = useId();
 
   useEffect(() => {
     const currentController = controllerRef.current;
@@ -150,7 +151,14 @@ export function AlbumManagementModal({
         </nav>
 
         {activeTab === "details" ? (
-          <div className="space-y-5">
+          <form
+            id={detailsFormId}
+            className="space-y-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onSave();
+            }}
+          >
             {formError ? (
               <div className="rounded-xl border border-red-400/25 bg-red-950/20 px-4 py-3 text-sm text-[var(--danger)]" role="alert">
                 {formError}
@@ -239,8 +247,7 @@ export function AlbumManagementModal({
                   ) : null}
                 </section>
                 <button
-                  type="button"
-                  onClick={onSave}
+                  type="submit"
                   disabled={saving || !editName.trim() || (editIsChildAlbum && !editChildBirthDate.trim())}
                   className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -263,7 +270,7 @@ export function AlbumManagementModal({
                 </button>
               </div>
             ) : null}
-          </div>
+          </form>
         ) : null}
 
         {activeTab === "upload" ? (
