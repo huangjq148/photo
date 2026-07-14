@@ -48,8 +48,8 @@ function createDraft(file: File, previewUrl: string, id = `draft-${file.name}`) 
 function createStoredItem(name: string, status: "queued" | "uploading" | "success" | "failed" | "cancelled") {
   const file = createFile(name);
   return {
-    id: `${name}-id`,
     ...createDraft(file, `blob:${name}`),
+    id: `${name}-id`,
     status,
   };
 }
