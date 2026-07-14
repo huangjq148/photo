@@ -30,9 +30,8 @@ function createInitialState(): UploadQueueState {
   };
 }
 
-function createDraft(file: File, previewUrl: string, id = `draft-${file.name}`) {
+function createDraft(file: File, previewUrl: string) {
   return {
-    id,
     albumId: "album-1",
     file,
     fileKey: [file.name, file.size, file.lastModified, file.type].join("|"),

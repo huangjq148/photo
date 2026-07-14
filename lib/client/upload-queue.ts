@@ -323,10 +323,6 @@ export function uploadQueueReducer(state: UploadQueueState = createInitialState(
   }
 }
 
-type ActiveRequest = {
-  controller: AbortController;
-};
-
 function createBusinessError(message: string): UploadRequestBusinessError {
   return {
     kind: "business-error",
@@ -353,7 +349,7 @@ export function createUploadQueueController({
   let state = createInitialState();
   let nextId = 1;
   let disposed = false;
-  const activeRequests = new Map<string, ActiveRequest>();
+  const activeRequests = new Map<string, AbortController>();
   const previewUrls = new Map<string, string>();
   let batchCompletionPending = false;
 
@@ -428,7 +424,7 @@ export function createUploadQueueController({
       }
 
       const controller = new AbortController();
-      activeRequests.set(nextItem.id, { controller });
+      activeRequests.set(nextItem.id, controller);
       syncState(uploadQueueReducer(state, { type: "start", itemIds: [nextItem.id] }));
 
       void Promise.resolve(
@@ -524,7 +520,7 @@ export function createUploadQueueController({
     }
 
     for (const request of activeRequests.values()) {
-      request.controller.abort();
+      request.abort();
     }
 
     syncState(uploadQueueReducer(state, { type: "cancel-all" }));
@@ -536,7 +532,7 @@ export function createUploadQueueController({
       return;
     }
 
-    activeRequests.get(itemId)?.controller.abort();
+    activeRequests.get(itemId)?.abort();
     activeRequests.delete(itemId);
 
     const previewUrl = previewUrls.get(itemId);
@@ -558,7 +554,7 @@ export function createUploadQueueController({
     disposed = true;
 
     for (const request of activeRequests.values()) {
-      request.controller.abort();
+      request.abort();
     }
     activeRequests.clear();
 
