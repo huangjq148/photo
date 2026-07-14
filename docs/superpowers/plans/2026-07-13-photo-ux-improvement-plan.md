@@ -318,7 +318,7 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - [x] **Step 3: 运行确认失败。
 - [x] **Step 4: 抽出逐项授权执行器，路由全部返回 `BatchMutationResult`；旧 batch-delete 关系接口转发到 batch-remove 并标记兼容；图库单项收藏改为 POST `{ favorited }`，收藏页取消收藏也调用同一显式接口，不再发送 DELETE。迁移期间服务端可兼容无 body 的 toggle，但 P1 gate 前前端不得再依赖。
 - [x] **Step 5: 运行集成测试和存储一致性相关测试。
-- [ ] **Step 6: 提交**：`git commit -m "feat: 统一批量媒体操作接口"`。
+- [x] **Step 6: 提交**：`git commit -m "feat: 统一批量媒体操作接口"`。
 
 ### Task 16: 建立响应式批量选择操作栏
 
