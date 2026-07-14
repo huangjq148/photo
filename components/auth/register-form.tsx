@@ -3,54 +3,79 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { PasswordField } from "@/components/auth/password-field";
+
+type FieldErrors = Record<string, string>;
+
+function extractFieldErrors(issues: Array<{ path?: string; message: string }> | undefined): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!Array.isArray(issues)) return errors;
+
+  for (const issue of issues) {
+    const path = issue.path ?? "_global";
+    if (errors[path]) {
+      errors[path] += "; " + issue.message;
+    } else {
+      errors[path] = issue.message;
+    }
+  }
+
+  return errors;
+}
 
 export function RegisterForm() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
 
     setBusy(true);
-    setError(null);
+    setGlobalError(null);
+    setFieldErrors({});
 
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: String(form.get("email") ?? ""),
           password: String(form.get("password") ?? ""),
           confirmPassword: String(form.get("confirmPassword") ?? ""),
-          nickname: String(form.get("nickname") ?? "")
-        })
+          nickname: String(form.get("nickname") ?? ""),
+        }),
       });
 
       const json = await response.json();
       if (!response.ok) {
-        if (Array.isArray(json.issues) && json.issues.length > 0) {
-          const messages = json.issues.map((i: { message: string }) => i.message).join("; ");
-          throw new Error(messages);
+        const fieldErrs = extractFieldErrors(json.issues);
+        if (Object.keys(fieldErrs).length > 0) {
+          const { _global, ...rest } = fieldErrs;
+          setFieldErrors(rest);
+          if (_global) setGlobalError(_global);
+          else if (Object.keys(rest).length === 0) setGlobalError(json.error ?? "注册失败");
+        } else {
+          setGlobalError(json.error ?? "注册失败");
         }
-        throw new Error(json.error ?? "注册失败");
+        return;
       }
 
       router.push("/albums");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "注册失败");
+    } catch {
+      setGlobalError("注册失败，请稍后重试");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit} className="mt-8 space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium text-[var(--muted-strong)]" htmlFor="register-nickname">
           昵称
@@ -60,9 +85,17 @@ export function RegisterForm() {
           name="nickname"
           type="text"
           required
+          aria-describedby={fieldErrors.nickname ? "register-nickname-error" : undefined}
+          aria-invalid={!!fieldErrors.nickname}
           className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition focus:border-[var(--film)]"
         />
+        {fieldErrors.nickname ? (
+          <p id="register-nickname-error" className="text-xs text-[var(--danger)]" role="alert">
+            {fieldErrors.nickname}
+          </p>
+        ) : null}
       </div>
+
       <div className="space-y-2">
         <label className="text-sm font-medium text-[var(--muted-strong)]" htmlFor="register-email">
           邮箱
@@ -72,37 +105,39 @@ export function RegisterForm() {
           name="email"
           type="email"
           required
+          aria-describedby={fieldErrors.email ? "register-email-error" : undefined}
+          aria-invalid={!!fieldErrors.email}
           className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition focus:border-[var(--film)]"
         />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-[var(--muted-strong)]" htmlFor="register-password">
-          密码
-        </label>
-        <input
-          id="register-password"
-          name="password"
-          type="password"
-          required
-          className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition focus:border-[var(--film)]"
-        />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-[var(--muted-strong)]" htmlFor="register-confirmPassword">
-          确认密码
-        </label>
-        <input
-          id="register-confirmPassword"
-          name="confirmPassword"
-          type="password"
-          required
-          className="h-12 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none transition focus:border-[var(--film)]"
-        />
+        {fieldErrors.email ? (
+          <p id="register-email-error" className="text-xs text-[var(--danger)]" role="alert">
+            {fieldErrors.email}
+          </p>
+        ) : null}
       </div>
 
-      {error ? (
-        <p className="text-sm text-[var(--danger)]" aria-live="polite">
-          {error}
+      <PasswordField
+        id="register-password"
+        name="password"
+        label="密码"
+        required
+        autoComplete="new-password"
+        minLength={8}
+        error={fieldErrors.password}
+      />
+
+      <PasswordField
+        id="register-confirmPassword"
+        name="confirmPassword"
+        label="确认密码"
+        required
+        autoComplete="new-password"
+        error={fieldErrors.confirmPassword}
+      />
+
+      {globalError ? (
+        <p className="text-sm text-[var(--danger)]" aria-live="polite" role="alert">
+          {globalError}
         </p>
       ) : null}
 

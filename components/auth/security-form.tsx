@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PasswordField } from "@/components/auth/password-field";
 
 export function SecurityForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -8,19 +9,23 @@ export function SecurityForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changing, setChanging] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [globalSuccess, setGlobalSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
-    setFeedback(null);
+    setGlobalError(null);
+    setGlobalSuccess(null);
+    setFieldErrors({});
 
     if (newPassword !== confirmPassword) {
-      setFeedback({ type: "error", text: "两次输入的新密码不一致" });
+      setFieldErrors({ confirmPassword: "两次输入的新密码不一致" });
       return;
     }
 
     if (newPassword.length < 8) {
-      setFeedback({ type: "error", text: "新密码长度必须至少为 8 个字符" });
+      setFieldErrors({ newPassword: "新密码长度必须至少为 8 个字符" });
       return;
     }
 
@@ -32,13 +37,29 @@ export function SecurityForm() {
         body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "修改失败");
-      setFeedback({ type: "success", text: "密码修改成功" });
+      if (!res.ok) {
+        // Try mapping field-level issues
+        if (Array.isArray(json.issues) && json.issues.length > 0) {
+          const errs: Record<string, string> = {};
+          for (const issue of json.issues) {
+            const path = (issue as { path?: string; message: string }).path ?? "_global";
+            errs[path] = (issue as { message: string }).message;
+          }
+          const { _global, ...rest } = errs;
+          if (Object.keys(rest).length > 0) setFieldErrors(rest);
+          if (_global) setGlobalError(_global);
+          else setGlobalError(json.error ?? "修改失败");
+        } else {
+          setGlobalError(json.error ?? "修改失败");
+        }
+        return;
+      }
+      setGlobalSuccess("密码修改成功");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (e) {
-      setFeedback({ type: "error", text: e instanceof Error ? e.message : "修改失败" });
+    } catch {
+      setGlobalError("修改失败，请稍后重试");
     } finally {
       setChanging(false);
     }
@@ -47,15 +68,14 @@ export function SecurityForm() {
   async function handleLogoutAll() {
     if (!confirm("确定要退出所有设备吗？当前设备也将被登出。")) return;
     setLoggingOut(true);
-    setFeedback(null);
+    setGlobalError(null);
     try {
       const res = await fetch("/api/auth/logout-all", { method: "POST" });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "操作失败");
-      // Redirect to login after logout
       window.location.href = "/login";
     } catch (e) {
-      setFeedback({ type: "error", text: e instanceof Error ? e.message : "操作失败" });
+      setGlobalError(e instanceof Error ? e.message : "操作失败");
       setLoggingOut(false);
     }
   }
@@ -66,40 +86,37 @@ export function SecurityForm() {
       <section>
         <h2 className="text-lg font-bold text-[var(--text)]">修改密码</h2>
         <form onSubmit={handleChangePassword} className="mt-4 space-y-4 max-w-md">
-          <label className="block">
-            <span className="text-sm font-medium text-[var(--muted-strong)]">当前密码</span>
-            <input
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="mt-1 h-11 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none focus:border-[var(--film)]"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-[var(--muted-strong)]">新密码</span>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              minLength={8}
-              className="mt-1 h-11 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none focus:border-[var(--film)]"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-[var(--muted-strong)]">确认新密码</span>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              className="mt-1 h-11 w-full rounded-lg border border-[var(--border)] bg-black px-4 text-[var(--text)] outline-none focus:border-[var(--film)]"
-            />
-          </label>
+          <PasswordField
+            id="security-current"
+            value={currentPassword}
+            label="当前密码"
+            required
+            autoComplete="current-password"
+            onChange={setCurrentPassword}
+            error={fieldErrors.currentPassword}
+          />
+
+          <PasswordField
+            id="security-new"
+            value={newPassword}
+            label="新密码"
+            required
+            autoComplete="new-password"
+            minLength={8}
+            onChange={setNewPassword}
+            error={fieldErrors.newPassword}
+          />
+
+          <PasswordField
+            id="security-confirm"
+            value={confirmPassword}
+            label="确认新密码"
+            required
+            autoComplete="new-password"
+            onChange={setConfirmPassword}
+            error={fieldErrors.confirmPassword}
+          />
+
           <button
             type="submit"
             disabled={changing}
@@ -126,12 +143,15 @@ export function SecurityForm() {
         </button>
       </section>
 
-      {feedback ? (
-        <p
-          className={`text-sm ${feedback.type === "success" ? "text-green-400" : "text-[var(--danger)]"}`}
-          role="alert"
-        >
-          {feedback.text}
+      {globalSuccess ? (
+        <p className="text-sm text-green-400" role="status">
+          {globalSuccess}
+        </p>
+      ) : null}
+
+      {globalError ? (
+        <p className="text-sm text-[var(--danger)]" role="alert">
+          {globalError}
         </p>
       ) : null}
     </div>
