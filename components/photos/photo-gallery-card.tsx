@@ -46,6 +46,7 @@ type PhotoGalleryCardProps = {
   albumId: string;
   photo: PhotoGalleryCardItem;
   selected: boolean;
+  selectionMode?: boolean;
   waterfall: boolean;
   showTakenAt: boolean;
   navigableItems?: ImageViewerNavigationItem[];
@@ -195,6 +196,7 @@ export function PhotoGalleryCard({
   albumId,
   photo,
   selected,
+  selectionMode = false,
   waterfall,
   showTakenAt,
   navigableItems,
@@ -380,17 +382,43 @@ export function PhotoGalleryCard({
       }`}
     >
       <div className="overflow-hidden rounded-t-xl">
-        <ImageViewer
-          src={photo.thumbnailUrl}
-          alt={resolvedName}
-          {...(isVideo
-            ? { videoSrc: photo.originalUrl, mediaType: "video" as const }
-            : { previewSrc: isGif ? photo.originalUrl : photo.previewUrl })}
-          items={navigableItems}
-          initialItemId={photo.id}
-          imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
-          className="group/img block w-full"
-        />
+        {selectionMode ? (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onSelect();
+            }}
+            aria-label={`选择 ${resolvedName}`}
+            className="group/img relative block w-full overflow-hidden text-left"
+          >
+            <img
+              src={photo.thumbnailUrl}
+              alt={resolvedName}
+              draggable={false}
+              className="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+            />
+            <span className="pointer-events-none absolute inset-0 transition-colors group-hover:bg-black/5 dark:group-hover:bg-white/5" />
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+              <span className="rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm dark:bg-black/55">
+                点击选择
+              </span>
+            </span>
+          </button>
+        ) : (
+          <ImageViewer
+            src={photo.thumbnailUrl}
+            alt={resolvedName}
+            {...(isVideo
+              ? { videoSrc: photo.originalUrl, mediaType: "video" as const }
+              : { previewSrc: isGif ? photo.originalUrl : photo.previewUrl })}
+            items={navigableItems}
+            initialItemId={photo.id}
+            imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
+            className="group/img block w-full"
+          />
+        )}
       </div>
 
       <div className="border-t border-[var(--border)] px-4 py-3">

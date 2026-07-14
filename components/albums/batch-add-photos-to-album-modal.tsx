@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Check, FolderPlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useMessage } from "@/components/ui/message";
+import type { BatchMutationResult } from "@/lib/api/batch-result";
 
 type AlbumItem = {
   id: string;
@@ -22,6 +23,7 @@ type BatchAddPhotosToAlbumModalProps = {
   photoLabel: string;
   onClose: () => void;
   onAdded?: () => void;
+  onResult?: (result: BatchMutationResult) => void;
 };
 
 export function BatchAddPhotosToAlbumModal({
@@ -30,6 +32,7 @@ export function BatchAddPhotosToAlbumModal({
   photoLabel,
   onClose,
   onAdded,
+  onResult,
 }: BatchAddPhotosToAlbumModalProps) {
   const [albums, setAlbums] = useState<AlbumItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +102,7 @@ export function BatchAddPhotosToAlbumModal({
         throw new Error(json.error ?? "批量添加失败");
       }
 
+      onResult?.(json.data as BatchMutationResult);
       message.success(`已添加 ${photoCount} 张到「${album.name}」`);
       onAdded?.();
       onClose();

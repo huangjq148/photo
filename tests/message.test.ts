@@ -55,7 +55,7 @@ describe("message controller", () => {
 
   it("keeps action messages visible for six seconds and prevents duplicate action execution", async () => {
     const controller = createMessageControllerForTests();
-    let resolveAction = () => undefined;
+    let resolveAction: () => void = () => undefined;
     const onSelect = vi.fn(
       () =>
         new Promise<void>((resolve) => {

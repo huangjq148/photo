@@ -178,6 +178,51 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("selected");
   });
 
+  it("switches the media preview area into selection mode", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-1",
+          photo: {
+            id: "photo-select",
+            displayName: null,
+            originalName: "select.jpg",
+            thumbnailUrl: "/thumb-select.jpg",
+            previewUrl: "/preview-select.jpg",
+            originalUrl: "/api/files/originals/select.jpg",
+            mimeType: "image/jpeg",
+            mediaType: "image",
+            duration: null,
+            width: 1200,
+            height: 900,
+            takenAt: null,
+            uploadedAt: "2026-01-01T00:00:00.000Z",
+            isFavorited: false,
+            canEditName: false,
+            locationHidden: false,
+          },
+          selected: false,
+          selectionMode: true,
+          waterfall: false,
+          showTakenAt: false,
+          onSelect: () => true,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
+          onEditTakenAt: () => undefined,
+          onToggleLocationHidden: () => undefined,
+        }),
+      ),
+    );
+
+    expect(html).toContain("点击选择");
+    expect(html).toContain('aria-label="选择 select"');
+  });
+
   it("shows a favorite badge in the bottom right when favorited", () => {
     const html = renderToStaticMarkup(
       createElement(

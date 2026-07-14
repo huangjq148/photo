@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
 import { TakenAtEditorModal } from "@/components/photos/taken-at-editor-modal";
 import { AddPhotoToAlbumModal } from "@/components/albums/add-photo-to-album-modal";
+import { BatchAddPhotosToAlbumModal } from "@/components/albums/batch-add-photos-to-album-modal";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
 import { useMessage } from "@/components/ui/message";
@@ -14,8 +15,10 @@ import { formatChildAgeLabel } from "@/lib/media/child-age";
 import { BatchActionBar } from "@/components/photos/batch-action-bar";
 import { GalleryToolbar } from "@/components/photos/gallery-toolbar";
 import { GalleryEmptyState } from "@/components/photos/gallery-empty-state";
+import { GalleryGrid } from "@/components/photos/gallery-grid";
 import { useGalleryQuery } from "@/hooks/use-gallery-query";
 import { useAlbumMedia } from "@/hooks/use-album-media";
+import { useSelection } from "@/hooks/use-selection";
 
 type PhotoItem = {
   id: string;
@@ -74,6 +77,18 @@ function groupPhotos(photos: PhotoItem[], mode: GroupMode): Map<string, PhotoIte
   return groups;
 }
 
+function buildBatchPhotoLabel(items: PhotoItem[]) {
+  if (items.length === 0) {
+    return "未选择任何照片";
+  }
+
+  if (items.length === 1) {
+    return items[0]?.displayName?.trim() || items[0]?.originalName || "未命名照片";
+  }
+
+  return `已选择 ${items.length} 张照片`;
+}
+
 export function PhotoGallery({
   albumId,
   refreshSignal = 0,
@@ -88,13 +103,15 @@ export function PhotoGallery({
   const [items, setItems] = useState<PhotoItem[]>([]);
   const [layoutMode, setLayoutMode] = useState<"grid" | "waterfall">("grid");
   const [groupMode] = useState<GroupMode>("none");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [refreshToken, setRefreshToken] = useState(0);
   const [sharePhotoId, setSharePhotoId] = useState<string | null>(null);
   const [addToAlbumPhoto, setAddToAlbumPhoto] = useState<PhotoItem | null>(null);
+  const [batchAddOpen, setBatchAddOpen] = useState(false);
   const [editTakenAtPhoto, setEditTakenAtPhoto] = useState<PhotoItem | null>(null);
+  const [busyAction, setBusyAction] = useState<"add" | "favorite" | "delete" | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
+  const selection = useSelection();
   const galleryQuery = useGalleryQuery({
     onCommit: setCommittedKeyword,
   });
@@ -161,8 +178,12 @@ export function PhotoGallery({
   }, [media.items]);
 
   useEffect(() => {
-    setSelectedIds((current) => current.filter((id) => items.some((item) => item.id === id)));
-  }, [items]);
+    const itemIdSet = new Set(items.map((item) => item.id));
+    const selected = Array.from(selection.selectedIds);
+    if (selected.some((id) => !itemIdSet.has(id))) {
+      selection.retainOnly(itemIdSet);
+    }
+  }, [items, selection.retainOnly, selection.selectedIds]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -230,15 +251,16 @@ export function PhotoGallery({
 
   function removePhotoFromState(photoId: string) {
     setItems((current) => current.filter((item) => item.id !== photoId));
-    setSelectedIds((current) => current.filter((id) => id !== photoId));
+    selection.retainOnly(Array.from(selection.selectedIds).filter((id) => id !== photoId));
   }
 
   async function batchDeleteSelected() {
-    if (selectedIds.length === 0) {
+    if (selectedIds.length === 0 || busyAction) {
       return;
     }
 
     try {
+      setBusyAction("delete");
       const response = await fetch(`/api/albums/${albumId}/photos/batch-remove`, {
         method: "POST",
         headers: {
@@ -257,10 +279,10 @@ export function PhotoGallery({
       const succeededCount = result.succeededIds?.length ?? 0;
 
       if (failedIds.length > 0) {
-        setSelectedIds(failedIds);
+        selection.retainOnly(failedIds);
         message.error(result.failed?.[0]?.message ?? "部分照片删除失败");
       } else {
-        setSelectedIds([]);
+        selection.clear();
         message.success(`已删除 ${succeededCount || selectedIds.length} 张照片`);
       }
 
@@ -269,6 +291,8 @@ export function PhotoGallery({
       }
     } catch (error) {
       message.error(error instanceof Error ? error.message : "批量删除失败");
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -298,6 +322,52 @@ export function PhotoGallery({
     } catch (error) {
       message.error(error instanceof Error ? error.message : "收藏操作失败");
       return false;
+    }
+  }
+
+  async function batchToggleFavorite() {
+    if (selectedIds.length === 0 || busyAction) {
+      return;
+    }
+
+    const nextFavorited = !selectedItems.every((item) => item.isFavorited);
+
+    try {
+      setBusyAction("favorite");
+      const response = await fetch("/api/photos/batch-favorite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ photoIds: selectedIds, favorited: nextFavorited }),
+      });
+
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(json.error ?? "批量收藏失败");
+      }
+
+      const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
+      const failedIds = result.failed?.map((item) => item.id) ?? [];
+      const succeededIdSet = new Set(result.succeededIds ?? []);
+
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          succeededIdSet.has(item.id) ? { ...item, isFavorited: nextFavorited } : item,
+        ),
+      );
+
+      if (failedIds.length > 0) {
+        selection.retainOnly(failedIds);
+        message.error(result.failed?.[0]?.message ?? "部分照片收藏失败");
+      } else {
+        selection.clear();
+        message.success(nextFavorited ? "已收藏选中照片" : "已取消收藏选中照片");
+      }
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "批量收藏失败");
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -366,19 +436,91 @@ export function PhotoGallery({
     }
   }
 
-  const selectedCount = useMemo(() => selectedIds.length, [selectedIds]);
-  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedIds = useMemo(() => Array.from(selection.selectedIds), [selection.selectedIds]);
+  const selectedCount = selection.size;
+  const selectedIdSet = selection.selectedIds;
+  const selectedItems = useMemo(
+    () => items.filter((item) => selectedIdSet.has(item.id)),
+    [items, selectedIdSet],
+  );
+  const selectionMode = selectedCount > 0;
+  const favoriteBatchLabel = selectedItems.length > 0 && selectedItems.every((item) => item.isFavorited)
+    ? "取消收藏"
+    : "收藏";
   const isGrouped = groupMode !== "none";
-  const batchActionBar = selectedCount > 0 ? (
+  const batchActionBar = selectionMode ? (
     <BatchActionBar
       selectedCount={selectedCount}
-      onClearSelection={() => setSelectedIds([])}
+      favoriteLabel={favoriteBatchLabel}
+      onAddSelected={() => {
+        setBatchAddOpen(true);
+      }}
+      onToggleFavoriteSelected={() => {
+        void batchToggleFavorite();
+      }}
       onDeleteSelected={() => {
         void batchDeleteSelected();
       }}
-      deleting={false}
+      onClearSelection={() => selection.clear()}
+      busyAction={busyAction}
     />
   ) : null;
+
+  function confirmDiscardSelection() {
+    if (!selectionMode) {
+      return true;
+    }
+
+    return window.confirm("当前已选择照片，切换搜索或筛选会清空选择，是否继续？");
+  }
+
+  function handleSearchChange(next: string) {
+    if (next !== galleryQuery.searchValue && selectionMode && !confirmDiscardSelection()) {
+      return;
+    }
+
+    if (selectionMode) {
+      selection.clear();
+    }
+
+    galleryQuery.setSearchValue(next);
+  }
+
+  function handleClearSearch() {
+    if (selectionMode && !confirmDiscardSelection()) {
+      return;
+    }
+
+    if (selectionMode) {
+      selection.clear();
+    }
+
+    galleryQuery.clearSearch();
+  }
+
+  function handleSelectionSensitiveAction(action: () => void) {
+    if (selectionMode && !confirmDiscardSelection()) {
+      return;
+    }
+
+    if (selectionMode) {
+      selection.clear();
+    }
+
+    action();
+  }
+
+  function handleBatchAddResult(result: { succeededIds: string[]; failed: Array<{ id: string; message: string }> }) {
+    if (result.failed.length > 0) {
+      selection.retainOnly(result.failed.map((item) => item.id));
+    } else {
+      selection.clear();
+    }
+
+    if (result.succeededIds.length > 0) {
+      setRefreshToken((current) => current + 1);
+    }
+  }
 
   // Build navigation items for fullscreen prev/next switching
   const navigableItems = useMemo<ImageViewerNavigationItem[]>(() => {
@@ -401,12 +543,12 @@ export function PhotoGallery({
           totalCount={totalCount}
           activeFilterCount={0}
           hasActiveSelection={selectedCount > 0}
-          onSearchChange={galleryQuery.setSearchValue}
-          onClearSearch={galleryQuery.clearSearch}
-          onToggleFilters={() => undefined}
-          onChangeSort={() => undefined}
-          onChangeGroup={() => undefined}
-          onClearFilters={() => undefined}
+          onSearchChange={handleSearchChange}
+          onClearSearch={handleClearSearch}
+          onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
+          onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
+          onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
+          onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
           photoSize={photoSize}
           onPhotoSizeChange={onPhotoSizeChange}
         />
@@ -426,12 +568,12 @@ export function PhotoGallery({
           totalCount={totalCount}
           activeFilterCount={0}
           hasActiveSelection={selectedCount > 0}
-          onSearchChange={galleryQuery.setSearchValue}
-          onClearSearch={galleryQuery.clearSearch}
-          onToggleFilters={() => undefined}
-          onChangeSort={() => undefined}
-          onChangeGroup={() => undefined}
-          onClearFilters={() => undefined}
+          onSearchChange={handleSearchChange}
+          onClearSearch={handleClearSearch}
+          onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
+          onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
+          onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
+          onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
           photoSize={photoSize}
           onPhotoSizeChange={onPhotoSizeChange}
         />
@@ -459,12 +601,12 @@ export function PhotoGallery({
           totalCount={totalCount}
           activeFilterCount={0}
           hasActiveSelection={selectedCount > 0}
-          onSearchChange={galleryQuery.setSearchValue}
-          onClearSearch={galleryQuery.clearSearch}
-          onToggleFilters={() => undefined}
-          onChangeSort={() => undefined}
-          onChangeGroup={() => undefined}
-          onClearFilters={() => undefined}
+          onSearchChange={handleSearchChange}
+          onClearSearch={handleClearSearch}
+          onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
+          onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
+          onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
+          onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
           photoSize={photoSize}
           onPhotoSizeChange={onPhotoSizeChange}
         />
@@ -472,14 +614,14 @@ export function PhotoGallery({
           reason={committedKeyword ? "search" : "empty"}
           onPrimaryAction={() => {
             if (committedKeyword) {
-              galleryQuery.clearSearch();
+              handleClearSearch();
               return;
             }
             void reload();
           }}
           primaryActionLabel={committedKeyword ? "清空搜索" : "重新加载"}
           secondaryActionLabel={committedKeyword ? "清空搜索" : undefined}
-          onSecondaryAction={committedKeyword ? galleryQuery.clearSearch : undefined}
+          onSecondaryAction={committedKeyword ? handleClearSearch : undefined}
         />
       </div>
     );
@@ -495,12 +637,12 @@ export function PhotoGallery({
         totalCount={totalCount}
         activeFilterCount={0}
         hasActiveSelection={selectedCount > 0}
-        onSearchChange={galleryQuery.setSearchValue}
-        onClearSearch={galleryQuery.clearSearch}
-        onToggleFilters={() => undefined}
-        onChangeSort={() => undefined}
-        onChangeGroup={() => undefined}
-        onClearFilters={() => undefined}
+        onSearchChange={handleSearchChange}
+        onClearSearch={handleClearSearch}
+        onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
+        onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
+        onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
+        onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
         photoSize={photoSize}
         onPhotoSizeChange={onPhotoSizeChange}
       />
@@ -523,31 +665,20 @@ export function PhotoGallery({
                 <span>{label}</span>
                 <span className="text-xs font-normal text-[var(--muted)]">{photos.length} 张</span>
               </h3>
-              <div
-                className={
-                  {
-                    small: "grid gap-3 grid-cols-3 sm:grid-cols-4 xl:grid-cols-5",
-                    medium: "grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4",
-                    large: "grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
-                  }[photoSize]
-                }
-              >
+              <GalleryGrid photoSize={photoSize}>
                 {photos.map((photo) => (
-                <PhotoGalleryCard
-                  key={photo.id}
-                  albumId={albumId}
-                  photo={photo}
-                  selected={selectedIdSet.has(photo.id)}
-                  waterfall={false}
-                  showTakenAt={showTakenAt}
-                  navigableItems={navigableItems}
-                  childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
+                  <PhotoGalleryCard
+                    key={photo.id}
+                    albumId={albumId}
+                    photo={photo}
+                    selected={selectedIdSet.has(photo.id)}
+                    selectionMode={selectionMode}
+                    waterfall={false}
+                    showTakenAt={showTakenAt}
+                    navigableItems={navigableItems}
+                    childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                     onSelect={() => {
-                      setSelectedIds((current) =>
-                        current.includes(photo.id)
-                          ? current.filter((item) => item !== photo.id)
-                          : [...current, photo.id]
-                      );
+                      selection.toggle(photo.id);
                     }}
                     onFavorite={() => {
                       return toggleFavorite(photo.id);
@@ -572,44 +703,27 @@ export function PhotoGallery({
                     }}
                     onDisplayNameChange={updatePhotoDisplayName}
                     onRemove={removePhotoFromState}
-                />
-              ))}
-              </div>
+                  />
+                ))}
+              </GalleryGrid>
             </section>
           ))}
         </div>
       ) : (
-        <div
-          className={
-            layoutMode === "waterfall"
-              ? {
-                  small: "columns-3 gap-3 sm:columns-4 xl:columns-5",
-                  medium: "columns-2 gap-4 sm:columns-3 xl:columns-4",
-                  large: "columns-1 gap-5 sm:columns-2 xl:columns-3",
-                }[photoSize]
-              : {
-                  small: "grid gap-3 grid-cols-3 sm:grid-cols-4 xl:grid-cols-5",
-                  medium: "grid gap-4 grid-cols-2 sm:grid-cols-3 xl:grid-cols-4",
-                  large: "grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
-                }[photoSize]
-          }
-        >
+        <GalleryGrid photoSize={photoSize} waterfall={layoutMode === "waterfall"}>
           {items.map((photo) => (
             <PhotoGalleryCard
               key={photo.id}
               albumId={albumId}
               photo={photo}
               selected={selectedIdSet.has(photo.id)}
+              selectionMode={selectionMode}
               waterfall={layoutMode === "waterfall"}
               showTakenAt={showTakenAt}
               navigableItems={navigableItems}
               childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
               onSelect={() => {
-                setSelectedIds((current) =>
-                  current.includes(photo.id)
-                    ? current.filter((item) => item !== photo.id)
-                    : [...current, photo.id]
-                );
+                selection.toggle(photo.id);
               }}
               onFavorite={() => {
                 return toggleFavorite(photo.id);
@@ -636,7 +750,7 @@ export function PhotoGallery({
               onRemove={removePhotoFromState}
             />
           ))}
-        </div>
+        </GalleryGrid>
       )}
 
       {hasMore ? (
@@ -692,6 +806,14 @@ export function PhotoGallery({
           onSave={(takenAt) => saveTakenAt(editTakenAtPhoto, takenAt)}
         />
       ) : null}
+
+      <BatchAddPhotosToAlbumModal
+        open={batchAddOpen}
+        photoIds={selectedIds}
+        photoLabel={buildBatchPhotoLabel(selectedItems)}
+        onClose={() => setBatchAddOpen(false)}
+        onResult={handleBatchAddResult}
+      />
     </div>
   );
 }

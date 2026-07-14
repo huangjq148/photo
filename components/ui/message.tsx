@@ -228,11 +228,11 @@ function MessageIcon({ type }: { type: MessageType }) {
 export function MessageViewport({
   messages,
   onDismiss = () => undefined,
-  onAction = () => undefined,
+  onAction = () => false,
 }: {
   messages: MessageItem[];
   onDismiss?: (id: string) => void;
-  onAction?: (id: string) => void | Promise<void>;
+  onAction?: (id: string) => boolean | Promise<boolean>;
 }) {
   if (messages.length === 0) return null;
 
