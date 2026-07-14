@@ -16,6 +16,7 @@ import {
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
 import { Menu } from "@/components/ui/menu";
+import { MediaInfoDialog } from "@/components/photos/media-info-dialog";
 import {
   getCodePointLength,
   getOriginalNameWithoutExtension,
@@ -35,6 +36,8 @@ export type PhotoGalleryCardItem = {
   duration: number | null;
   width: number;
   height: number;
+  size: number;
+  albumCount: number;
   takenAt: string | null;
   uploadedAt: string;
   isFavorited: boolean;
@@ -493,37 +496,12 @@ export function PhotoGalleryCard({
       </div>
 
       {showInfo && (
-        <div
-          className="absolute inset-0 z-20 flex flex-col justify-end bg-gradient-to-t from-black/92 via-black/68 to-black/26 p-4"
-          onClick={() => setShowInfo(false)}
-        >
-          <div className="space-y-3 text-white">
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/48">名称</p>
-              <p className="text-sm font-bold">{normalizeDisplayName(displayName) || "未命名"}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs uppercase tracking-[0.24em] text-white/48">原始文件名</p>
-              <p className="text-sm font-medium text-white/84">{photo.originalName}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-white/70">
-              <span>尺寸</span>
-              <span>
-                {photo.width} × {photo.height}
-              </span>
-              <span>格式</span>
-              <span>{photo.mimeType}</span>
-              {isVideo && photo.duration != null && photo.duration > 0 ? (
-                <>
-                  <span>时长</span>
-                  <span>{formatDuration(photo.duration)}</span>
-                </>
-              ) : null}
-              <span>上传时间</span>
-              <span>{formatDateTime(photo.uploadedAt)}</span>
-            </div>
-          </div>
-        </div>
+        <MediaInfoDialog
+          open={showInfo}
+          photo={photo}
+          albumCount={photo.albumCount}
+          onClose={() => setShowInfo(false)}
+        />
       )}
 
       {photo.isFavorited && (

@@ -66,10 +66,13 @@ export type AlbumPhotoItem = {
   duration: number | null;
   width: number;
   height: number;
+  size: number;
+  albumCount: number;
   takenAt: Date | null;
   uploadedAt: Date;
   status: "normal" | "deleted";
   isFavorited: boolean;
+  locationHidden: boolean;
   canEditName: boolean;
 };
 
@@ -505,10 +508,13 @@ export async function getAlbumPhotos(
       duration: ref.media.duration_seconds ?? null,
       width: ref.media.width,
       height: ref.media.height,
+      size: Number(ref.media.size),
+      albumCount: 1,
       takenAt: ref.media.taken_at,
       uploadedAt: ref.media.uploaded_at,
       status: ref.media.status,
       isFavorited: ref.media.favorites.length > 0,
+      locationHidden: ref.media.location_hidden,
       canEditName: ref.media.uploader_id === context.userId || album.creator_id === context.userId,
     })),
   };

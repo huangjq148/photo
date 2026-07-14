@@ -41,6 +41,8 @@ type PhotoItem = {
   duration: number | null;
   width: number;
   height: number;
+  size: number;
+  albumCount: number;
   takenAt: string | null;
   uploadedAt: string;
   isFavorited: boolean;
