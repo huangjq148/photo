@@ -173,7 +173,7 @@ function createQueuedItem({
   albumId: string;
   file: File;
   previewUrl: string | null;
-}): UploadQueueItem {
+}): UploadQueueDraft {
   return {
     id: id ?? buildFileKey(file),
     albumId,
@@ -185,8 +185,6 @@ function createQueuedItem({
     previewUrl,
     status: "queued",
     progress: { loaded: 0, total: 0 },
-    result: null,
-    error: null,
   };
 }
 
