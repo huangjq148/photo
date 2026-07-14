@@ -515,7 +515,6 @@ export function createUploadQueueController({
         state
       )
     );
-    maybePump();
     return retriableIds;
   };
 
