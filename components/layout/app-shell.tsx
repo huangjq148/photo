@@ -167,7 +167,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className={isHome ? "min-h-0 flex-1" : undefined}>{children}</div>
+      <div className={isHome ? "min-h-0 flex-1" : undefined} id="main-content" tabIndex={-1}>
+        {children}
+      </div>
 
       {/* Mobile bottom navigation */}
       <MobileNavigation />

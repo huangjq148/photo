@@ -68,6 +68,7 @@ export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
               alt={photo.originalName}
               className="h-full w-full object-cover"
               loading="lazy"
+              style={{ aspectRatio: "1" }}
             />
             <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-transparent to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
               <p className="truncate text-xs text-white">{photo.originalName}</p>
