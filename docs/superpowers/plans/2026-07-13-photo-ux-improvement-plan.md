@@ -291,10 +291,10 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - Modify: `components/home/home-quick-actions.tsx`
 - Modify: `tests/message.test.ts`
 
-- [ ] **Step 1: 写失败测试**：success/error/warning/info；最多 3 条；1 秒内同文案合并；action 6 秒；error 可关闭且 `role=alert`。
-- [ ] **Step 2: 运行确认失败。
-- [ ] **Step 3: 实现 `MessageOptions`、排队、去重、动作 pending 和手动关闭；避免 action Promise 重复执行；删除首页快捷操作自建的固定消息层并改用 `useMessage`。
-- [ ] **Step 4: 运行测试并提交**：`git commit -m "feat: 扩展消息反馈与撤销操作"`。
+- [x] **Step 1: 写失败测试**：success/error/warning/info；最多 3 条；1 秒内同文案合并；action 6 秒；error 可关闭且 `role=alert`。
+- [x] **Step 2: 运行确认失败。
+- [x] **Step 3: 实现 `MessageOptions`、排队、去重、动作 pending 和手动关闭；避免 action Promise 重复执行；删除首页快捷操作自建的固定消息层并改用 `useMessage`。
+- [x] **Step 4: 运行测试并提交**：`git commit -m "feat: 扩展消息反馈与撤销操作"`。
 
 ### Task 15: 实现全部批量媒体 API
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Upload, FolderPlus, Heart, Trash2, Sparkles } from "lucide-react";
 import { CreateAlbumModal } from "@/components/albums/create-album-modal";
+import { useMessage } from "@/components/ui/message";
 import { useUpload } from "@/components/upload/upload-provider";
 
 const iconClass = "h-6 w-6 text-[var(--film)]";
@@ -20,11 +21,11 @@ const actions = [
 export function HomeQuickActions() {
   const router = useRouter();
   const { openUpload } = useUpload();
+  const message = useMessage();
   const [showCreateAlbum, setShowCreateAlbum] = useState(false);
   const [albumName, setAlbumName] = useState("");
   const [albumDescription, setAlbumDescription] = useState("");
   const [creating, setCreating] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   async function handleCreateAlbum() {
     if (!albumName.trim()) return;
@@ -43,13 +44,13 @@ export function HomeQuickActions() {
       }
 
       const json = await res.json();
-      setMessage({ text: "相册创建成功", type: "success" });
+      message.success("相册创建成功");
       setShowCreateAlbum(false);
       setAlbumName("");
       setAlbumDescription("");
       router.push(`/albums/${json.data.id}` as `/albums/${string}`);
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : "创建失败", type: "error" });
+      message.error(err instanceof Error ? err.message : "创建失败");
     } finally {
       setCreating(false);
     }
@@ -98,12 +99,6 @@ export function HomeQuickActions() {
           )}
         </div>
       </section>
-
-      {message ? (
-        <div className="fixed right-5 top-5 z-[100] rounded-lg noir-glass-panel-strong px-4 py-3 text-sm text-[var(--text)] shadow-2xl">
-          {message.text}
-        </div>
-      ) : null}
 
       <CreateAlbumModal
         open={showCreateAlbum}
