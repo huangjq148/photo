@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import ImageViewer from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
@@ -8,6 +7,9 @@ import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewe
 import { resolveDisplayName } from "@/lib/media/display-name";
 import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 import type { DuplicateGroup } from "@/lib/media/duplicates";
+import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
+import { GalleryGrid } from "@/components/photos/gallery-grid";
+import { loadGalleryPreferences, updateGalleryPreferences } from "@/lib/client/gallery-preferences";
 
 function formatBytes(bytes: string) {
   const value = Number(bytes);
@@ -40,6 +42,11 @@ export function DuplicateGallery() {
   const [refreshToken, setRefreshToken] = useState(0);
   const message = useMessage();
   const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "duplicate" }), []);
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(() => loadGalleryPreferences().photoSize);
+
+  useEffect(() => {
+    updateGalleryPreferences({ photoSize });
+  }, [photoSize]);
 
   useEffect(() => {
     let active = true;
@@ -156,20 +163,7 @@ export function DuplicateGallery() {
             <p className="text-sm text-[var(--muted)]">
               检测到 {groups.length} 组重复媒体，共 {duplicateCount} 项
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/timeline"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-              >
-                时间线
-              </Link>
-              <Link
-                href="/albums"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-              >
-                相册
-              </Link>
-            </div>
+            <PhotoGallerySizeControl value={photoSize} onChange={setPhotoSize} compact />
           </div>
           <p className="text-xs text-[var(--muted)]">
             默认优先保留最早的文件，可自行改选后删除其余重复项。
@@ -207,7 +201,7 @@ export function DuplicateGallery() {
               </div>
 
               <div className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <GalleryGrid photoSize={photoSize}>
                   {group.items.map((item) => {
                     const resolvedName = resolveDisplayName(item.displayName, item.originalName);
                     const selected = keeperId === item.id;
@@ -264,7 +258,7 @@ export function DuplicateGallery() {
                       </label>
                     );
                   })}
-                </div>
+                </GalleryGrid>
 
                 <aside className="rounded-2xl border border-[var(--border)] bg-black/10 p-4">
                   <p className="text-sm font-semibold text-[var(--text)]">当前保留项</p>

@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ImageViewer from "@/components/ui/image-viewer";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
+import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
+import { GalleryGrid } from "@/components/photos/gallery-grid";
+import { loadGalleryPreferences, updateGalleryPreferences } from "@/lib/client/gallery-preferences";
 
 type FavoriteItem = {
   id: string;
@@ -27,6 +30,11 @@ export function FavoritesGallery() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const loadingRef = useRef(false);
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(() => loadGalleryPreferences().photoSize);
+
+  useEffect(() => {
+    updateGalleryPreferences({ photoSize });
+  }, [photoSize]);
 
   const hasMore = items.length < total;
 
@@ -110,10 +118,13 @@ export function FavoritesGallery() {
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-[var(--muted)]">
-        共 {total} 项收藏，已加载 {items.length} 项
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--muted)]">
+          共 {total} 项收藏，已加载 {items.length} 项
+        </p>
+        <PhotoGallerySizeControl value={photoSize} onChange={setPhotoSize} compact />
+      </div>
+      <GalleryGrid photoSize={photoSize}>
         {items.map((photo) => (
           <article
             key={photo.id}
@@ -158,7 +169,7 @@ export function FavoritesGallery() {
             </div>
           </article>
         ))}
-      </div>
+      </GalleryGrid>
 
       {loadingMore && (
         <div className="py-4 text-center text-sm text-[var(--muted)]">加载更多...</div>

@@ -44,7 +44,7 @@ export default async function MemoryPage() {
         <div className="mx-auto max-w-5xl rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
           <p className="text-sm font-medium text-[var(--film)]">回忆</p>
           <h1 className="mt-3 text-4xl font-black text-[var(--text)]">登录后查看你的回忆</h1>
-          <p className="mt-3 text-sm text-[var(--muted)]">往年今日、儿童成长月报和年度精选都需要登录后访问。</p>
+          <p className="mt-3 text-sm text-[var(--muted)]">登录后查看往年今日、成长月报和年度精选。</p>
           <div className="mt-6 flex justify-center gap-3">
             <Link href="/timeline" className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black">
               去时间线
@@ -68,23 +68,15 @@ export default async function MemoryPage() {
     <main className="min-h-dvh px-5 py-8 sm:px-8 lg:px-10">
       <div className="mx-auto max-w-7xl space-y-6">
         <section className="overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(12,18,30,0.92),rgba(22,12,36,0.84))] px-5 py-8 sm:px-8 sm:py-10">
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
             <div className="space-y-4">
               <p className="text-sm font-medium text-[var(--film)]">回忆中心</p>
-              <h1 className="max-w-3xl text-4xl font-black leading-none text-white sm:text-6xl">
+              <h1 className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-4xl">
                 把照片从资料库里，重新变成故事。
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-white/72 sm:text-base">
-                这里会把你能访问的照片重新编排成“往年今日”“儿童成长月报”和“年度精选”，让整理过的相册慢慢长出时间的层次。
+                往年今日 · 儿童成长月报 · 年度精选
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link href="/timeline" className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black">
-                  打开时间线
-                </Link>
-                <Link href="/albums" className="inline-flex h-11 items-center justify-center rounded-lg border border-white/20 px-5 text-sm font-bold text-white">
-                  查看相册
-                </Link>
-              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -111,12 +103,7 @@ export default async function MemoryPage() {
         <section className="space-y-4">
           <MemorySectionTitle
             title={dashboard.onThisDay.title}
-            subtitle="把今天和过去同一天发生的照片并排放在一起，方便你快速找回那些年份的同一天。"
-            action={
-              <Link href="/timeline" className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]">
-                去时间线查看
-              </Link>
-            }
+            subtitle="回顾历史上今天的照片。"
           />
 
           {dashboard.onThisDay.items.length > 0 ? (
@@ -148,8 +135,7 @@ export default async function MemoryPage() {
         <section className="space-y-4">
           <MemorySectionTitle
             title="儿童成长月报"
-            subtitle="把孩子相册里本月新增的照片汇总起来，按相册分组展示最近的成长瞬间。"
-            action={<Link href="/albums" className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]">管理相册</Link>}
+            subtitle="按相册汇总孩子本月的成长瞬间。"
           />
 
           {dashboard.childReports.length > 0 ? (
@@ -188,8 +174,7 @@ export default async function MemoryPage() {
         <section className="space-y-4">
           <MemorySectionTitle
             title="年度精选"
-            subtitle="按年份整理你今年最值得回看的照片。这里先用当前年份的高频回看候选做一个精选集。"
-            action={<Link href="/favorites" className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]">查看收藏</Link>}
+            subtitle="按年份整理最值得回看的照片。"
           />
 
           {dashboard.annualHighlights.length > 0 ? (

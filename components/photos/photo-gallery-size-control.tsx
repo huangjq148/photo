@@ -25,7 +25,7 @@ export function PhotoGallerySizeControl({ value, onChange, compact = false }: Ph
             key={size.value}
             type="button"
             onClick={() => onChange(size.value)}
-            className={`inline-flex h-10 items-center justify-center rounded-xl text-sm font-medium transition ${
+            className={`inline-flex h-9 min-w-10 items-center justify-center rounded-xl px-2 text-sm font-medium transition ${
               value === size.value
                 ? "bg-[var(--accent)] text-black"
                 : "text-[var(--muted)] hover:bg-white/[0.08] hover:text-[var(--text)]"

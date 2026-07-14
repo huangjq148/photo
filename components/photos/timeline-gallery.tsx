@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ImageViewer from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
@@ -15,6 +14,9 @@ import {
   type TimelinePhotoItem,
 } from "@/lib/media/timeline";
 import { resolveDisplayName } from "@/lib/media/display-name";
+import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
+import { GalleryGrid } from "@/components/photos/gallery-grid";
+import { loadGalleryPreferences, updateGalleryPreferences } from "@/lib/client/gallery-preferences";
 
 const PAGE_SIZE = 24;
 
@@ -54,6 +56,11 @@ export function TimelineGallery() {
   const loadingRef = useRef(false);
   const message = useMessage();
   const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "timeline" }), []);
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(() => loadGalleryPreferences().photoSize);
+
+  useEffect(() => {
+    updateGalleryPreferences({ photoSize });
+  }, [photoSize]);
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedItems = useMemo(
@@ -268,30 +275,13 @@ export function TimelineGallery() {
   return (
     <div className="space-y-5">
       <div className="noir-glass-panel rounded-[2rem] p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-sm text-[var(--muted)]">
-              共 {items.length} 项，{hasMore ? "继续向下滚动可加载更多" : "已加载全部内容"}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/albums"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-              >
-                相册
-              </Link>
-              <Link
-                href="/favorites"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-              >
-                收藏
-              </Link>
-              <Link
-                href="/trash"
-                className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-              >
-                回收站
-              </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-[var(--muted)]">
+                共 {items.length} 项，{hasMore ? "继续向下滚动可加载更多" : "已加载全部内容"}
+              </p>
+              <PhotoGallerySizeControl value={photoSize} onChange={setPhotoSize} compact />
             </div>
           </div>
 
@@ -363,7 +353,7 @@ export function TimelineGallery() {
               <p className="text-xs text-[var(--muted)]">{group.length} 项</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <GalleryGrid photoSize={photoSize}>
               {group.map((photo) => {
                 const isVideo = photo.mediaType === "video" || photo.mimeType.startsWith("video/");
                 const displayName = resolveDisplayName(photo.displayName, photo.originalName);
@@ -440,7 +430,7 @@ export function TimelineGallery() {
                   </article>
                 );
               })}
-            </div>
+            </GalleryGrid>
           </section>
         ))}
       </div>

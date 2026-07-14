@@ -3,6 +3,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getMediaDeleteActions } from "@/lib/media/delete-actions";
+import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
+import { GalleryGrid } from "@/components/photos/gallery-grid";
+import { loadGalleryPreferences, updateGalleryPreferences } from "@/lib/client/gallery-preferences";
 
 type TrashItem = {
   id: string;
@@ -29,6 +32,11 @@ export function TrashGallery() {
   const [refreshToken, setRefreshToken] = useState(0);
   const loadingRef = useRef(false);
   const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "trash" }), []);
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(() => loadGalleryPreferences().photoSize);
+
+  useEffect(() => {
+    updateGalleryPreferences({ photoSize });
+  }, [photoSize]);
 
   const hasMore = items.length < total;
 
@@ -194,7 +202,9 @@ export function TrashGallery() {
           <p className="text-sm text-[var(--muted)]">
             共 {total} 项 · 计划保留 30 天
           </p>
-          <div className="flex gap-2">
+          <PhotoGallerySizeControl value={photoSize} onChange={setPhotoSize} compact />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
             {selectedCount > 0 ? (
               <>
                 <button
@@ -241,7 +251,6 @@ export function TrashGallery() {
               </>
             )}
           </div>
-        </div>
       </div>
 
       {notice ? (
@@ -250,7 +259,7 @@ export function TrashGallery() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <GalleryGrid photoSize={photoSize}>
         {items.map((photo) => (
           <article
             key={photo.id}
@@ -319,7 +328,7 @@ export function TrashGallery() {
             </div>
           </article>
         ))}
-      </div>
+      </GalleryGrid>
 
       {loadingMore && (
         <div className="py-4 text-center text-sm text-[var(--muted)]">加载更多...</div>
