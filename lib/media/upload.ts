@@ -2,7 +2,6 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { parse } from "exifr";
 import sharp from "sharp";
 import type { PhotoStatus, PrismaClient } from "@prisma/client";
 import { getStorageLayout } from "@/lib/storage/paths";
@@ -77,7 +76,9 @@ async function getImageMeta(
   let longitude: number | null = null;
 
   try {
-    const exif = await parse(buffer, { gps: true });
+    const exifr = await import("exifr");
+    const parseExif = exifr.parse ?? (exifr.default as { parse?: typeof exifr.parse } | undefined)?.parse;
+    const exif = parseExif ? await parseExif(buffer, { gps: true }) : null;
 
     if (exif?.DateTimeOriginal) {
       takenAt = new Date(exif.DateTimeOriginal);

@@ -62,8 +62,11 @@ type MessageStore = {
   reset: () => void;
 };
 
+const EMPTY_MESSAGES: MessageItem[] = [];
+
 function createMessageStore(): MessageStore {
   let messages: MessageRecord[] = [];
+  let snapshotCache: MessageItem[] = EMPTY_MESSAGES;
   const listeners = new Set<() => void>();
   const timers = new Map<string, ReturnType<typeof globalThis.setTimeout>>();
 
@@ -90,6 +93,10 @@ function createMessageStore(): MessageStore {
 
   function publish(nextMessages: MessageRecord[]) {
     messages = nextMessages;
+    snapshotCache =
+      messages.length === 0
+        ? EMPTY_MESSAGES
+        : messages.map(({ createdAt: _createdAt, expiresAt: _expiresAt, ...message }) => ({ ...message }));
     emit();
   }
 
@@ -185,13 +192,14 @@ function createMessageStore(): MessageStore {
   }
 
   function getSnapshot() {
-    return messages.map(({ createdAt: _createdAt, expiresAt: _expiresAt, ...message }) => ({ ...message }));
+    return snapshotCache;
   }
 
   function reset() {
     timers.forEach((timer) => globalThis.clearTimeout(timer));
     timers.clear();
     messages = [];
+    snapshotCache = EMPTY_MESSAGES;
     emit();
   }
 
