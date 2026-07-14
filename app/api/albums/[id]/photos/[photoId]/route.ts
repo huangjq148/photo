@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
-import { removePhotoFromAlbum, updateAlbumPhotoDisplayName } from "@/lib/albums/library";
+import {
+  removePhotoFromAlbum,
+  restorePhotoToAlbum,
+  updateAlbumPhotoDisplayName,
+} from "@/lib/albums/library";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +72,41 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "删除照片失败";
+
+    if (message === "相册不存在") {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+
+    if (message.includes("member") || message.includes("权限")) {
+      return NextResponse.json({ error: message }, { status: 403 });
+    }
+
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string; photoId: string }> }
+) {
+  const user = await getCurrentUserFromRequest(request);
+
+  if (!user) {
+    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
+
+  const { id: albumId, photoId } = await context.params;
+
+  try {
+    await restorePhotoToAlbum(prisma, {
+      albumId,
+      photoId,
+      userId: user.id,
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "恢复照片失败";
 
     if (message === "相册不存在") {
       return NextResponse.json({ error: message }, { status: 404 });

@@ -274,12 +274,8 @@ export function PhotoGallery({
       }
 
       const undoResponse = async () => {
-        const addResponse = await fetch(`/api/albums/${albumId}/photos`, {
+        const addResponse = await fetch(`/api/albums/${albumId}/photos/${photo.id}`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ photoIds: [photo.id] }),
         });
 
         const addJson = await addResponse.json().catch(() => ({}));

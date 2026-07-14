@@ -675,10 +675,44 @@ export async function removePhotoFromAlbum(
     });
   }
 
-  await prisma.albumPhoto.deleteMany({
+  const deleteResult = await prisma.albumPhoto.deleteMany({
     where: {
       album_id: context.albumId,
       photo_id: context.photoId,
+    },
+  });
+
+  if (deleteResult.count === 0) {
+    throw new AppError("该照片不在相册中", "ALBUM_PHOTO_NOT_FOUND", 404);
+  }
+
+  return prisma.album.update({
+    where: { id: context.albumId },
+    data: { updated_at: new Date() },
+  });
+}
+
+export async function restorePhotoToAlbum(
+  prisma: PrismaClient,
+  context: { albumId: string; userId: string; photoId: string }
+) {
+  const album = await prisma.album.findUnique({ where: { id: context.albumId } });
+  if (!album) throw new Error("相册不存在");
+
+  await assertCanDelete(prisma, context.albumId, context.userId);
+
+  await prisma.albumPhoto.upsert({
+    where: {
+      album_id_photo_id: {
+        album_id: context.albumId,
+        photo_id: context.photoId,
+      },
+    },
+    update: {},
+    create: {
+      album_id: context.albumId,
+      photo_id: context.photoId,
+      added_by: context.userId,
     },
   });
 
