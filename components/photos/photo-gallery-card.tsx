@@ -53,6 +53,7 @@ type PhotoGalleryCardProps = {
   onSelect: () => void;
   onFavorite: () => Promise<boolean> | boolean;
   onDelete: () => void;
+  deleteLabel?: string;
   onShare: () => void;
   onSetCover?: () => void;
   onAddToAlbum: () => void;
@@ -102,6 +103,7 @@ export function buildPhotoGalleryCardMenuItems({
   onSetCover,
   onShowInfo,
   onDelete,
+  deleteLabel,
   canShare = true,
   canEditTakenAt = true,
   canToggleLocationHidden = true,
@@ -120,6 +122,7 @@ export function buildPhotoGalleryCardMenuItems({
   onSetCover?: () => void;
   onShowInfo: () => void;
   onDelete: () => void;
+  deleteLabel?: string;
   canShare?: boolean;
   canEditTakenAt?: boolean;
   canToggleLocationHidden?: boolean;
@@ -183,7 +186,7 @@ export function buildPhotoGalleryCardMenuItems({
     },
     {
       key: "delete",
-      label: "删除",
+      label: deleteLabel ?? "删除",
       visible: canDelete,
       danger: true,
       icon: <Trash2 aria-hidden="true" size={15} />,
@@ -203,6 +206,7 @@ export function PhotoGalleryCard({
   onSelect,
   onFavorite,
   onDelete,
+  deleteLabel,
   onShare,
   onSetCover,
   onAddToAlbum,
@@ -256,6 +260,7 @@ export function PhotoGalleryCard({
     onSetCover,
     onShowInfo: () => setShowInfo(true),
     onDelete,
+    deleteLabel,
     canShare: typeof onShare === "function",
     canEditTakenAt: typeof onEditTakenAt === "function",
     canToggleLocationHidden: typeof onToggleLocationHidden === "function",

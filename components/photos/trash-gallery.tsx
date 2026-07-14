@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 
 type TrashItem = {
   id: string;
@@ -27,6 +28,7 @@ export function TrashGallery() {
   const [clearing, setClearing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const loadingRef = useRef(false);
+  const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "trash" }), []);
 
   const hasMore = items.length < total;
 
@@ -88,6 +90,9 @@ export function TrashGallery() {
   }
 
   async function deleteForever(photoId: string) {
+    if (!confirm(deleteAction.confirmMessage ?? "确定永久删除吗？")) {
+      return;
+    }
     const response = await fetch(`/api/trash/photos/${photoId}`, { method: "DELETE" });
     if (!response.ok) {
       const json = await response.json();
@@ -114,6 +119,9 @@ export function TrashGallery() {
 
   async function batchDeleteForever() {
     if (selectedIds.length === 0) return;
+    if (!confirm(deleteAction.confirmMessage ?? "确定永久删除吗？")) {
+      return;
+    }
     const response = await fetch("/api/trash/photos/batch-delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -305,7 +313,7 @@ export function TrashGallery() {
                   onClick={() => { void deleteForever(photo.id); }}
                   className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black"
                 >
-                  永久删除
+                  {deleteAction.label}
                 </button>
               </div>
             </div>

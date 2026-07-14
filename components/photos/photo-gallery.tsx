@@ -16,6 +16,7 @@ import { BatchActionBar } from "@/components/photos/batch-action-bar";
 import { GalleryToolbar } from "@/components/photos/gallery-toolbar";
 import { GalleryEmptyState } from "@/components/photos/gallery-empty-state";
 import { GalleryGrid } from "@/components/photos/gallery-grid";
+import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 import { useGalleryQuery } from "@/hooks/use-gallery-query";
 import { useAlbumMedia } from "@/hooks/use-album-media";
 import { useSelection } from "@/hooks/use-selection";
@@ -50,6 +51,7 @@ type PhotoGalleryProps = {
   onToggleTakenAt: () => void;
   photoSize: PhotoSize;
   onPhotoSizeChange: (value: PhotoSize) => void;
+  isDefaultAlbum?: boolean;
 };
 
 function getSortDate(photo: PhotoItem): Date {
@@ -98,6 +100,7 @@ export function PhotoGallery({
   onToggleTakenAt,
   photoSize,
   onPhotoSizeChange,
+  isDefaultAlbum = false,
 }: PhotoGalleryProps) {
   const [committedKeyword, setCommittedKeyword] = useState("");
   const [items, setItems] = useState<PhotoItem[]>([]);
@@ -209,10 +212,10 @@ export function PhotoGallery({
     };
   }, [hasMore, loading, loadingMore, loadMore, message]);
 
-  async function removePhoto(photoId: string) {
+  async function removePhotoFromAlbum(photo: PhotoItem) {
     try {
-      const response = await fetch(`/api/albums/${albumId}/photos/${photoId}`, {
-        method: "DELETE"
+      const response = await fetch(`/api/albums/${albumId}/photos/${photo.id}`, {
+        method: "DELETE",
       });
 
       if (!response.ok) {
@@ -220,7 +223,60 @@ export function PhotoGallery({
         throw new Error(json.error ?? "Failed to delete photo");
       }
 
-      message.success("已从相册移除");
+      const undoResponse = async () => {
+        const addResponse = await fetch(`/api/albums/${albumId}/photos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ photoIds: [photo.id] }),
+        });
+
+        const addJson = await addResponse.json().catch(() => ({}));
+        if (!addResponse.ok) {
+          throw new Error(addJson.error ?? "撤销移除失败");
+        }
+        setRefreshToken((current) => current + 1);
+      };
+
+      message.success("已从相册移除", {
+        label: "撤销",
+        onSelect: undoResponse,
+      });
+      selection.retainOnly(Array.from(selection.selectedIds).filter((id) => id !== photo.id));
+      setItems((current) => current.filter((item) => item.id !== photo.id));
+      setRefreshToken((current) => current + 1);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "删除照片失败");
+    }
+  }
+
+  async function movePhotoToTrash(photo: PhotoItem) {
+    try {
+      const response = await fetch(`/api/photos/${photo.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const json = await response.json();
+        throw new Error(json.error ?? "Failed to delete photo");
+      }
+
+      message.success("已移入回收站", {
+        label: "撤销",
+        onSelect: async () => {
+          const undoResponse = await fetch(`/api/photos/${photo.id}/restore`, {
+            method: "POST",
+          });
+          const undoJson = await undoResponse.json().catch(() => ({}));
+          if (!undoResponse.ok) {
+            throw new Error(undoJson.error ?? "撤销移入回收站失败");
+          }
+          setRefreshToken((current) => current + 1);
+        },
+      });
+      setItems((current) => current.filter((item) => item.id !== photo.id));
+      selection.retainOnly(Array.from(selection.selectedIds).filter((id) => id !== photo.id));
       setRefreshToken((current) => current + 1);
     } catch (error) {
       message.error(error instanceof Error ? error.message : "删除照片失败");
@@ -253,6 +309,11 @@ export function PhotoGallery({
     setItems((current) => current.filter((item) => item.id !== photoId));
     selection.retainOnly(Array.from(selection.selectedIds).filter((id) => id !== photoId));
   }
+
+  const deleteAction = useMemo(
+    () => getMediaDeleteActions({ surface: "album", isDefaultAlbum }),
+    [isDefaultAlbum],
+  );
 
   async function batchDeleteSelected() {
     if (selectedIds.length === 0 || busyAction) {
@@ -683,8 +744,9 @@ export function PhotoGallery({
                     onFavorite={() => {
                       return toggleFavorite(photo.id);
                     }}
+                    deleteLabel={deleteAction.label}
                     onDelete={() => {
-                      void removePhoto(photo.id);
+                      void (isDefaultAlbum ? movePhotoToTrash(photo) : removePhotoFromAlbum(photo));
                     }}
                     onShare={() => {
                       void sharePhoto(photo.id);
@@ -728,8 +790,9 @@ export function PhotoGallery({
               onFavorite={() => {
                 return toggleFavorite(photo.id);
               }}
+              deleteLabel={deleteAction.label}
               onDelete={() => {
-                void removePhoto(photo.id);
+                void (isDefaultAlbum ? movePhotoToTrash(photo) : removePhotoFromAlbum(photo));
               }}
               onShare={() => {
                 void sharePhoto(photo.id);

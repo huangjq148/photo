@@ -7,6 +7,7 @@ import { useMessage } from "@/components/ui/message";
 import { BatchAddPhotosToAlbumModal } from "@/components/albums/batch-add-photos-to-album-modal";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 import { TakenAtEditorModal } from "@/components/photos/taken-at-editor-modal";
+import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 import {
   getTimelineEffectiveDate,
   groupTimelinePhotos,
@@ -52,6 +53,7 @@ export function TimelineGallery() {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const message = useMessage();
+  const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "timeline" }), []);
 
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const selectedItems = useMemo(
@@ -179,13 +181,10 @@ export function TimelineGallery() {
       return;
     }
 
-    if (!confirm(`确定删除选中的 ${selectedItems.length} 项媒体吗？`)) {
-      return;
-    }
-
     try {
+      const deletedItems = [...selectedItems];
       const results = await Promise.all(
-        selectedItems.map(async (item) => {
+        deletedItems.map(async (item) => {
           const response = await fetch(`/api/photos/${item.id}`, { method: "DELETE" });
           if (!response.ok) {
             const json = await response.json().catch(() => ({}));
@@ -195,9 +194,23 @@ export function TimelineGallery() {
         })
       );
 
+      message.success(deleteAction.successMessage, {
+        label: "撤销",
+        onSelect: async () => {
+          await Promise.all(
+            results.map(async (photoId) => {
+              const response = await fetch(`/api/photos/${photoId}/restore`, { method: "POST" });
+              const json = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                throw new Error(json.error ?? "撤销失败");
+              }
+            }),
+          );
+          setRefreshToken((current) => current + 1);
+        },
+      });
       setSelectedIds([]);
       setRefreshToken((current) => current + 1);
-      message.success(`已删除 ${results.length} 项媒体`);
     } catch (err) {
       message.error(err instanceof Error ? err.message : "删除失败");
     }
@@ -310,7 +323,7 @@ export function TimelineGallery() {
                   onClick={() => void deleteSelected()}
                   className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black"
                 >
-                  删除
+                  {deleteAction.label}
                 </button>
                 <button
                   type="button"

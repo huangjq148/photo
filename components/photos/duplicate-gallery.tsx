@@ -6,6 +6,7 @@ import ImageViewer from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 import { resolveDisplayName } from "@/lib/media/display-name";
+import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 import type { DuplicateGroup } from "@/lib/media/duplicates";
 
 function formatBytes(bytes: string) {
@@ -38,6 +39,7 @@ export function DuplicateGallery() {
   const [savingGroup, setSavingGroup] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
   const message = useMessage();
+  const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "duplicate" }), []);
 
   useEffect(() => {
     let active = true;
@@ -94,11 +96,6 @@ export function DuplicateGallery() {
       return;
     }
 
-    const keeper = group.items.find((item) => item.id === keeperId);
-    if (!confirm(`确定删除除「${keeper ? resolveDisplayName(keeper.displayName, keeper.originalName) : "保留项"}」外的 ${targets.length} 项重复媒体吗？`)) {
-      return;
-    }
-
     setSavingGroup(group.checksum);
     try {
       const results = await Promise.all(
@@ -116,7 +113,21 @@ export function DuplicateGallery() {
         })
       );
 
-      message.success(`已删除 ${results.length} 项重复媒体`);
+      message.success(deleteAction.successMessage, {
+        label: "撤销",
+        onSelect: async () => {
+          await Promise.all(
+            results.map(async (photoId) => {
+              const response = await fetch(`/api/photos/${photoId}/restore`, { method: "POST" });
+              const json = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                throw new Error(json.error ?? "撤销失败");
+              }
+            }),
+          );
+          setRefreshToken((current) => current + 1);
+        },
+      });
       setRefreshToken((current) => current + 1);
     } catch (err) {
       message.error(err instanceof Error ? err.message : "删除重复媒体失败");
@@ -191,7 +202,7 @@ export function DuplicateGallery() {
                   disabled={savingGroup === group.checksum}
                   className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  删除其余项目
+                  {deleteAction.label}
                 </button>
               </div>
 

@@ -277,6 +277,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
           photoSize={photoSize}
           onPhotoSizeChange={setPhotoSize}
           childBirthDate={album.childBirthDate}
+          isDefaultAlbum={album.isDefault}
         />
       </section>
 
