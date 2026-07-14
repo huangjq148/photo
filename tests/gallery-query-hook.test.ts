@@ -81,8 +81,6 @@ describe("gallery url state", () => {
     };
 
     const params = galleryUrlStateToParams(state);
-    // Only sortOrder=desc by default should remain? Actually sortOrder is always set.
-    // Default state should produce minimal params
     expect(params.get("q")).toBeNull();
     expect(params.get("mediaType")).toBeNull();
   });
@@ -110,14 +108,19 @@ describe("gallery url state", () => {
 });
 
 describe("gallery query controller", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sT = setTimeout as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cT = clearTimeout as any;
+
   it("debounces value commits", () => new Promise<void>((done) => {
     const commits: string[] = [];
 
     const controller = createGalleryQueryController({
       onCommit: (value) => commits.push(value),
       debounceMs: 50,
-      setTimeoutFn: (fn, ms) => setTimeout(fn, ms),
-      clearTimeoutFn: clearTimeout,
+      setTimeoutFn: sT,
+      clearTimeoutFn: cT,
     });
 
     controller.setValue("a");
@@ -137,8 +140,8 @@ describe("gallery query controller", () => {
     const controller = createGalleryQueryController({
       onCommit: (value) => commits.push(value),
       debounceMs: 30,
-      setTimeoutFn: (fn, ms) => setTimeout(fn, ms),
-      clearTimeoutFn: clearTimeout,
+      setTimeoutFn: sT,
+      clearTimeoutFn: cT,
     });
 
     controller.compositionStart();
@@ -146,7 +149,6 @@ describe("gallery query controller", () => {
     controller.setValue("你好");
 
     setTimeout(() => {
-      // Should not have committed during composition
       expect(commits).toEqual([]);
       controller.compositionEnd();
 
@@ -164,8 +166,8 @@ describe("gallery query controller", () => {
     const controller = createGalleryQueryController({
       onCommit: (value) => commits.push(value),
       debounceMs: 30,
-      setTimeoutFn: (fn, ms) => setTimeout(fn, ms),
-      clearTimeoutFn: clearTimeout,
+      setTimeoutFn: sT,
+      clearTimeoutFn: cT,
     });
 
     controller.setValue("hidden", { silent: true });

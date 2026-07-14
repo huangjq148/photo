@@ -5,7 +5,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import type { PointerEvent, SyntheticEvent, WheelEvent } from 'react'
 import { createPortal } from 'react-dom'
 import useEmblaCarousel from 'embla-carousel-react'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Loader2 } from 'lucide-react'
 import {
   getImageViewerContentClasses,
   getImageViewerImageClasses,
@@ -21,6 +21,7 @@ import {
   getImageViewerDragScrollPosition,
   getImageViewerResetState,
 } from './interactions'
+import { getFocusableElements, handleModalKeyDown } from '@/hooks/use-focus-trap'
 
 export interface ImageViewerNavigationItem {
   id: string
@@ -44,6 +45,9 @@ interface ImageViewerProps {
   title?: string
   items?: ImageViewerNavigationItem[]
   initialItemId?: string
+  hasMore?: boolean
+  loadingMore?: boolean
+  onLoadMore?: () => void
 }
 
 export default function ImageViewer({
@@ -58,6 +62,9 @@ export default function ImageViewer({
   title = '原图预览',
   items,
   initialItemId,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: ImageViewerProps) {
   const [open, setOpen] = useState(false)
   const [zoom, setZoom] = useState(1)
@@ -70,6 +77,10 @@ export default function ImageViewer({
 
   const initIndexRef = useRef(0)
   const imageSizeCacheRef = useRef<Map<string, { width: number; height: number }>>(new Map())
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const previousActiveElementRef = useRef<HTMLElement | null>(null)
+  const videoRefsRef = useRef<Map<string, HTMLVideoElement>>(new Map())
+  const loadMoreTriggeredRef = useRef(false)
 
   const dragRef = useRef<{
     pointerId: number
@@ -120,6 +131,27 @@ export default function ImageViewer({
     return () => cancelAnimationFrame(raf)
   }, [emblaApi, open])
 
+  // ---- Focus trap & scroll lock (restore focus on close) ----
+  useEffect(() => {
+    if (!open || !overlayRef.current) return
+
+    previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    window.requestAnimationFrame(() => {
+      overlayRef.current?.focus()
+    })
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.requestAnimationFrame(() => {
+        previousActiveElementRef.current?.focus()
+        previousActiveElementRef.current = null
+      })
+    }
+  }, [open])
+
   // ---- Sync embla with zoom state ----
   useEffect(() => {
     if (emblaApi && open) {
@@ -139,17 +171,15 @@ export default function ImageViewer({
           setZoom(getImageViewerResetState().zoom)
           setImageSize(null)
         } else {
-        // restore cached image size for this slide
-        const cached = imageSizeCacheRef.current.get(nextItem.id)
-        if (cached) {
-          setImageSize(cached)
-          setZoom(getFitZoomForSize(cached))
-        } else {
-          setZoom(getImageViewerResetState().zoom)
-          setImageSize(null)
+          const cached = imageSizeCacheRef.current.get(nextItem.id)
+          if (cached) {
+            setImageSize(cached)
+            setZoom(getFitZoomForSize(cached))
+          } else {
+            setZoom(getImageViewerResetState().zoom)
+            setImageSize(null)
+          }
         }
-        }
-        // reset scroll
         const slideNode = emblaApi.slideNodes()[idx]
         if (slideNode) { slideNode.scrollLeft = 0; slideNode.scrollTop = 0 }
       }
@@ -158,15 +188,81 @@ export default function ImageViewer({
     return () => { emblaApi.off('select', onSelect) }
   }, [emblaApi, currentIndex, getFitZoomForSize, navigableItems])
 
-  // ---- Keyboard ----
+  // ---- Pause video when navigating away ----
+  useEffect(() => {
+    if (!navigableItems || !open) return
+    videoRefsRef.current.forEach((videoEl, id) => {
+      if (id !== navigableItems[currentIndex]?.id) {
+        videoEl.pause()
+      }
+    })
+  }, [currentIndex, open, navigableItems])
+
+  // ---- Load more when approaching last item ----
+  useEffect(() => {
+    if (!open || !hasMore || loadingMore || !onLoadMore || !navigableItems) return
+    if (currentIndex >= navigableItems.length - 2 && !loadMoreTriggeredRef.current) {
+      loadMoreTriggeredRef.current = true
+      onLoadMore()
+    }
+    if (currentIndex < navigableItems.length - 3) {
+      loadMoreTriggeredRef.current = false
+    }
+  }, [currentIndex, open, hasMore, loadingMore, onLoadMore, navigableItems])
+
+  // ---- Keyboard (focus trap + zoom shortcuts + nav) ----
   useEffect(() => {
     if (!open || typeof document === 'undefined') return
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Focus trap: Tab cycling within overlay
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        const focusables = getFocusableElements(overlayRef.current)
+        const currentFocus = document.activeElement as HTMLElement | null
+        const currentIndexVal = currentFocus ? focusables.indexOf(currentFocus) : -1
+        const nextIndex = handleModalKeyDown(
+          { key: 'Tab', shiftKey: event.shiftKey, preventDefault: () => {} } as React.KeyboardEvent,
+          focusables,
+          currentIndexVal,
+          () => setOpen(false),
+          overlayRef.current,
+        )
+        if (nextIndex >= 0 && focusables[nextIndex]) {
+          focusables[nextIndex].focus()
+        }
+        return
+      }
+
       if (event.key === 'Escape') { setOpen(false); return }
+
+      // Zoom shortcuts (+ / - / 0)
+      if (!isCurrentVideo) {
+        if (event.key === '+' || event.key === '=') {
+          event.preventDefault()
+          setZoom((current) => clampImageViewerZoom(current * 1.25))
+          return
+        }
+        if (event.key === '-') {
+          event.preventDefault()
+          setZoom((current) => clampImageViewerZoom(current / 1.25))
+          return
+        }
+        if (event.key === '0') {
+          event.preventDefault()
+          const resetState = getImageViewerResetState()
+          setZoom(imageSize ? getFitZoomForSize(imageSize) : resetState.zoom)
+          if (emblaApi) {
+            emblaApi.slideNodes().forEach((node) => {
+              node.scrollLeft = resetState.scrollLeft
+              node.scrollTop = resetState.scrollTop
+            })
+          }
+          return
+        }
+      }
+
+      // Arrow navigation
       if (!navigationEnabled || !emblaApi) return
       if (event.key === 'ArrowLeft') { event.preventDefault(); emblaApi.scrollPrev() }
       if (event.key === 'ArrowRight') { event.preventDefault(); emblaApi.scrollNext() }
@@ -174,12 +270,11 @@ export default function ImageViewer({
 
     document.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [open, navigationEnabled, emblaApi])
+  }, [open, navigationEnabled, emblaApi, isCurrentVideo, imageSize, getFitZoomForSize])
 
-  // ---- Wheel zoom ----
+  // ---- Wheel zoom (only when not video and zoomed) ----
   const handleWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
     event.preventDefault()
     setZoom((current) => getNextImageViewerZoom(current, event.deltaY))
@@ -203,6 +298,7 @@ export default function ImageViewer({
     setIsDragging(false)
     imageSizeCacheRef.current.clear()
     dragRef.current = null
+    loadMoreTriggeredRef.current = false
 
     let initialIdx = 0
     if (navigationEnabled && initialItemId) {
@@ -217,7 +313,7 @@ export default function ImageViewer({
 
   // ---- Pointer: down (pan within a zoomed image) ----
   const handlePointerDown = useCallback((event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return
+    if (event.button !== 0 || zoom <= 1.05) return
     const el = event.currentTarget
     dragRef.current = {
       pointerId: event.pointerId,
@@ -229,9 +325,9 @@ export default function ImageViewer({
     }
     setIsDragging(true)
     el.setPointerCapture(event.pointerId)
-  }, [])
+  }, [zoom])
 
-  // ---- Pointer: move (pan) ----
+  // ---- Pointer: move (pan when zoomed) ----
   const handlePointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
@@ -272,7 +368,6 @@ export default function ImageViewer({
     const resetState = getImageViewerResetState()
     if (isCurrentVideo) return
     setZoom(imageSize ? getFitZoomForSize(imageSize) : resetState.zoom)
-    // reset scroll in all slide containers
     if (emblaApi) {
       emblaApi.slideNodes().forEach((node) => {
         node.scrollLeft = resetState.scrollLeft
@@ -281,15 +376,26 @@ export default function ImageViewer({
     }
   }, [emblaApi, getFitZoomForSize, imageSize, isCurrentVideo])
 
+  // Video ref callback
+  const setVideoRef = useCallback((id: string) => (el: HTMLVideoElement | null) => {
+    if (el) {
+      videoRefsRef.current.set(id, el)
+    } else {
+      videoRefsRef.current.delete(id)
+    }
+  }, [])
+
   // ============================================================
   //  OVERLAY
   // ============================================================
   const overlay = open && typeof document !== 'undefined'
     ? createPortal(
         <div
+          ref={overlayRef}
           role="dialog"
           aria-modal="true"
           aria-label={currentTitle}
+          tabIndex={-1}
           className={getImageViewerOverlayClasses()}
           onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false) }}
         >
@@ -310,6 +416,13 @@ export default function ImageViewer({
                     aria-label="下一张">
                     <ChevronRight aria-hidden="true" size={24} />
                   </button>
+                )}
+
+                {/* Load more indicator */}
+                {loadingMore && (
+                  <div className="absolute right-4 top-1/2 z-10 -translate-y-1/2 inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-black/60 text-white shadow-lg">
+                    <Loader2 aria-hidden="true" size={24} className="animate-spin" />
+                  </div>
                 )}
               </>
             )}
@@ -333,6 +446,7 @@ export default function ImageViewer({
                       >
                         <div className="flex h-full w-full items-center justify-center p-8">
                           <video
+                            ref={setVideoRef(item.id)}
                             src={item.videoSrc || item.previewSrc || item.src}
                             poster={item.src}
                             controls
@@ -346,9 +460,9 @@ export default function ImageViewer({
                     <div
                       key={item.id}
                       className={`flex h-full w-full min-w-0 flex-shrink-0 items-center justify-center overflow-auto bg-black/30 ${
-                        isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                        isDragging ? 'cursor-grabbing' : zoom > 1.05 ? 'cursor-grab' : ''
                       }`}
-                      style={{ touchAction: 'none' }}
+                      style={{ touchAction: zoom > 1.05 ? 'none' : 'pan-y pinch-zoom' }}
                       onWheel={handleWheel}
                       onDoubleClick={handleDoubleClick}
                       onPointerDown={handlePointerDown}
@@ -382,9 +496,9 @@ export default function ImageViewer({
               /* ---- Single media item (no navigation) ---- */
               <div
                 className={`flex h-full w-full items-center justify-center ${isCurrentVideo ? 'overflow-hidden' : 'overflow-auto'} bg-black/30 shadow-2xl ${
-                  isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                  isDragging ? 'cursor-grabbing' : zoom > 1.05 ? 'cursor-grab' : ''
                 }`}
-                style={{ touchAction: 'none' }}
+                style={{ touchAction: isCurrentVideo ? 'auto' : zoom > 1.05 ? 'none' : 'pan-y pinch-zoom' }}
                 onWheel={isCurrentVideo ? undefined : handleWheel}
                 onDoubleClick={isCurrentVideo ? undefined : handleDoubleClick}
                 onPointerDown={isCurrentVideo ? undefined : handlePointerDown}
@@ -422,6 +536,13 @@ export default function ImageViewer({
             {!isCurrentVideo && (
               <div className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-4 py-2 text-xs text-gray-100 shadow-lg">
                 {formatImageViewerZoomLabel(zoom)}
+              </div>
+            )}
+
+            {/* Keyboard hint */}
+            {!isCurrentVideo && (
+              <div className="absolute left-4 top-16 rounded-full border border-white/10 bg-black/45 px-3 py-1.5 text-[10px] text-gray-400">
+                +/-/0 缩放&nbsp;&nbsp;←→ 切换
               </div>
             )}
 
