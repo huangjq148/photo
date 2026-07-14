@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Settings, Share2, Upload } from "lucide-react";
+import { ArrowLeft, FolderPlus, Settings, Share2, Upload } from "lucide-react";
 
 type HeaderAlbum = {
   name: string;
@@ -15,12 +15,19 @@ type HeaderAlbum = {
 
 type AlbumDetailHeaderProps = {
   album: HeaderAlbum;
-  onAddPhotos: () => void;
+  onUploadNew: () => void;
+  onAddFromAllPhotos: () => void;
   onManage: () => void;
   onShare: () => void;
 };
 
-export function AlbumDetailHeader({ album, onAddPhotos, onManage, onShare }: AlbumDetailHeaderProps) {
+export function AlbumDetailHeader({
+  album,
+  onUploadNew,
+  onAddFromAllPhotos,
+  onManage,
+  onShare,
+}: AlbumDetailHeaderProps) {
   return (
     <section className="border-b border-[var(--border)] pb-4 pt-1 sm:pb-5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -59,11 +66,19 @@ export function AlbumDetailHeader({ album, onAddPhotos, onManage, onShare }: Alb
         <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
           <button
             type="button"
-            onClick={onAddPhotos}
+            onClick={onUploadNew}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white"
           >
             <Upload aria-hidden="true" size={17} />
-            添加照片
+            上传新照片
+          </button>
+          <button
+            type="button"
+            onClick={onAddFromAllPhotos}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+          >
+            <FolderPlus aria-hidden="true" size={17} />
+            从全部照片添加
           </button>
           <button
             type="button"

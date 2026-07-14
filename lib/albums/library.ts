@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
+import { z } from "zod";
+import { AppError } from "@/lib/api/errors";
+import { buildBatchResult, type BatchMutationResult } from "@/lib/api/batch-result";
 import { assertAlbumMembership, assertAlbumOwner, assertCanUpload, assertCanDelete } from "@/lib/membership";
 import { INVITE_STATUS, INVITE_DURATION_MS } from "@/lib/albums/invite-status";
 import { getCodePointLength, normalizeDisplayName } from "@/lib/media/display-name";
@@ -15,6 +18,7 @@ export type AlbumSummary = {
   lastPhotoUrl: string | null;
   isDefault: boolean;
   isImmutable: boolean;
+  canUpload: boolean;
   photoCount: number;
   memberCount: number;
   role: string;
@@ -98,7 +102,24 @@ type MediaPage<T> = {
   page: number;
   pageSize: number;
   total: number;
+  nextCursor: string | null;
 };
+
+const albumPhotosCursorSchema = z.object({
+  addedAt: z.string().datetime(),
+  id: z.string().uuid(),
+});
+
+type AlbumPhotosCursor = z.infer<typeof albumPhotosCursorSchema>;
+
+export function encodeAlbumPhotosCursor(cursor: AlbumPhotosCursor) {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
+}
+
+export function decodeAlbumPhotosCursor(cursor: string): AlbumPhotosCursor {
+  const raw = Buffer.from(cursor, "base64url").toString("utf8");
+  return albumPhotosCursorSchema.parse(JSON.parse(raw));
+}
 
 export type AlbumMemberItem = {
   userId: string;
@@ -166,6 +187,7 @@ export async function getUserAlbums(
     lastPhotoUrl: m.album.photos[0]?.media.thumbnail_url ?? null,
     isDefault: m.album.is_default,
     isImmutable: m.album.is_immutable,
+    canUpload: m.role === "owner" || m.can_upload,
     photoCount: m.album._count.photos,
     memberCount: m.album._count.members,
     role: m.role,
@@ -370,9 +392,11 @@ export async function getAlbumPhotos(
   context: {
     albumId: string;
     userId: string;
-    page: number;
+    page?: number;
     pageSize: number;
     keyword?: string;
+    cursor?: string;
+    excludeAlbumId?: string;
   }
 ): Promise<MediaPage<AlbumPhotoItem>> {
   await assertAlbumMembership(prisma, context.albumId, context.userId);
@@ -385,32 +409,57 @@ export async function getAlbumPhotos(
     throw new Error("相册不存在");
   }
 
-  const page = Math.max(1, Math.floor(context.page));
-  const pageSize = Math.min(Math.max(Math.floor(context.pageSize), 1), 50);
+  const page = Math.max(1, Math.floor(context.page ?? 1));
+  const pageSize = Math.min(Math.max(Math.floor(context.pageSize), 1), 200);
   const keyword = context.keyword?.trim();
+  const parsedCursor = context.cursor ? decodeAlbumPhotosCursor(context.cursor) : null;
+  const excludeAlbumId = context.excludeAlbumId?.trim();
+  const excludedPhotoIds = excludeAlbumId
+    ? (
+        await prisma.albumPhoto.findMany({
+          where: { album_id: excludeAlbumId },
+          select: { photo_id: true },
+        })
+      ).map((row) => row.photo_id)
+    : [];
 
   const where: Record<string, unknown> = {
     album_id: context.albumId,
   };
 
+  const mediaFilters: Record<string, unknown>[] = [{ status: "normal" }];
+
   if (keyword) {
-    where.media = {
-      status: "normal",
+    mediaFilters.push({
       OR: [
         { original_name: { contains: keyword, mode: "insensitive" } },
         { file_name: { contains: keyword, mode: "insensitive" } },
       ],
-    };
-  } else {
-    where.media = {
-      status: "normal",
-    };
+    });
   }
+
+  if (excludedPhotoIds.length > 0) {
+    where.photo_id = { notIn: excludedPhotoIds };
+  }
+
+  where.media = mediaFilters.length === 1 ? mediaFilters[0] : { AND: mediaFilters };
+
+  const cursorWhere = parsedCursor
+    ? {
+        OR: [
+          { added_at: { lt: new Date(parsedCursor.addedAt) } },
+          {
+            added_at: new Date(parsedCursor.addedAt),
+            photo_id: { lt: parsedCursor.id },
+          },
+        ],
+      }
+    : undefined;
 
   const [total, refs] = await Promise.all([
     prisma.albumPhoto.count({ where }),
     prisma.albumPhoto.findMany({
-      where,
+      where: cursorWhere ? { ...where, ...cursorWhere } : where,
       include: {
         media: {
           include: {
@@ -421,17 +470,30 @@ export async function getAlbumPhotos(
           },
         },
       },
-      orderBy: { added_at: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
+      orderBy: [
+        { added_at: "desc" },
+        { photo_id: "desc" },
+      ],
+      skip: parsedCursor ? undefined : (page - 1) * pageSize,
+      take: pageSize + 1,
     }),
   ]);
+
+  const hasMore = refs.length > pageSize;
+  const pageItems = refs.slice(0, pageSize);
 
   return {
     page,
     pageSize,
     total,
-    items: refs.map((ref) => ({
+    nextCursor:
+      hasMore && pageItems.length > 0
+        ? encodeAlbumPhotosCursor({
+            addedAt: pageItems[pageItems.length - 1]!.added_at.toISOString(),
+            id: pageItems[pageItems.length - 1]!.photo_id,
+          })
+        : null,
+    items: pageItems.map((ref) => ({
       id: ref.media.id,
       displayName: ref.media.display_name ?? null,
       originalName: ref.media.original_name,
@@ -534,33 +596,67 @@ export async function updateAlbumPhotoDisplayName(
 export async function addPhotosToAlbum(
   prisma: PrismaClient,
   context: { albumId: string; userId: string; photoIds: string[] }
-) {
+): Promise<BatchMutationResult> {
   const album = await prisma.album.findUnique({ where: { id: context.albumId } });
   if (!album) throw new Error("相册不存在");
 
   await assertCanUpload(prisma, context.albumId, context.userId);
 
-  for (const photoId of context.photoIds) {
-    await prisma.albumPhoto.upsert({
-      where: {
-        album_id_photo_id: {
+  const defaultAlbumId = await getUserDefaultAlbumId(prisma, context.userId);
+  const uniquePhotoIds = Array.from(new Set(context.photoIds.filter(Boolean)));
+  const availableMedia = await prisma.media.findMany({
+    where: {
+      id: { in: uniquePhotoIds },
+      status: "normal",
+      album_id: defaultAlbumId,
+    },
+    select: { id: true },
+  });
+
+  const availableIdSet = new Set(availableMedia.map((media) => media.id));
+  const failures = new Map<string, unknown>();
+
+  for (const photoId of uniquePhotoIds) {
+    if (!availableIdSet.has(photoId)) {
+      failures.set(photoId, new AppError("该照片不在全部照片中", "FORBIDDEN", 403));
+    }
+  }
+
+  for (const photoId of uniquePhotoIds) {
+    if (failures.has(photoId)) {
+      continue;
+    }
+
+    try {
+      await prisma.albumPhoto.upsert({
+        where: {
+          album_id_photo_id: {
+            album_id: context.albumId,
+            photo_id: photoId,
+          },
+        },
+        update: {},
+        create: {
           album_id: context.albumId,
           photo_id: photoId,
+          added_by: context.userId,
         },
-      },
-      update: {},
-      create: {
-        album_id: context.albumId,
-        photo_id: photoId,
-        added_by: context.userId,
-      },
+      });
+    } catch (error) {
+      failures.set(photoId, error);
+    }
+  }
+
+  const result = buildBatchResult(uniquePhotoIds, failures);
+
+  if (result.succeededIds.length > 0) {
+    await prisma.album.update({
+      where: { id: context.albumId },
+      data: { updated_at: new Date() },
     });
   }
 
-  return prisma.album.update({
-    where: { id: context.albumId },
-    data: { updated_at: new Date() },
-  });
+  return result;
 }
 
 export async function removePhotoFromAlbum(

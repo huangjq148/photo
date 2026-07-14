@@ -1,10 +1,13 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Upload } from "lucide-react";
 import { UserMenu } from "@/components/layout/user-menu";
+import { useUpload } from "@/components/upload/upload-provider";
 
 const navItems = [
   { href: "/albums", label: "相册" },
@@ -18,6 +21,7 @@ const navItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { openUpload } = useUpload();
   const isHome = pathname === "/";
 
   if (pathname.startsWith("/share/") || pathname.startsWith("/admin")) {
@@ -59,6 +63,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 );
               })}
             </nav>
+            <button
+              type="button"
+              onClick={() => openUpload()}
+              className="hidden min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] lg:inline-flex"
+            >
+              <Upload aria-hidden="true" size={16} />
+              上传
+            </button>
             <div className="shrink-0 lg:hidden">
               <UserMenu />
             </div>

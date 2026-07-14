@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
-import { softDeletePhotos } from "@/lib/photos/library";
+import { removePhotoFromAlbum } from "@/lib/albums/library";
 import { assertCanDelete } from "@/lib/membership";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -18,13 +18,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     await assertCanDelete(prisma, albumId, user.id);
 
     const body = (await request.json()) as { photoIds?: string[] };
-    const count = await softDeletePhotos(prisma, {
-      albumId,
-      photoIds: body.photoIds ?? [],
-      userId: user.id,
-    });
+    const photoIds = Array.from(new Set(body.photoIds ?? []));
+    for (const photoId of photoIds) {
+      await removePhotoFromAlbum(prisma, { albumId, userId: user.id, photoId });
+    }
 
-    return NextResponse.json({ data: { count } });
+    return NextResponse.json({ data: { count: photoIds.length } });
   } catch (error) {
     const message = error instanceof Error ? error.message : "删除照片失败";
     const status = message.includes("permission") || message.includes("权限") ? 403 : 400;

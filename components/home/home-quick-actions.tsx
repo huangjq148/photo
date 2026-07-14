@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Upload, FolderPlus, Heart, Trash2, Sparkles } from "lucide-react";
 import { CreateAlbumModal } from "@/components/albums/create-album-modal";
+import { useUpload } from "@/components/upload/upload-provider";
 
 const iconClass = "h-6 w-6 text-[var(--film)]";
 
 const actions = [
-  { key: "upload", icon: <Upload className={iconClass} />, label: "上传照片", desc: "添加新照片", href: "/albums" as const },
+  { key: "upload", icon: <Upload className={iconClass} />, label: "上传照片", desc: "添加新照片", href: null },
   { key: "memory", icon: <Sparkles className={iconClass} />, label: "回忆", desc: "往年今日和成长月报", href: "/memory" as const },
   { key: "album", icon: <FolderPlus className={iconClass} />, label: "新建相册", desc: "创建新相册", href: null },
   { key: "favorites", icon: <Heart className={iconClass} />, label: "我的收藏", desc: "查看收藏的照片", href: "/favorites" as const },
@@ -18,6 +19,7 @@ const actions = [
 
 export function HomeQuickActions() {
   const router = useRouter();
+  const { openUpload } = useUpload();
   const [showCreateAlbum, setShowCreateAlbum] = useState(false);
   const [albumName, setAlbumName] = useState("");
   const [albumDescription, setAlbumDescription] = useState("");
@@ -56,6 +58,9 @@ export function HomeQuickActions() {
   function handleClick(key: string) {
     if (key === "album") {
       setShowCreateAlbum(true);
+    }
+    if (key === "upload") {
+      openUpload();
     }
   }
 

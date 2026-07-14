@@ -1,8 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { uploadPhotoToAlbum } from "@/lib/photos/upload";
+import { softDeletePhoto, restorePhoto, permanentlyDeletePhoto } from "@/lib/photos/library";
 import {
   getAlbumDetail,
   updateAlbum,
@@ -15,6 +18,9 @@ import {
   leaveAlbum,
   addPhotosToAlbum,
   removePhotoFromAlbum,
+  getAlbumPhotos,
+  createDefaultAlbum,
+  getUserDefaultAlbumId,
 } from "@/lib/albums/library";
 
 const tinyPng = Buffer.from(
@@ -64,6 +70,14 @@ describe("album permission matrix", () => {
     const album = await prisma.album.create({
       data: { creator_id: owner.id, name: "Test Album" },
     });
+
+    await Promise.all([
+      createDefaultAlbum(prisma, owner.id),
+      createDefaultAlbum(prisma, member.id),
+      createDefaultAlbum(prisma, uploader.id),
+      createDefaultAlbum(prisma, deleter.id),
+      createDefaultAlbum(prisma, outsider.id),
+    ]);
 
     // Create memberships
     await prisma.albumMember.createMany({
@@ -218,6 +232,130 @@ describe("album permission matrix", () => {
     await expect(
       removePhotoFromAlbum(prisma, { albumId: album2.id, userId: member.id, photoId: photo2.id })
     ).rejects.toThrow(/删除权限/);
+  });
+
+  it("lets album owners remove a member-uploaded photo relation but not manage the media itself", async () => {
+    const { album: _album, owner, uploader } = await setupUsers();
+    const album2 = await prisma.album.create({ data: { creator_id: owner.id, name: "MEDIA Test" } });
+    await prisma.albumMember.create({ data: { album_id: album2.id, user_id: owner.id, role: "owner" } });
+    await prisma.albumMember.create({ data: { album_id: album2.id, user_id: uploader.id, role: "member", can_upload: true, can_delete: false } });
+
+    const uploaded = await uploadPhotoToAlbum(
+      prisma,
+      { storageRoot, jwtSecret: "x".repeat(32) },
+      {
+        albumId: album2.id,
+        userId: uploader.id,
+        file: new File([tinyPng], "member-upload.png", { type: "image/png" }),
+      }
+    );
+
+    await expect(
+      removePhotoFromAlbum(prisma, { albumId: album2.id, userId: owner.id, photoId: uploaded.id })
+    ).resolves.toBeDefined();
+
+    await expect(
+      softDeletePhoto(prisma, { photoId: uploaded.id, userId: owner.id })
+    ).rejects.toThrow(/权限/);
+
+    await expect(
+      restorePhoto(prisma, { photoId: uploaded.id, userId: owner.id })
+    ).rejects.toThrow(/权限|回收站/);
+
+    await expect(
+      permanentlyDeletePhoto(prisma, { photoId: uploaded.id, userId: owner.id }, storageRoot)
+    ).rejects.toThrow(/权限|回收站/);
+  });
+
+  it("excludes photos already in the target album when browsing all photos and preserves failed selections", async () => {
+    const { owner } = await setupUsers();
+    const targetAlbum = await prisma.album.create({ data: { creator_id: owner.id, name: "Target Album" } });
+    await prisma.albumMember.create({ data: { album_id: targetAlbum.id, user_id: owner.id, role: "owner" } });
+
+    const allPhotosAlbumId = await getUserDefaultAlbumId(prisma, owner.id);
+
+    const first = await prisma.media.create({
+      data: {
+        album_id: allPhotosAlbumId,
+        uploader_id: owner.id,
+        original_name: "keep.png",
+        file_name: "keep.png",
+        mime_type: "image/png",
+        media_type: "image",
+        size: 1,
+        width: 1,
+        height: 1,
+        original_url: "/f",
+        preview_url: "/f",
+        thumbnail_url: "/f",
+        storage_path: "keep.png",
+        processing_status: "normal",
+      },
+    });
+    const second = await prisma.media.create({
+      data: {
+        album_id: allPhotosAlbumId,
+        uploader_id: owner.id,
+        original_name: "skip.png",
+        file_name: "skip.png",
+        mime_type: "image/png",
+        media_type: "image",
+        size: 1,
+        width: 1,
+        height: 1,
+        original_url: "/f",
+        preview_url: "/f",
+        thumbnail_url: "/f",
+        storage_path: "skip.png",
+        processing_status: "normal",
+      },
+    });
+    await prisma.albumPhoto.createMany({
+      data: [
+        { album_id: allPhotosAlbumId, photo_id: first.id, added_by: owner.id },
+        { album_id: allPhotosAlbumId, photo_id: second.id, added_by: owner.id },
+        { album_id: targetAlbum.id, photo_id: second.id, added_by: owner.id },
+      ],
+    });
+
+    const allPhotos = await getAlbumPhotos(prisma, {
+      albumId: allPhotosAlbumId,
+      userId: owner.id,
+      page: 1,
+      pageSize: 50,
+      excludeAlbumId: targetAlbum.id,
+    } as any);
+
+    expect(allPhotos.items.map((item) => item.id)).toEqual([first.id]);
+
+    const firstPage = await getAlbumPhotos(prisma, {
+      albumId: allPhotosAlbumId,
+      userId: owner.id,
+      page: 1,
+      pageSize: 1,
+    });
+    expect(firstPage.nextCursor).toBeTruthy();
+
+    const secondPage = await getAlbumPhotos(prisma, {
+      albumId: allPhotosAlbumId,
+      userId: owner.id,
+      page: 1,
+      pageSize: 1,
+      cursor: firstPage.nextCursor ?? undefined,
+    });
+    expect(secondPage.items[0]?.id).not.toBe(firstPage.items[0]?.id);
+    expect(new Set([first.id, second.id]).has(secondPage.items[0]?.id ?? "")).toBe(true);
+
+    await expect(
+      addPhotosToAlbum(prisma, {
+        albumId: targetAlbum.id,
+        userId: owner.id,
+        photoIds: [first.id, randomUUID()],
+      })
+    ).resolves.toMatchObject({
+      succeededIds: [first.id],
+      failed: [{ id: expect.any(String), code: expect.any(String), message: expect.any(String) }],
+    });
   });
 
   // ── Edit Album ──

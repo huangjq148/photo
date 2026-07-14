@@ -118,6 +118,56 @@ describe("photo library flows", () => {
     expect(finalTrash.items).toHaveLength(0);
   });
 
+  it("only shows the current uploader's trashed media", async () => {
+    const owner = await prisma.user.create({
+      data: {
+        email: `trash-owner-${Date.now()}@photo.test`,
+        password_hash: "hash",
+        nickname: "Trash Owner"
+      }
+    });
+    const uploader = await prisma.user.create({
+      data: {
+        email: `trash-uploader-${Date.now()}@photo.test`,
+        password_hash: "hash",
+        nickname: "Trash Uploader"
+      }
+    });
+    const album = await prisma.album.create({
+      data: {
+        creator_id: owner.id,
+        name: "Trash Album"
+      }
+    });
+
+    await prisma.albumMember.createMany({
+      data: [
+        { album_id: album.id, user_id: owner.id, role: "owner" },
+        { album_id: album.id, user_id: uploader.id, role: "member", can_upload: true, can_delete: false }
+      ]
+    });
+
+    const ownerUpload = await uploadPhotoToAlbum(prisma, { storageRoot, jwtSecret: "x".repeat(32) }, {
+      albumId: album.id,
+      userId: owner.id,
+      file: new File([tinyPng], "owner-trash.png", { type: "image/png" })
+    });
+    const uploaderUpload = await uploadPhotoToAlbum(prisma, { storageRoot, jwtSecret: "x".repeat(32) }, {
+      albumId: album.id,
+      userId: uploader.id,
+      file: new File([tinyPng], "uploader-trash.png", { type: "image/png" })
+    });
+
+    await softDeletePhoto(prisma, { photoId: ownerUpload.id, userId: owner.id });
+    await softDeletePhoto(prisma, { photoId: uploaderUpload.id, userId: uploader.id });
+
+    const ownerTrash = await getTrashPhotos(prisma, { userId: owner.id, page: 1, pageSize: 20 });
+    expect(ownerTrash.items.map((item) => item.id)).toEqual([ownerUpload.id]);
+
+    const uploaderTrash = await getTrashPhotos(prisma, { userId: uploader.id, page: 1, pageSize: 20 });
+    expect(uploaderTrash.items.map((item) => item.id)).toEqual([uploaderUpload.id]);
+  });
+
   it("searches photos and supports favorites", async () => {
     await seedPhoto();
 

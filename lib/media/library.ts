@@ -1,6 +1,7 @@
 import { rm } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import type { PrismaClient } from "@prisma/client";
+import { AppError } from "@/lib/api/errors";
 import { getStorageLayout } from "@/lib/storage/paths";
 import { assertAlbumMembership } from "@/lib/membership";
 
@@ -246,18 +247,11 @@ async function loadTrashAccessibleMedias(prisma: PrismaClient, mediaIds: string[
     return [];
   }
 
-  const userAlbums = await prisma.albumMember.findMany({
-    where: { user_id: userId },
-    select: { album_id: true },
-  });
-
-  const albumIds = userAlbums.map((m) => m.album_id);
-
   const medias = await prisma.media.findMany({
     where: {
       id: { in: uniqueMediaIds },
       status: "deleted",
-      album_id: { in: albumIds },
+      uploader_id: userId,
     },
     include: {
       album: {
@@ -276,17 +270,10 @@ async function loadTrashAccessibleMedias(prisma: PrismaClient, mediaIds: string[
   return medias as unknown as MediaRecord[];
 }
 
-function canManageMedia(media: MediaRecord, userId: string) {
-  if (media.uploader_id === userId) return true;
-  if (media.album.creator_id === userId) return true;
-
-  if (media.albumPhotos) {
-    for (const ap of media.albumPhotos) {
-      if (ap.album.creator_id === userId) return true;
-    }
+function assertMediaUploader(media: MediaRecord, userId: string) {
+  if (media.uploader_id !== userId) {
+    throw new AppError("你没有权限执行此操作", "MEDIA_UPLOADER_REQUIRED", 403);
   }
-
-  return false;
 }
 
 function resolveMediaPaths(storageRoot: string, storagePath: string, isVideo: boolean) {
@@ -389,24 +376,17 @@ export async function getTrashPhotos(
   const page = clampPage(context.page);
   const pageSize = Math.min(Math.max(Math.floor(context.pageSize), 1), 50);
 
-  const userAlbums = await prisma.albumMember.findMany({
-    where: { user_id: context.userId },
-    select: { album_id: true },
-  });
-
-  const albumIds = userAlbums.map((m) => m.album_id);
-
   const [total, items] = await Promise.all([
     prisma.media.count({
       where: {
         status: "deleted",
-        album_id: { in: albumIds },
+        uploader_id: context.userId,
       },
     }),
     prisma.media.findMany({
       where: {
         status: "deleted",
-        album_id: { in: albumIds },
+        uploader_id: context.userId,
       },
       orderBy: { deleted_at: "desc" },
       skip: (page - 1) * pageSize,
@@ -504,7 +484,7 @@ export async function updatePhotoMetadata(
 ): Promise<PhotoMetadataUpdate> {
   const media = await loadAccessibleMedia(prisma, context.photoId, context.userId);
 
-  if (!canManageMedia(media, context.userId)) {
+  if (media.uploader_id !== context.userId && media.album.creator_id !== context.userId) {
     throw new Error("你没有权限修改此信息");
   }
 
@@ -622,9 +602,7 @@ export async function getFavoritePhotos(
 export async function softDeletePhoto(prisma: PrismaClient, context: MediaContext) {
   const media = await loadAccessibleMedia(prisma, context.photoId, context.userId);
 
-  if (!canManageMedia(media, context.userId)) {
-    throw new Error("你没有权限删除此文件");
-  }
+  assertMediaUploader(media, context.userId);
 
   if (media.status === "deleted") {
     return media.id;
@@ -644,19 +622,17 @@ export async function softDeletePhoto(prisma: PrismaClient, context: MediaContex
 
 export async function softDeletePhotos(prisma: PrismaClient, context: BatchMediaContext) {
   const medias = await loadAccessibleMedias(prisma, context.albumId, context.photoIds, context.userId);
-  const deletableMedias = medias.filter((m) => canManageMedia(m, context.userId));
-
-  if (deletableMedias.length !== medias.length) {
-    throw new Error("你没有权限删除部分文件");
+  for (const media of medias) {
+    assertMediaUploader(media, context.userId);
   }
 
-  if (deletableMedias.length === 0) {
+  if (medias.length === 0) {
     return 0;
   }
 
   await prisma.media.updateMany({
     where: {
-      id: { in: deletableMedias.map((m) => m.id) },
+      id: { in: medias.map((m) => m.id) },
       status: "normal",
     },
     data: {
@@ -666,19 +642,17 @@ export async function softDeletePhotos(prisma: PrismaClient, context: BatchMedia
     },
   });
 
-  return deletableMedias.length;
+  return medias.length;
 }
 
 export async function restorePhoto(prisma: PrismaClient, context: MediaContext) {
   const media = await loadAccessibleMedia(prisma, context.photoId, context.userId);
 
   if (media.status !== "deleted") {
-    throw new Error("文件不在回收站中");
+    throw new AppError("文件不在回收站中", "MEDIA_NOT_TRASHED", 409);
   }
 
-  if (!canManageMedia(media, context.userId) && media.deleted_by !== context.userId) {
-    throw new Error("你没有权限恢复此文件");
-  }
+  assertMediaUploader(media, context.userId);
 
   await prisma.media.update({
     where: { id: media.id },
@@ -694,19 +668,20 @@ export async function restorePhoto(prisma: PrismaClient, context: MediaContext) 
 
 export async function restorePhotos(prisma: PrismaClient, context: BatchMediaContext) {
   const medias = await loadAccessibleMedias(prisma, context.albumId, context.photoIds, context.userId);
-  const restorableMedias = medias.filter((m) => m.status === "deleted");
-
-  if (restorableMedias.length !== medias.length) {
-    throw new Error("部分文件不在回收站中");
+  for (const media of medias) {
+    if (media.status !== "deleted") {
+      throw new AppError("部分文件不在回收站中", "MEDIA_NOT_TRASHED", 409);
+    }
+    assertMediaUploader(media, context.userId);
   }
 
-  if (restorableMedias.length === 0) {
+  if (medias.length === 0) {
     return 0;
   }
 
   await prisma.media.updateMany({
     where: {
-      id: { in: restorableMedias.map((m) => m.id) },
+      id: { in: medias.map((m) => m.id) },
       status: "deleted",
     },
     data: {
@@ -716,7 +691,7 @@ export async function restorePhotos(prisma: PrismaClient, context: BatchMediaCon
     },
   });
 
-  return restorableMedias.length;
+  return medias.length;
 }
 
 export async function restoreTrashPhotos(prisma: PrismaClient, mediaIds: string[], userId: string) {
@@ -751,12 +726,10 @@ export async function permanentlyDeletePhoto(
   const media = await loadAccessibleMedia(prisma, context.photoId, context.userId);
 
   if (media.status !== "deleted") {
-    throw new Error("文件必须先放入回收站才能永久删除");
+    throw new AppError("文件不在回收站中", "MEDIA_NOT_TRASHED", 409);
   }
 
-  if (!canManageMedia(media, context.userId) && media.deleted_by !== context.userId) {
-    throw new Error("你没有权限永久删除此文件");
-  }
+  assertMediaUploader(media, context.userId);
 
   const isVideo = media.media_type === "video";
   const paths = resolveMediaPaths(storageRoot, media.storage_path, isVideo);
@@ -786,18 +759,19 @@ export async function permanentlyDeletePhotos(
   storageRoot = process.env.STORAGE_ROOT ?? "./data/storage"
 ) {
   const medias = await loadAccessibleMedias(prisma, context.albumId, context.photoIds, context.userId);
-  const deletableMedias = medias.filter((m) => m.status === "deleted");
-
-  if (deletableMedias.length !== medias.length) {
-    throw new Error("部分文件不在回收站中");
+  for (const media of medias) {
+    if (media.status !== "deleted") {
+      throw new AppError("部分文件不在回收站中", "MEDIA_NOT_TRASHED", 409);
+    }
+    assertMediaUploader(media, context.userId);
   }
 
-  if (deletableMedias.length === 0) {
+  if (medias.length === 0) {
     return 0;
   }
 
   await prisma.$transaction(async (tx) => {
-    for (const media of deletableMedias) {
+    for (const media of medias) {
       await tx.media.delete({ where: { id: media.id } });
       await tx.user.update({
         where: { id: media.uploader_id },
@@ -806,13 +780,13 @@ export async function permanentlyDeletePhotos(
     }
   });
 
-  for (const media of deletableMedias) {
+  for (const media of medias) {
     const isVideo = media.media_type === "video";
     const paths = resolveMediaPaths(storageRoot, media.storage_path, isVideo);
     await removePaths([paths.originalPath, paths.previewPath, paths.thumbnailPath]);
   }
 
-  return deletableMedias.length;
+  return medias.length;
 }
 
 export async function permanentlyDeleteTrashPhotos(

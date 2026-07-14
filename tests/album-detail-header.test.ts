@@ -15,7 +15,8 @@ describe("AlbumDetailHeader", () => {
           memberCount: 3,
           role: "owner",
         },
-        onAddPhotos: () => undefined,
+        onUploadNew: () => undefined,
+        onAddFromAllPhotos: () => undefined,
         onManage: () => undefined,
         onShare: () => undefined,
       }),
@@ -25,9 +26,9 @@ describe("AlbumDetailHeader", () => {
     expect(html).toContain("周末整理");
     expect(html).toContain("18 张照片");
     expect(html).toContain("3 位成员");
-    expect(html).toContain("添加照片");
+    expect(html).toContain("上传新照片");
+    expect(html).toContain("从全部照片添加");
     expect(html).toContain("管理");
-    expect(html).not.toContain("上传");
     expect(html).not.toContain("邀请");
     expect(html).toContain("text-3xl");
     expect(html).not.toContain("sm:text-6xl");

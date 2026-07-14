@@ -9,6 +9,7 @@ import { PhotoGallery } from "@/components/photos/photo-gallery";
 import { shouldConfirmDisableChildAlbum, validateChildBirthDate } from "@/lib/albums/child-album-rules";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { useMessage } from "@/components/ui/message";
+import { useUpload } from "@/components/upload/upload-provider";
 
 type AlbumDetailData = {
   id: string;
@@ -29,6 +30,7 @@ type AlbumDetailData = {
 };
 
 export function AlbumDetail({ albumId }: { albumId: string }) {
+  const { openUpload } = useUpload();
   const [album, setAlbum] = useState<AlbumDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -187,7 +189,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
     <div className="space-y-6">
       <AlbumDetailHeader
         album={album}
-        onAddPhotos={() => setShowAddPhotos(true)}
+        onUploadNew={() => openUpload({ albumId })}
+        onAddFromAllPhotos={() => setShowAddPhotos(true)}
         onManage={() => {
           setEditName(album.name);
           setEditDesc(album.description ?? "");
@@ -250,7 +253,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
 
       {showAddPhotos ? (
         <AddPhotosModal
-          albumId={albumId}
+          currentAlbumId={albumId}
           onClose={() => setShowAddPhotos(false)}
           onAdded={() => {
             setRefreshToken((current) => current + 1);

@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { generateId } from "@/lib/client-id";

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { toErrorResponse } from "@/lib/api/errors";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
 import { permanentlyDeletePhoto } from "@/lib/photos/library";
 
@@ -17,9 +18,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     await permanentlyDeletePhoto(prisma, { photoId: id, userId: user.id });
     return NextResponse.json({ ok: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "永久删除失败" },
-      { status: 400 }
-    );
+    const body = toErrorResponse(error);
+    return NextResponse.json(body, { status: body.status });
   }
 }
