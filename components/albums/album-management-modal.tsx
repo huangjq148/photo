@@ -91,6 +91,16 @@ export function AlbumManagementModal({
   const [queueState, setQueueState] = useState<UploadQueueState>(createInitialState());
   const detailsFormId = useId();
 
+  function handleSaveSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (saving || !editName.trim() || (editIsChildAlbum && !editChildBirthDate.trim())) {
+      return;
+    }
+
+    onSave();
+  }
+
   useEffect(() => {
     const currentController = controllerRef.current;
     if (currentController) {
@@ -198,7 +208,7 @@ export function AlbumManagementModal({
                 这个相册是系统默认相册，名称和描述不可编辑。
               </div>
             ) : (
-              <div className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSaveSubmit} noValidate>
                 <label className="block">
                   <span className="text-sm font-medium text-[var(--muted-strong)]">相册名称</span>
                   <input
@@ -253,7 +263,7 @@ export function AlbumManagementModal({
                 >
                   {saving ? "保存中..." : "保存资料"}
                 </button>
-              </div>
+              </form>
             )}
 
             {!album.isImmutable && album.role === "owner" ? (

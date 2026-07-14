@@ -329,11 +329,11 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - Modify: `components/photos/photo-gallery-card.tsx`
 - Create: `tests/batch-action-bar.test.ts`
 
-- [ ] **Step 1: 写失败测试**：进入选择模式后卡片主体切换选择；桌面 sticky、移动端位于底部导航之上；部分失败只保留失败项。
-- [ ] **Step 2: 运行确认失败。
-- [ ] **Step 3: 接入 `useSelection` 和 Task 15 API；操作包括添加、收藏/取消、删除、取消；pending 时禁重复提交。
-- [ ] **Step 4: 在搜索筛选变化前有选择时显示放弃确认。
-- [ ] **Step 5: 运行组件测试并提交**：`git commit -m "feat: 添加响应式照片批量操作栏"`。
+- [x] **Step 1: 写失败测试**：进入选择模式后卡片主体切换选择；桌面 sticky、移动端位于底部导航之上；部分失败只保留失败项。
+- [x] **Step 2: 运行确认失败。
+- [x] **Step 3: 接入 `useSelection` 和 Task 15 API；操作包括添加、收藏/取消、删除、取消；pending 时禁重复提交。
+- [x] **Step 4: 在搜索筛选变化前有选择时显示放弃确认。
+- [x] **Step 5: 运行组件测试并提交**：`git commit -m "feat: 添加响应式照片批量操作栏"`。
 
 ### Task 17: 统一移除、回收站和永久删除交互
 
@@ -345,11 +345,11 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - Modify: `components/photos/duplicate-gallery.tsx`
 - Create: `tests/delete-action-policy.test.ts`
 
-- [ ] **Step 1: 写策略测试**：默认相册只有移入回收站；普通相册对他人媒体只有移除；本人媒体同时可移除或移入回收站；永久删除总是确认。
-- [ ] **Step 2: 运行确认失败。
-- [ ] **Step 3: 实现纯函数 `getMediaDeleteActions(context)` 并让各页面复用；移除单项直接执行且提供 6 秒撤销，批量移除确认。
-- [ ] **Step 4: 撤销分别调用重新添加关系或 restore；失败时保留错误和恢复入口。
-- [ ] **Step 5: 运行组件与集成测试并提交**：`git commit -m "feat: 统一照片删除语义与撤销"`。
+- [x] **Step 1: 写策略测试**：默认相册只有移入回收站；普通相册对他人媒体只有移除；本人媒体同时可移除或移入回收站；永久删除总是确认。
+- [x] **Step 2: 运行确认失败。
+- [x] **Step 3: 实现纯函数 `getMediaDeleteActions(context)` 并让各页面复用；移除单项直接执行且提供 6 秒撤销，批量移除确认。
+- [x] **Step 4: 撤销分别调用重新添加关系或 restore；失败时保留错误和恢复入口。
+- [x] **Step 5: 运行组件与集成测试并提交**：`git commit -m "feat: 统一照片删除语义与撤销"`。
 
 ### Task 18: 完成 Modal 焦点约束与关闭保护
 
@@ -361,11 +361,11 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - Modify: `tests/modal.test.ts`
 - Create: `tests/e2e/modal-focus.spec.ts`
 
-- [ ] **Step 1: 扩展静态组件失败测试**：Modal 输出可聚焦容器、背景标记、标题关联和新属性对应结构。
-- [ ] **Step 2: 写 Playwright 失败测试**：打开聚焦 initial ref；Tab 循环；背景不可操作；Escape 规则；关闭恢复触发器；`onBeforeClose=false` 保持打开。运行 `npx vitest run --project unit tests/modal.test.ts` 和 `npx playwright test tests/e2e/modal-focus.spec.ts --project chromium`，确认至少新增断言失败。
-- [ ] **Step 3: 实现 hook 和 Modal 新属性；嵌套弹窗只让最上层响应 Escape。
-- [ ] **Step 4: 创建相册和资料编辑改用 `<form>`；名称初始聚焦，Enter 提交，保存失败保留页签。
-- [ ] **Step 5: 运行所有弹窗组件测试并提交**：`git commit -m "feat: 完善弹窗焦点与关闭保护"`。
+- [x] **Step 1: 扩展静态组件失败测试**：Modal 输出可聚焦容器、背景标记、标题关联和新属性对应结构。
+- [x] **Step 2: 写 Playwright 失败测试**：打开聚焦 initial ref；Tab 循环；背景不可操作；Escape 规则；关闭恢复触发器；`onBeforeClose=false` 保持打开。运行 `npx vitest run --project unit tests/modal.test.ts` 和 `npx playwright test tests/e2e/modal-focus.spec.ts --project chromium`，确认至少新增断言失败。
+- [x] **Step 3: 实现 hook 和 Modal 新属性；嵌套弹窗只让最上层响应 Escape。
+- [x] **Step 4: 创建相册和资料编辑改用 `<form>`；名称初始聚焦，Enter 提交，保存失败保留页签。
+- [x] **Step 5: 运行所有弹窗组件测试并提交**：`git commit -m "feat: 完善弹窗焦点与关闭保护"`。
 
 ### Task 19: 统一骨架、异步错误与图库偏好
 
@@ -378,20 +378,20 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - Create: `tests/gallery-preferences.test.ts`
 - Create: `tests/async-state.test.ts`
 
-- [ ] **Step 1: 写偏好测试**：v1 默认值、合法持久化、损坏数据回退、未知字段忽略。
-- [ ] **Step 2: 写异步状态测试**：首次骨架、刷新保留内容、加载更多错误带重试。
-- [ ] **Step 3: 实现并接入图库；偏好只含 size/layout/showTakenAt/groupMode，搜索筛选不写 localStorage。
-- [ ] **Step 4: 运行测试并提交**：`git commit -m "feat: 持久化图库偏好并统一加载状态"`。
+- [x] **Step 1: 写偏好测试**：v1 默认值、合法持久化、损坏数据回退、未知字段忽略。
+- [x] **Step 2: 写异步状态测试**：首次骨架、刷新保留内容、加载更多错误带重试。
+- [x] **Step 3: 实现并接入图库；偏好只含 size/layout/showTakenAt/groupMode，搜索筛选不写 localStorage。
+- [x] **Step 4: 运行测试并提交**：`git commit -m "feat: 持久化图库偏好并统一加载状态"`。
 
 ### Task 20: P1 验收与发布门
 
 **Files:**
 - Create: `tests/e2e/photo-ux-p1.spec.ts`
 
-- [ ] **Step 1: E2E 覆盖三并发上传、失败重试、关闭保护、批量部分失败、移除撤销、Modal 键盘和偏好刷新保持。
-- [ ] **Step 2: 运行**：`npx playwright test tests/e2e/photo-ux-p0.spec.ts tests/e2e/photo-ux-p1.spec.ts --project chromium`。
-- [ ] **Step 3: 运行 `npm run verify`；若测试数据库或浏览器依赖缺失，先恢复环境而不是跳过。
-- [ ] **Step 4: 提交**：`git commit -m "test: 补充核心体验流程验收"`。
+- [x] **Step 1: E2E 覆盖三并发上传、失败重试、关闭保护、批量部分失败、移除撤销、Modal 键盘和偏好刷新保持。
+- [x] **Step 2: 运行**：`npx playwright test tests/e2e/photo-ux-p0.spec.ts tests/e2e/photo-ux-p1.spec.ts --project chromium`。
+- [x] **Step 3: 运行 `npm run verify`；若测试数据库或浏览器依赖缺失，先恢复环境而不是跳过。
+- [x] **Step 4: 提交**：`git commit -m "test: 补充核心体验流程验收"`。
 
 ## P2：导航、筛选、预览与全站一致性
 

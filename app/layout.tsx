@@ -4,19 +4,25 @@ import { MessageProvider } from "@/components/ui/message";
 import { UploadProvider } from "@/components/upload/upload-provider";
 import "./globals.css";
 
+function AppProviders({ children }: { children: ReactNode }) {
+  return (
+    <MessageProvider>
+      <UploadProvider>{children}</UploadProvider>
+    </MessageProvider>
+  );
+}
+
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: ReactNode;
 }>) {
   return (
     <html lang="zh-CN">
       <body>
-        <MessageProvider>
-          <UploadProvider>
-            <AppShell>{children}</AppShell>
-          </UploadProvider>
-        </MessageProvider>
+        <AppProviders>
+          <AppShell>{children}</AppShell>
+        </AppProviders>
       </body>
     </html>
   );

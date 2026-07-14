@@ -276,6 +276,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         <PhotoGallery
           key={photoRefreshToken}
           albumId={albumId}
+          albumIsDefault={album.isDefault}
+          currentUserId={album.currentUserId}
           refreshSignal={photoRefreshToken}
           onSetCover={(photoId) => {
             void handleSetCover(photoId);

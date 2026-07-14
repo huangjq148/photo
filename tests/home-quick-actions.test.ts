@@ -16,6 +16,15 @@ vi.mock("@/components/upload/upload-provider", () => ({
   }),
 }));
 
+vi.mock("@/components/ui/message", () => ({
+  useMessage: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  }),
+}));
+
 describe("HomeQuickActions", () => {
   beforeEach(() => {
     vi.restoreAllMocks();

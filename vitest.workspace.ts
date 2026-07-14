@@ -8,7 +8,7 @@ export default defineWorkspace([
   {
     test: {
       name: "unit",
-      include: ["tests/**/*.test.ts"],
+      include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
       exclude: [
         "tests/**/*.integration.test.ts",
         ".codex/**",

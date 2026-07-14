@@ -7,6 +7,7 @@ import {
 } from "@/components/photos/photo-gallery-card";
 import { Menu } from "@/components/ui/menu";
 import { MessageProvider } from "@/components/ui/message";
+import { getMediaDeleteActions } from "@/lib/photos/delete-actions";
 
 describe("PhotoGalleryCard", () => {
   it("keeps photo actions visible on touch and exposes a click-triggered menu", () => {
@@ -59,6 +60,52 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("h-11 w-11");
     expect(html).toContain("更多操作");
     expect(html).not.toContain("1200 × 900");
+  });
+
+  it("renders a selection-first body when selection mode is active", () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        MessageProvider,
+        null,
+        createElement(PhotoGalleryCard, {
+          albumId: "album-1",
+          photo: {
+            id: "photo-select",
+            displayName: null,
+            originalName: "select.jpg",
+            thumbnailUrl: "/thumb-select.jpg",
+            previewUrl: "/preview-select.jpg",
+            originalUrl: "/api/files/originals/select.jpg",
+            mimeType: "image/jpeg",
+            mediaType: "image",
+            duration: null,
+            width: 1200,
+            height: 900,
+            takenAt: null,
+            uploadedAt: "2026-01-01T00:00:00.000Z",
+            isFavorited: false,
+            canEditName: false,
+            locationHidden: false,
+          },
+          selected: false,
+          selectionMode: true,
+          waterfall: false,
+          showTakenAt: false,
+          onSelect: () => undefined,
+          onFavorite: () => true,
+          onDelete: () => undefined,
+          onShare: () => undefined,
+          onSetCover: () => undefined,
+          onAddToAlbum: () => undefined,
+          onEditTakenAt: () => undefined,
+          onToggleLocationHidden: () => undefined,
+        }),
+      ),
+    );
+
+    expect(html).toContain("点击选择");
+    expect(html).not.toContain("点击查看原图");
+    expect(html).toContain('role="button"');
   });
 
   it("renders the menu panel with menu semantics when open", () => {
@@ -130,6 +177,47 @@ describe("PhotoGalleryCard", () => {
     expect(items.map((item) => item.label)).not.toContain("设为封面");
     expect(items.map((item) => item.label)).toContain("收藏");
     expect(items.map((item) => item.label)).toContain("删除");
+  });
+
+  it("renders shared delete actions when the strategy returns multiple choices", () => {
+    const items = buildPhotoGalleryCardMenuItems({
+      photo: {
+        id: "photo-delete",
+        displayName: null,
+        originalName: "family.jpg",
+        thumbnailUrl: "/thumb.jpg",
+        previewUrl: "/preview.jpg",
+        originalUrl: "/api/files/originals/test.jpg",
+        mimeType: "image/jpeg",
+        mediaType: "image",
+        duration: null,
+        width: 1200,
+        height: 900,
+        takenAt: null,
+        uploadedAt: "2026-01-01T00:00:00.000Z",
+        isFavorited: false,
+        canEditName: true,
+        locationHidden: false,
+      },
+      favoriteLabel: "收藏",
+      onFavorite: () => true,
+      onShare: () => undefined,
+      onEditTakenAt: () => undefined,
+      onToggleLocationHidden: () => undefined,
+      onAddToAlbum: () => undefined,
+      onSetCover: () => undefined,
+      onShowInfo: () => undefined,
+      deleteActions: getMediaDeleteActions({
+        scope: "album",
+        albumIsDefault: false,
+        isOwnMedia: true,
+      }),
+      onDeleteAction: () => undefined,
+    });
+
+    expect(items.map((item) => item.label)).toContain("移出相册");
+    expect(items.map((item) => item.label)).toContain("移入回收站");
+    expect(items.map((item) => item.label)).not.toContain("删除");
   });
 
   it("renders the selection control in blue when selected", () => {
