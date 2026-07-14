@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { uploadFile } from "@/lib/client/upload-request";
 import type { UploadRequestBusinessError, UploadRequestResult } from "@/lib/client/upload-request";
 
 export type UploadQueueStatus = "queued" | "uploading" | "success" | "failed" | "cancelled";
@@ -208,7 +208,7 @@ function updateItem(
   return changed ? applyCounts({ ...state, items }) : state;
 }
 
-function appendItems(state: UploadQueueState, items: readonly UploadQueueItem[]): UploadQueueState {
+function appendItems(state: UploadQueueState, items: readonly UploadQueueDraft[]): UploadQueueState {
   const seen = new Set(state.items.map((item) => item.fileKey));
   const nextItems = [...state.items];
 
@@ -221,7 +221,13 @@ function appendItems(state: UploadQueueState, items: readonly UploadQueueItem[])
     nextItems.push(
       cloneItem({
         id: item.id ?? buildFileKey(item.file),
-        ...item,
+        albumId: item.albumId,
+        file: item.file,
+        fileKey: item.fileKey,
+        name: item.name,
+        size: item.size,
+        type: item.type,
+        previewUrl: item.previewUrl,
         status: "queued",
         progress: { loaded: 0, total: 0 },
         result: null,
@@ -236,7 +242,7 @@ function appendItems(state: UploadQueueState, items: readonly UploadQueueItem[])
 export function uploadQueueReducer(state: UploadQueueState = createInitialState(), action: UploadQueueReducerAction): UploadQueueState {
   switch (action.type) {
     case "enqueue":
-      return appendItems(state, action.items.map((item) => createQueuedItem(item)));
+      return appendItems(state, action.items);
     case "start": {
       let nextState = state;
       for (const itemId of action.itemIds) {
@@ -462,7 +468,7 @@ export function createUploadQueueController({
     }
 
     const existingKeys = new Set(state.items.map((item) => item.fileKey));
-    const createdItems: UploadQueueItem[] = [];
+    const createdItems: UploadQueueDraft[] = [];
     const ids: string[] = [];
 
     for (const file of files) {
@@ -533,7 +539,7 @@ export function createUploadQueueController({
       return;
     }
 
-    activeRequests.get(itemId)?.abort();
+    activeRequests.get(itemId)?.controller.abort();
     activeRequests.delete(itemId);
 
     const previewUrl = previewUrls.get(itemId);
