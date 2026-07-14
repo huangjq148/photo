@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AddPhotosModal } from "@/components/albums/add-photos-modal";
 import { AlbumDetailHeader } from "@/components/albums/album-detail-header";
 import { AlbumManagementModal } from "@/components/albums/album-management-modal";
 import { AlbumShareManager } from "@/components/albums/album-share-manager";
 import { PhotoGallery } from "@/components/photos/photo-gallery";
-import { shouldConfirmDisableChildAlbum, validateChildBirthDate } from "@/lib/albums/child-album-rules";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { useMessage } from "@/components/ui/message";
 import { useUpload } from "@/components/upload/upload-provider";
+import { shouldConfirmDisableChildAlbum, validateChildBirthDate } from "@/lib/albums/child-album-rules";
 
 type AlbumDetailData = {
   id: string;
@@ -29,11 +29,39 @@ type AlbumDetailData = {
   role: string;
 };
 
+export function AlbumDetailPageError({
+  error,
+  onReload,
+}: {
+  error: string;
+  onReload: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="space-y-4 rounded-2xl border border-red-400/30 bg-red-950/30 p-6 text-[var(--danger)]"
+    >
+      <div>
+        <p className="text-base font-bold text-[var(--text)]">相册加载失败</p>
+        <p className="mt-2 text-sm leading-6 text-[var(--danger)]">{error}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onReload}
+        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-red-400/40 px-5 text-sm font-bold text-[var(--text)] transition hover:bg-white/[0.08]"
+      >
+        重新加载相册
+      </button>
+    </div>
+  );
+}
+
 export function AlbumDetail({ albumId }: { albumId: string }) {
   const { openUpload } = useUpload();
   const [album, setAlbum] = useState<AlbumDetailData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editIsChildAlbum, setEditIsChildAlbum] = useState(false);
@@ -49,39 +77,69 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
   const [photoRefreshToken, setPhotoRefreshToken] = useState(0);
   const message = useMessage();
 
-  async function load() {
+  async function load({ replaceBody }: { replaceBody: boolean }) {
+    if (replaceBody) {
+      setLoading(true);
+      setLoadError(null);
+      setAlbum(null);
+    }
+
     try {
       const response = await fetch(`/api/albums/${albumId}`);
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? "Failed to load album");
+      if (!response.ok) {
+        throw new Error(json.error ?? "Failed to load album");
+      }
 
       setAlbum(json.data);
       setEditName(json.data.name);
       setEditDesc(json.data.description ?? "");
-      setEditIsChildAlbum(!!json.data.isChildAlbum);
+      setEditIsChildAlbum(Boolean(json.data.isChildAlbum));
       setEditChildBirthDate(json.data.childBirthDate ?? "");
+      setLoadError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load album");
+      const text = err instanceof Error ? err.message : "Failed to load album";
+      if (replaceBody) {
+        setLoadError(text);
+      } else {
+        message.error(text);
+      }
     } finally {
-      setLoading(false);
+      if (replaceBody) {
+        setLoading(false);
+      }
     }
   }
 
   useEffect(() => {
-    void load();
-  }, [albumId, refreshToken]);
+    void load({ replaceBody: true });
+  }, [albumId]);
+
+  useEffect(() => {
+    if (refreshToken === 0) {
+      return;
+    }
+
+    void load({ replaceBody: false });
+  }, [refreshToken]);
 
   async function handleSave() {
-    if (!editName.trim()) return;
+    if (!editName.trim()) {
+      setFormError("相册名称不能为空");
+      return;
+    }
+
     const birthDateError = validateChildBirthDate(editIsChildAlbum, editChildBirthDate);
     if (birthDateError) {
-      setError(birthDateError);
+      setFormError(birthDateError);
       message.error(birthDateError);
       window.requestAnimationFrame(() => {
         document.getElementById("child-birth-date-input")?.focus();
       });
       return;
     }
+
+    setFormError(null);
     setSaving(true);
     try {
       const response = await fetch(`/api/albums/${albumId}`, {
@@ -98,11 +156,12 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         const json = await response.json();
         throw new Error(json.error ?? "Failed to update album");
       }
+
       message.success("相册资料已保存");
       setRefreshToken((current) => current + 1);
     } catch (err) {
       const text = err instanceof Error ? err.message : "Failed to update album";
-      setError(text);
+      setFormError(text);
       message.error(text);
     } finally {
       setSaving(false);
@@ -137,6 +196,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         const json = await response.json();
         throw new Error(json.error ?? "设置封面失败");
       }
+
       message.success("封面已更新");
       setRefreshToken((current) => current + 1);
     } catch (err) {
@@ -146,6 +206,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
 
   async function handleDelete() {
     if (!confirm("确定要删除此相册吗？此操作不可撤销。")) return;
+
+    setFormError(null);
     setDeleting(true);
     try {
       const response = await fetch(`/api/albums/${albumId}`, { method: "DELETE" });
@@ -153,9 +215,12 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         const json = await response.json();
         throw new Error(json.error ?? "Failed to delete album");
       }
+
       window.location.href = "/albums";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete album");
+      const text = err instanceof Error ? err.message : "Failed to delete album";
+      setFormError(text);
+      message.error(text);
     } finally {
       setDeleting(false);
     }
@@ -169,12 +234,8 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
     );
   }
 
-  if (error) {
-    return (
-      <div className="rounded-2xl border border-red-400/30 bg-red-950/30 p-6 text-[var(--danger)]">
-        {error}
-      </div>
-    );
+  if (loadError) {
+    return <AlbumDetailPageError error={loadError} onReload={() => void load({ replaceBody: true })} />;
   }
 
   if (!album) {
@@ -192,6 +253,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         onUploadNew={() => openUpload({ albumId })}
         onAddFromAllPhotos={() => setShowAddPhotos(true)}
         onManage={() => {
+          setFormError(null);
           setEditName(album.name);
           setEditDesc(album.description ?? "");
           setEditIsChildAlbum(album.isChildAlbum);
@@ -207,7 +269,9 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
           key={photoRefreshToken}
           albumId={albumId}
           refreshSignal={photoRefreshToken}
-          onSetCover={(photoId) => { void handleSetCover(photoId); }}
+          onSetCover={(photoId) => {
+            void handleSetCover(photoId);
+          }}
           showTakenAt={showTakenAt}
           onToggleTakenAt={() => setShowTakenAt((prev) => !prev)}
           photoSize={photoSize}
@@ -225,6 +289,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         editDesc={editDesc}
         editIsChildAlbum={editIsChildAlbum}
         editChildBirthDate={editChildBirthDate}
+        formError={formError}
         saving={saving}
         deleting={deleting}
         onEditNameChange={setEditName}

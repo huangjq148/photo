@@ -31,6 +31,7 @@ type AlbumManagementModalProps = {
   editChildBirthDate: string;
   saving: boolean;
   deleting: boolean;
+  formError?: string | null;
   showTakenAt: boolean;
   onToggleTakenAt: () => void;
   photoSize: PhotoSize;
@@ -63,6 +64,7 @@ export function AlbumManagementModal({
   editChildBirthDate,
   saving,
   deleting,
+  formError,
   showTakenAt,
   onToggleTakenAt,
   photoSize,
@@ -107,6 +109,11 @@ export function AlbumManagementModal({
 
         {activeTab === "details" ? (
           <div className="space-y-5">
+            {formError ? (
+              <div className="rounded-xl border border-red-400/25 bg-red-950/20 px-4 py-3 text-sm text-[var(--danger)]" role="alert">
+                {formError}
+              </div>
+            ) : null}
             <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/70 p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
