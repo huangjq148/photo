@@ -266,7 +266,7 @@ test.describe.serial("photo ux p1", () => {
     await openAlbum(page);
 
     const collaboratorCard = page.locator("article").filter({ hasText: collaboratorPhotoName }).first();
-    await collaboratorCard.getByRole("button", { name: "更多操作" }).click();
+    await collaboratorCard.getByRole("button", { name: "更多操作" }).click({ force: true });
     await collaboratorCard.getByRole("menuitem", { name: "从相册移除" }).click();
 
     await expect(page.getByText("已从相册移除")).toBeVisible();

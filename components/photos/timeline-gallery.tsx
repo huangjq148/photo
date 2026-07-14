@@ -72,7 +72,6 @@ export function TimelineGallery() {
     try {
       setLoading(true);
       setError(null);
-      setSelectedIds([]);
 
       const response = await fetch(`/api/timeline?pageSize=${PAGE_SIZE}`, { cache: "no-store" });
       const json = await response.json();
@@ -182,35 +181,45 @@ export function TimelineGallery() {
     }
 
     try {
-      const deletedItems = [...selectedItems];
-      const results = await Promise.all(
-        deletedItems.map(async (item) => {
-          const response = await fetch(`/api/photos/${item.id}`, { method: "DELETE" });
-          if (!response.ok) {
-            const json = await response.json().catch(() => ({}));
-            throw new Error(json.error ?? `删除 ${item.originalName} 失败`);
-          }
-          return item.id;
-        })
-      );
-
-      message.success(deleteAction.successMessage, {
-        label: "撤销",
-        onSelect: async () => {
-          await Promise.all(
-            results.map(async (photoId) => {
-              const response = await fetch(`/api/photos/${photoId}/restore`, { method: "POST" });
-              const json = await response.json().catch(() => ({}));
-              if (!response.ok) {
-                throw new Error(json.error ?? "撤销失败");
-              }
-            }),
-          );
-          setRefreshToken((current) => current + 1);
-        },
+      const response = await fetch("/api/photos/batch-trash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoIds: selectedItems.map((item) => item.id) }),
       });
-      setSelectedIds([]);
-      setRefreshToken((current) => current + 1);
+
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(json.error ?? "删除失败");
+      }
+
+      const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
+      const failedIds = result.failed?.map((item) => item.id) ?? [];
+
+      if (failedIds.length > 0) {
+        setSelectedIds(failedIds);
+        message.error(result.failed?.[0]?.message ?? "部分删除失败");
+      } else {
+        setSelectedIds([]);
+        message.success(deleteAction.successMessage, {
+          label: "撤销",
+          onSelect: async () => {
+            await Promise.all(
+              (result.succeededIds ?? []).map(async (photoId) => {
+                const restoreResponse = await fetch(`/api/photos/${photoId}/restore`, { method: "POST" });
+                const restoreJson = await restoreResponse.json().catch(() => ({}));
+                if (!restoreResponse.ok) {
+                  throw new Error(restoreJson.error ?? "撤销失败");
+                }
+              }),
+            );
+            setRefreshToken((current) => current + 1);
+          },
+        });
+      }
+
+      if ((result.succeededIds?.length ?? 0) > 0) {
+        setRefreshToken((current) => current + 1);
+      }
     } catch (err) {
       message.error(err instanceof Error ? err.message : "删除失败");
     }
