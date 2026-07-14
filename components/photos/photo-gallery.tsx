@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
 import { TakenAtEditorModal } from "@/components/photos/taken-at-editor-modal";
 import { AddPhotoToAlbumModal } from "@/components/albums/add-photo-to-album-modal";
@@ -19,7 +19,7 @@ import { GalleryToolbar } from "@/components/photos/gallery-toolbar";
 import { GalleryEmptyState } from "@/components/photos/gallery-empty-state";
 import { GalleryGrid } from "@/components/photos/gallery-grid";
 import { getMediaDeleteActions } from "@/lib/media/delete-actions";
-import { useGalleryQuery } from "@/hooks/use-gallery-query";
+import { useGalleryQuery, type GalleryUrlState } from "@/hooks/use-gallery-query";
 import { useAlbumMedia } from "@/hooks/use-album-media";
 import { useSelection } from "@/hooks/use-selection";
 import {
@@ -153,6 +153,7 @@ export function PhotoGallery({
   const [batchAddOpen, setBatchAddOpen] = useState(false);
   const [editTakenAtPhoto, setEditTakenAtPhoto] = useState<PhotoItem | null>(null);
   const [busyAction, setBusyAction] = useState<"add" | "favorite" | "delete" | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
   const selection = useSelection();
@@ -160,50 +161,78 @@ export function PhotoGallery({
     onCommit: setCommittedKeyword,
   });
 
-  const fetchAlbumPage = useMemo(
-    () =>
-      async ({
-        albumId: targetAlbumId,
-        query,
-        page,
-        pageSize,
+  const urlState = galleryQuery.urlState;
+  const urlStateRef = useRef<GalleryUrlState>(urlState);
+  urlStateRef.current = urlState;
+
+  const fetchAlbumPage = useCallback(
+    async ({
+      albumId: targetAlbumId,
+      query,
+      page,
+      pageSize,
+      signal,
+    }: {
+      albumId: string;
+      query: string;
+      page: number;
+      pageSize: number;
+      signal: AbortSignal;
+    }) => {
+      const filters = urlStateRef.current;
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      if (query.trim()) {
+        params.set("keyword", query.trim());
+      }
+      // Pass filter params to API
+      if (filters?.mediaType) params.set("mediaType", filters.mediaType);
+      if (filters?.favoritedOnly) params.set("favoritedOnly", "1");
+      if (filters?.uploaderId) params.set("uploaderId", filters.uploaderId);
+      if (filters?.takenFrom) params.set("takenFrom", filters.takenFrom);
+      if (filters?.takenTo) params.set("takenTo", filters.takenTo);
+      if (filters?.sortBy) params.set("sortBy", filters.sortBy);
+      if (filters?.sortOrder) params.set("sortOrder", filters.sortOrder);
+
+      const response = await fetch(`/api/albums/${targetAlbumId}/photos?${params.toString()}`, {
+        cache: "no-store",
         signal,
-      }: {
-        albumId: string;
-        query: string;
-        page: number;
-        pageSize: number;
-        signal: AbortSignal;
-      }) => {
-        const params = new URLSearchParams({
-          page: String(page),
-          pageSize: String(pageSize),
-        });
-        if (query.trim()) {
-          params.set("keyword", query.trim());
-        }
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(json.error ?? "Failed to load photos");
+      }
 
-        const response = await fetch(`/api/albums/${targetAlbumId}/photos?${params.toString()}`, {
-          cache: "no-store",
-          signal,
-        });
-        const json = await response.json();
-        if (!response.ok) {
-          throw new Error(json.error ?? "Failed to load photos");
-        }
-
-        return {
-          items: json.data.items as PhotoItem[],
-          total: json.data.total as number,
-          nextCursor: page * pageSize < json.data.total ? String(page + 1) : null,
-        };
-      },
+      return {
+        items: json.data.items as PhotoItem[],
+        total: json.data.total as number,
+        nextCursor: page * pageSize < json.data.total ? String(page + 1) : null,
+      };
+    },
     [],
+  );
+
+  const filterHash = useMemo(
+    () =>
+      [
+        urlState.mediaType,
+        urlState.favoritedOnly ? "f" : "",
+        urlState.uploaderId,
+        urlState.takenFrom,
+        urlState.takenTo,
+        urlState.sortBy,
+        urlState.sortOrder,
+      ]
+        .filter(Boolean)
+        .join("|"),
+    [urlState],
   );
 
   const media = useAlbumMedia<PhotoItem>({
     albumId,
-    query: committedKeyword,
+    query: `${committedKeyword}${filterHash ? `|f:${filterHash}` : ""}`,
     refreshSignal: refreshToken + refreshSignal,
     fetchPage: fetchAlbumPage,
     pageSize: 24,
@@ -222,9 +251,9 @@ export function PhotoGallery({
   useEffect(() => {
     updateGalleryPreferences({
       layoutMode,
-      groupMode,
+      groupMode: urlState.groupBy ?? groupMode,
     });
-  }, [groupMode, layoutMode]);
+  }, [groupMode, layoutMode, urlState.groupBy]);
 
   useEffect(() => {
     setItems(media.items);
@@ -554,7 +583,8 @@ export function PhotoGallery({
   const favoriteBatchLabel = selectedItems.length > 0 && selectedItems.every((item) => item.isFavorited)
     ? "取消收藏"
     : "收藏";
-  const isGrouped = groupMode !== "none";
+  const effectiveGroupMode = urlState.groupBy ?? groupMode;
+  const isGrouped = effectiveGroupMode !== "none";
   const batchActionBar = selectionMode ? (
     <BatchActionBar
       selectedCount={selectedCount}
@@ -635,9 +665,9 @@ export function PhotoGallery({
   }, [items]);
 
   const groupedPhotos = useMemo(() => {
-    if (groupMode === "none") return null;
-    return groupPhotos(items, groupMode);
-  }, [items, groupMode]);
+    if (effectiveGroupMode === "none") return null;
+    return groupPhotos(items, effectiveGroupMode as GroupMode);
+  }, [items, effectiveGroupMode]);
 
   return (
     <div className="space-y-4">
@@ -647,16 +677,31 @@ export function PhotoGallery({
         searchValue={galleryQuery.searchValue}
         filteredCount={items.length}
         totalCount={totalCount}
-        activeFilterCount={0}
+        activeFilterCount={galleryQuery.activeFilterCount}
         hasActiveSelection={selectedCount > 0}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
-        onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
-        onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
-        onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
-        onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
+        onToggleFilters={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
+        onChangeSort={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
+        onChangeGroup={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
+        onClearFilters={() => {
+          if (selectionMode && !confirmDiscardSelection()) return;
+          if (selectionMode) selection.clear();
+          galleryQuery.clearFilters();
+        }}
         photoSize={photoSize}
         onPhotoSizeChange={onPhotoSizeChange}
+        filtersOpen={filtersOpen}
+        urlState={urlState}
+        showUploaderFilter={!isDefaultAlbum}
+        onMediaTypeChange={(v) => galleryQuery.setMediaType(v)}
+        onFavoritedOnlyChange={(v) => galleryQuery.setFavoritedOnly(v)}
+        onUploaderIdChange={(v) => galleryQuery.setUploaderId(v)}
+        onTakenFromChange={(v) => galleryQuery.setTakenRange(v, urlState.takenTo)}
+        onTakenToChange={(v) => galleryQuery.setTakenRange(urlState.takenFrom, v)}
+        onSortByChange={(v) => galleryQuery.setSortBy(v)}
+        onSortOrderChange={(v) => galleryQuery.setSortOrder(v)}
+        onGroupByChange={(v) => galleryQuery.setGroupBy(v)}
       />
 
       <AsyncState
@@ -708,7 +753,7 @@ export function PhotoGallery({
           onPhotoSizeChange={onPhotoSizeChange}
           layoutMode={layoutMode}
           onLayoutModeChange={setLayoutMode}
-          groupMode={groupMode}
+          groupMode={effectiveGroupMode as GalleryGroupMode}
         />
 
         {isGrouped && groupedPhotos ? (

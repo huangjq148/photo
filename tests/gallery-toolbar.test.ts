@@ -29,4 +29,141 @@ describe("GalleryToolbar", () => {
     expect(html).toContain("清空条件");
     expect(html).toContain("12 / 48");
   });
+
+  it("shows active filter count badge", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 0,
+        totalCount: 0,
+        activeFilterCount: 3,
+        hasActiveSelection: false,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("3");
+  });
+
+  it("renders filter panel when filtersOpen is true", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 0,
+        hasActiveSelection: false,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        filtersOpen: true,
+        urlState: {
+          q: "",
+          sortOrder: "desc",
+        },
+        showUploaderFilter: false,
+      }),
+    );
+
+    expect(html).toContain("媒体类型");
+    expect(html).toContain("收藏");
+    expect(html).toContain("拍摄日期");
+    expect(html).toContain("排序");
+    expect(html).toContain("分组");
+  });
+
+  it("shows uploader filter when showUploaderFilter is true", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 0,
+        hasActiveSelection: false,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        filtersOpen: true,
+        urlState: {
+          q: "",
+          sortOrder: "desc",
+        },
+        showUploaderFilter: true,
+      }),
+    );
+
+    expect(html).toContain("上传者");
+  });
+
+  it("highlights active filter buttons", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 1,
+        hasActiveSelection: false,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        filtersOpen: true,
+        urlState: {
+          q: "",
+          mediaType: "image",
+          sortOrder: "desc",
+        },
+        showUploaderFilter: false,
+      }),
+    );
+
+    // The "全部" media type button should NOT be active
+    // The "照片" button should be active (has accent bg)
+    expect(html).toContain("仅收藏");
+  });
+
+  it("does not render filter panel when filtersOpen is false", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 0,
+        hasActiveSelection: false,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        filtersOpen: false,
+        urlState: {
+          q: "",
+          sortOrder: "desc",
+        },
+        showUploaderFilter: false,
+      }),
+    );
+
+    expect(html).not.toContain("媒体类型");
+    expect(html).not.toContain("拍摄日期");
+  });
 });
