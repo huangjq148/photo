@@ -30,8 +30,21 @@ export type UploadQueueState = {
   queuedCount: number;
 };
 
+export type UploadQueueDraft = {
+  id?: string;
+  albumId: string;
+  file: File;
+  fileKey: string;
+  name: string;
+  size: number;
+  type: string;
+  previewUrl: string | null;
+  status?: "queued";
+  progress?: UploadQueueProgress;
+};
+
 export type UploadQueueReducerAction =
-  | { type: "enqueue"; items: readonly UploadQueueItem[] }
+  | { type: "enqueue"; items: readonly UploadQueueDraft[] }
   | { type: "start"; itemIds: readonly string[] }
   | { type: "progress"; itemId: string; loaded: number; total: number }
   | { type: "success"; itemId: string; result: unknown }
@@ -156,13 +169,13 @@ function createQueuedItem({
   file,
   previewUrl,
 }: {
-  id: string;
+  id?: string;
   albumId: string;
   file: File;
   previewUrl: string | null;
 }): UploadQueueItem {
   return {
-    id,
+    id: id ?? buildFileKey(file),
     albumId,
     file,
     fileKey: buildFileKey(file),
@@ -207,6 +220,7 @@ function appendItems(state: UploadQueueState, items: readonly UploadQueueItem[])
     seen.add(item.fileKey);
     nextItems.push(
       cloneItem({
+        id: item.id ?? buildFileKey(item.file),
         ...item,
         status: "queued",
         progress: { loaded: 0, total: 0 },
@@ -222,7 +236,7 @@ function appendItems(state: UploadQueueState, items: readonly UploadQueueItem[])
 export function uploadQueueReducer(state: UploadQueueState = createInitialState(), action: UploadQueueReducerAction): UploadQueueState {
   switch (action.type) {
     case "enqueue":
-      return appendItems(state, action.items);
+      return appendItems(state, action.items.map((item) => createQueuedItem(item)));
     case "start": {
       let nextState = state;
       for (const itemId of action.itemIds) {
