@@ -1,11 +1,15 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
+import {
+  buildPhotoGalleryCardMenuItems,
+  PhotoGalleryCard,
+} from "@/components/photos/photo-gallery-card";
+import { Menu } from "@/components/ui/menu";
 import { MessageProvider } from "@/components/ui/message";
 
 describe("PhotoGalleryCard", () => {
-  it("shows the photo first and moves actions behind a hover menu", () => {
+  it("keeps photo actions visible on touch and exposes a click-triggered menu", () => {
     const html = renderToStaticMarkup(
       createElement(
         MessageProvider,
@@ -49,10 +53,83 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("family");
     expect(html).not.toContain("family.jpg");
     expect(html).toContain("更多操作");
-    expect(html).toContain("group-hover:opacity-100");
-    expect(html).toContain("收藏");
-    expect(html).toContain("添加到相册");
+    expect(html).toContain("[@media(hover:hover)_and_(pointer:fine)]:opacity-0");
+    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain("h-11 w-11");
+    expect(html).toContain("更多操作");
     expect(html).not.toContain("1200 × 900");
+  });
+
+  it("renders the menu panel with menu semantics when open", () => {
+    const html = renderToStaticMarkup(
+      createElement(Menu, {
+        label: "更多操作",
+        triggerContent: "⋯",
+        open: true,
+        onOpenChange: () => undefined,
+        items: [
+          {
+            key: "favorite",
+            label: "收藏",
+            icon: createElement("span", { "aria-hidden": true }, "★"),
+            onSelect: () => undefined,
+          },
+          {
+            key: "delete",
+            label: "删除",
+            icon: createElement("span", { "aria-hidden": true }, "×"),
+            tone: "danger",
+            onSelect: () => undefined,
+          },
+        ],
+      }),
+    );
+
+    expect(html).toContain('role="menu"');
+    expect(html).toContain('role="menuitem"');
+    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain("收藏");
+    expect(html).toContain("删除");
+    expect(html).toContain("min-h-11");
+  });
+
+  it("filters menu items when permissions are unavailable", () => {
+    const items = buildPhotoGalleryCardMenuItems({
+      photo: {
+        id: "photo-1",
+        displayName: null,
+        originalName: "family.jpg",
+        thumbnailUrl: "/thumb.jpg",
+        previewUrl: "/preview.jpg",
+        originalUrl: "/api/files/originals/test.jpg",
+        mimeType: "image/jpeg",
+        mediaType: "image",
+        duration: null,
+        width: 1200,
+        height: 900,
+        takenAt: null,
+        uploadedAt: "2026-01-01T00:00:00.000Z",
+        isFavorited: false,
+        canEditName: true,
+        locationHidden: false,
+      },
+      favoriteLabel: "收藏",
+      onFavorite: () => true,
+      onShare: () => undefined,
+      onEditTakenAt: () => undefined,
+      onToggleLocationHidden: () => undefined,
+      onAddToAlbum: () => undefined,
+      onSetCover: () => undefined,
+      onShowInfo: () => undefined,
+      onDelete: () => undefined,
+      canSetCover: false,
+    });
+
+    expect(items.map((item) => item.label)).not.toContain("设为封面");
+    expect(items.map((item) => item.label)).toContain("收藏");
+    expect(items.map((item) => item.label)).toContain("删除");
   });
 
   it("renders the selection control in blue when selected", () => {
@@ -198,8 +275,7 @@ describe("PhotoGalleryCard", () => {
 
     expect(html).toContain("点击播放视频");
     expect(html).toContain("/thumb-video.jpg");
-    expect(html).toContain("取消收藏");
-    expect(html).toContain("添加到相册");
+    expect(html).toContain("更多操作");
     expect(html).not.toContain("<video");
   });
 

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ImageViewer, { type ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { useMessage } from "@/components/ui/message";
+import { Menu } from "@/components/ui/menu";
 import {
   getCodePointLength,
   getOriginalNameWithoutExtension,
@@ -52,13 +53,23 @@ type PhotoGalleryCardProps = {
   onFavorite: () => Promise<boolean> | boolean;
   onDelete: () => void;
   onShare: () => void;
-  onSetCover: () => void;
+  onSetCover?: () => void;
   onAddToAlbum: () => void;
   onEditTakenAt: () => void;
   onToggleLocationHidden: () => void;
   childAgeLabel?: string | null;
   onDisplayNameChange?: (photoId: string, displayName: string | null) => void;
   onRemove?: (photoId: string) => void;
+};
+
+type PhotoGalleryCardMenuItem = {
+  key: string;
+  label: string;
+  danger?: boolean;
+  className?: string;
+  visible: boolean;
+  onSelect: () => Promise<void> | void;
+  icon: React.ReactNode;
 };
 
 const MAX_DISPLAY_NAME_LENGTH = 100;
@@ -77,6 +88,107 @@ function formatDateTime(dateStr: string) {
   const hour = d.getHours().toString().padStart(2, "0");
   const minute = d.getMinutes().toString().padStart(2, "0");
   return `${month}月${day}日 ${hour}:${minute}`;
+}
+
+export function buildPhotoGalleryCardMenuItems({
+  photo,
+  favoriteLabel,
+  onFavorite,
+  onShare,
+  onEditTakenAt,
+  onToggleLocationHidden,
+  onAddToAlbum,
+  onSetCover,
+  onShowInfo,
+  onDelete,
+  canShare = true,
+  canEditTakenAt = true,
+  canToggleLocationHidden = true,
+  canAddToAlbum = true,
+  canSetCover = true,
+  canShowInfo = true,
+  canDelete = true,
+}: {
+  photo: PhotoGalleryCardItem;
+  favoriteLabel: string;
+  onFavorite: () => Promise<boolean> | boolean;
+  onShare: () => void;
+  onEditTakenAt: () => void;
+  onToggleLocationHidden: () => void;
+  onAddToAlbum: () => void;
+  onSetCover?: () => void;
+  onShowInfo: () => void;
+  onDelete: () => void;
+  canShare?: boolean;
+  canEditTakenAt?: boolean;
+  canToggleLocationHidden?: boolean;
+  canAddToAlbum?: boolean;
+  canSetCover?: boolean;
+  canShowInfo?: boolean;
+  canDelete?: boolean;
+}): PhotoGalleryCardMenuItem[] {
+  return [
+    {
+      key: "favorite",
+      label: favoriteLabel,
+      visible: true,
+      icon: <Heart aria-hidden="true" size={15} />,
+      onSelect: async () => {
+        await onFavorite();
+      },
+    },
+    {
+      key: "share",
+      label: "分享",
+      visible: canShare,
+      icon: <Share2 aria-hidden="true" size={15} />,
+      onSelect: onShare,
+    },
+    {
+      key: "edit-taken-at",
+      label: "修改拍摄时间",
+      visible: canEditTakenAt,
+      icon: <CalendarClock aria-hidden="true" size={15} />,
+      onSelect: onEditTakenAt,
+    },
+    {
+      key: "toggle-location-hidden",
+      label: photo.locationHidden ? "显示位置" : "隐藏位置",
+      visible: canToggleLocationHidden,
+      icon: <MapPinned aria-hidden="true" size={15} />,
+      onSelect: onToggleLocationHidden,
+    },
+    {
+      key: "add-to-album",
+      label: "添加到相册",
+      visible: canAddToAlbum,
+      icon: <FolderPlus aria-hidden="true" size={15} />,
+      onSelect: onAddToAlbum,
+    },
+    {
+      key: "set-cover",
+      label: "设为封面",
+      visible: canSetCover && typeof onSetCover === "function",
+      icon: <Bookmark aria-hidden="true" size={15} />,
+      className: "text-[var(--film)]",
+      onSelect: () => onSetCover?.(),
+    },
+    {
+      key: "info",
+      label: "媒体信息",
+      visible: canShowInfo,
+      icon: <Info aria-hidden="true" size={15} />,
+      onSelect: onShowInfo,
+    },
+    {
+      key: "delete",
+      label: "删除",
+      visible: canDelete,
+      danger: true,
+      icon: <Trash2 aria-hidden="true" size={15} />,
+      onSelect: onDelete,
+    },
+  ].filter((item) => item.visible);
 }
 
 export function PhotoGalleryCard({
@@ -122,6 +234,34 @@ export function PhotoGalleryCard({
           : childAgeLabel
         : formatDateTime(photo.takenAt || photo.uploadedAt)
       : null;
+  const menuItems = buildPhotoGalleryCardMenuItems({
+    photo,
+    favoriteLabel,
+    onFavorite: async () => {
+      const nextFavoriteState = !favoriteState;
+      setFavoriteState(nextFavoriteState);
+
+      const ok = await onFavorite();
+      if (!ok) {
+        setFavoriteState(!nextFavoriteState);
+      }
+      return ok;
+    },
+    onShare,
+    onEditTakenAt,
+    onToggleLocationHidden,
+    onAddToAlbum,
+    onSetCover,
+    onShowInfo: () => setShowInfo(true),
+    onDelete,
+    canShare: typeof onShare === "function",
+    canEditTakenAt: typeof onEditTakenAt === "function",
+    canToggleLocationHidden: typeof onToggleLocationHidden === "function",
+    canAddToAlbum: typeof onAddToAlbum === "function",
+    canSetCover: typeof onSetCover === "function",
+    canShowInfo: true,
+    canDelete: typeof onDelete === "function",
+  });
 
   useEffect(() => {
     setFavoriteState(photo.isFavorited);
@@ -365,11 +505,15 @@ export function PhotoGalleryCard({
         </div>
       ) : null}
 
-      <div className="absolute left-3 top-3 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
+      <div className="absolute left-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100">
         <button
           type="button"
-          onClick={onSelect}
-          className={`inline-flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur transition ${
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onSelect();
+          }}
+          className={`inline-flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur transition ${
             selected ? "border-blue-500 bg-blue-500 text-white" : "noir-glass-chip text-[var(--text)]"
           }`}
           aria-pressed={selected}
@@ -379,90 +523,18 @@ export function PhotoGalleryCard({
         </button>
       </div>
 
-      <div className="absolute right-3 top-3 z-20 opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100">
-        <div className="group/menu relative">
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full noir-glass-chip text-white transition hover:border-[var(--border-strong)]"
-            aria-label="更多操作"
-          >
-            <Ellipsis aria-hidden="true" size={16} />
-          </button>
-          <div className="absolute right-0 top-10 hidden z-30 min-w-44 overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[rgba(10,10,12,0.92)] p-1.5 shadow-2xl backdrop-blur-xl group-hover/menu:block group-focus-within/menu:block">
-            <button
-              type="button"
-              onClick={async () => {
-                const nextFavoriteState = !favoriteState;
-                setFavoriteState(nextFavoriteState);
-
-                const ok = await onFavorite();
-                if (!ok) {
-                  setFavoriteState(!nextFavoriteState);
-                }
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
-            >
-              <Heart aria-hidden="true" size={15} />
-              {favoriteLabel}
-            </button>
-            <button
-              type="button"
-              onClick={onShare}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
-            >
-              <Share2 aria-hidden="true" size={15} />
-              分享
-            </button>
-            <button
-              type="button"
-              onClick={onEditTakenAt}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
-            >
-              <CalendarClock aria-hidden="true" size={15} />
-              修改拍摄时间
-            </button>
-            <button
-              type="button"
-              onClick={onToggleLocationHidden}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
-            >
-              <MapPinned aria-hidden="true" size={15} />
-              {photo.locationHidden ? "显示位置" : "隐藏位置"}
-            </button>
-            <button
-              type="button"
-              onClick={onAddToAlbum}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
-            >
-              <FolderPlus aria-hidden="true" size={15} />
-              添加到相册
-            </button>
-            <button
-              type="button"
-              onClick={onSetCover}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--film)] hover:bg-white/[0.1]"
-            >
-              <Bookmark aria-hidden="true" size={15} />
-              设为封面
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowInfo(true)}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text)] hover:bg-white/[0.1]"
-            >
-              <Info aria-hidden="true" size={15} />
-              媒体信息
-            </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--danger)] hover:bg-white/[0.1]"
-            >
-              <Trash2 aria-hidden="true" size={15} />
-              删除
-            </button>
-          </div>
-        </div>
+      <div className="absolute right-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:pointer-events-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-hover:[@media(hover:hover)_and_(pointer:fine)]:opacity-100 group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:opacity-100">
+        <Menu
+          label="更多操作"
+          triggerContent={<Ellipsis aria-hidden="true" size={16} />}
+          items={menuItems.map((item) => ({
+            key: item.key,
+            label: item.label,
+            icon: item.icon,
+            tone: item.danger ? "danger" : item.className ? "accent" : "default",
+            onSelect: item.onSelect,
+          }))}
+        />
       </div>
     </article>
   );
