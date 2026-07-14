@@ -30,8 +30,9 @@ function createInitialState(): UploadQueueState {
   };
 }
 
-function createDraft(file: File, previewUrl: string) {
+function createDraft(file: File, previewUrl: string, id = `draft-${file.name}`) {
   return {
+    id,
     albumId: "album-1",
     file,
     fileKey: [file.name, file.size, file.lastModified, file.type].join("|"),
@@ -104,7 +105,7 @@ describe("uploadQueueReducer", () => {
       ],
     };
 
-    const cancelledAll = uploadQueueReducer(mixedState, { type: "cancelAll" });
+    const cancelledAll = uploadQueueReducer(mixedState, { type: "cancel-all" });
     expect(cancelledAll.items.map((item) => [item.name, item.status])).toEqual([
       ["queued.png", "cancelled"],
       ["uploading.png", "cancelled"],
