@@ -1,6 +1,13 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
 import { GlobalUploadDialog } from "@/components/upload/global-upload-dialog";
 
 describe("GlobalUploadDialog", () => {
@@ -47,6 +54,7 @@ describe("GlobalUploadDialog", () => {
     expect(html).toContain("目标相册");
     expect(html).toContain("家庭相册");
     expect(html).toContain("所有上传的照片");
-    expect(html).toContain("选择图片/视频");
+    expect(html).toContain("拖入照片或视频，或点击选择图片/视频");
+    expect(html).toContain("上传队列");
   });
 });

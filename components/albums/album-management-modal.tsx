@@ -1,12 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AlbumInviteForm } from "@/components/albums/album-invite-form";
 import { AlbumInviteList } from "@/components/albums/album-invite-list";
 import { AlbumMembers } from "@/components/albums/album-members";
 import { DatePicker } from "@/components/ui/date-picker";
-import { PhotoUploadForm } from "@/components/upload/photo-upload-form";
+import { UploadDropzone } from "@/components/upload/upload-dropzone";
+import { UploadQueue } from "@/components/upload/upload-queue";
+import {
+  createInitialState,
+  createUploadQueueController,
+  type UploadQueueController,
+  type UploadQueueState,
+} from "@/lib/client/upload-queue";
 import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
 
 type ManageTab = "details" | "upload" | "members";
@@ -80,6 +87,41 @@ export function AlbumManagementModal({
   onClose,
 }: AlbumManagementModalProps) {
   const [activeTab, setActiveTab] = useState<ManageTab>("details");
+  const controllerRef = useRef<UploadQueueController | null>(null);
+  const [queueState, setQueueState] = useState<UploadQueueState>(createInitialState());
+
+  useEffect(() => {
+    const currentController = controllerRef.current;
+    if (currentController) {
+      currentController.dispose();
+      controllerRef.current = null;
+    }
+
+    setQueueState(createInitialState());
+
+    if (!open || activeTab !== "upload") {
+      return;
+    }
+
+    const controller = createUploadQueueController({
+      albumId,
+      onBatchComplete: onPhotoUploaded,
+    });
+    controllerRef.current = controller;
+    setQueueState(controller.getState());
+
+    const unsubscribe = controller.subscribe(() => {
+      setQueueState(controller.getState());
+    });
+
+    return () => {
+      unsubscribe();
+      controller.dispose();
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+      }
+    };
+  }, [activeTab, albumId, onPhotoUploaded, open]);
 
   return (
     <Modal
@@ -226,7 +268,23 @@ export function AlbumManagementModal({
 
         {activeTab === "upload" ? (
           <div className="space-y-4">
-            <PhotoUploadForm albumId={albumId} onUploaded={onPhotoUploaded} />
+            <UploadDropzone
+              onFiles={(files) => {
+                controllerRef.current?.enqueueFiles(files);
+              }}
+            />
+            <UploadQueue
+              items={queueState.items}
+              onRetryItem={(itemId) => controllerRef.current?.retry([itemId])}
+              onRetryAllFailed={() => {
+                const failedIds = queueState.items.filter((item) => item.status === "failed").map((item) => item.id);
+                if (failedIds.length > 0) {
+                  controllerRef.current?.retry(failedIds);
+                }
+              }}
+              onRemoveItem={(itemId) => controllerRef.current?.remove(itemId)}
+              onCancelItem={(itemId) => controllerRef.current?.remove(itemId)}
+            />
             <p className="text-sm text-[var(--muted)]">
               上传的照片将进入你的&quot;全部照片&quot;相册，并自动添加到当前相册。
             </p>

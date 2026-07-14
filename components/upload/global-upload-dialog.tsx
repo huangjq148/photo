@@ -1,11 +1,17 @@
 "use client";
 
-import React from "react";
-import { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FolderPlus, Upload } from "lucide-react";
-import { Modal } from "@/components/ui/modal";
 import { CreateAlbumModal } from "@/components/albums/create-album-modal";
-import { PhotoUploadForm } from "@/components/upload/photo-upload-form";
+import { Modal } from "@/components/ui/modal";
+import { UploadDropzone } from "@/components/upload/upload-dropzone";
+import { UploadQueue } from "@/components/upload/upload-queue";
+import {
+  createInitialState,
+  createUploadQueueController,
+  type UploadQueueController,
+  type UploadQueueState,
+} from "@/lib/client/upload-queue";
 
 export type UploadAlbum = {
   id: string;
@@ -34,6 +40,7 @@ type GlobalUploadDialogProps = {
   onCreateAlbumNameChange: (value: string) => void;
   onCreateAlbumDescriptionChange: (value: string) => void;
   onCreateAlbum: () => void;
+  onUploaded?: () => void;
 };
 
 function matchesSearch(album: UploadAlbum, keyword: string) {
@@ -61,30 +68,98 @@ export function GlobalUploadDialog({
   onCreateAlbumNameChange,
   onCreateAlbumDescriptionChange,
   onCreateAlbum,
+  onUploaded,
 }: GlobalUploadDialogProps) {
   const visibleAlbums = useMemo(
     () => albums.filter((album) => matchesSearch(album, search)),
     [albums, search]
   );
   const selectedAlbum = selectedAlbumId ? albums.find((album) => album.id === selectedAlbumId) ?? null : null;
+  const controllerRef = useRef<UploadQueueController | null>(null);
+  const [queueState, setQueueState] = useState<UploadQueueState>(createInitialState());
+
+  useEffect(() => {
+    const currentController = controllerRef.current;
+    if (currentController) {
+      currentController.dispose();
+      controllerRef.current = null;
+    }
+
+    setQueueState(createInitialState());
+
+    if (!open || !selectedAlbum) {
+      return;
+    }
+
+    const controller = createUploadQueueController({
+      albumId: selectedAlbum.id,
+      onBatchComplete: onUploaded,
+    });
+
+    controllerRef.current = controller;
+    setQueueState(controller.getState());
+    const unsubscribe = controller.subscribe(() => {
+      setQueueState(controller.getState());
+    });
+
+    return () => {
+      unsubscribe();
+      controller.dispose();
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+      }
+    };
+  }, [open, selectedAlbum?.id, onUploaded]);
+
+  function handleFiles(files: readonly File[]) {
+    controllerRef.current?.enqueueFiles(files);
+  }
+
+  function handleRetryItem(itemId: string) {
+    controllerRef.current?.retry([itemId]);
+  }
+
+  function handleRetryAllFailed() {
+    const failedIds = queueState.items.filter((item) => item.status === "failed").map((item) => item.id);
+    if (failedIds.length > 0) {
+      controllerRef.current?.retry(failedIds);
+    }
+  }
+
+  function handleRemoveItem(itemId: string) {
+    controllerRef.current?.remove(itemId);
+  }
+
+  function requestClose() {
+    const hasPending = queueState.items.some((item) => item.status === "queued" || item.status === "uploading");
+    if (hasPending) {
+      const hasUploading = queueState.items.some((item) => item.status === "uploading");
+      const confirmed =
+        typeof window === "undefined"
+          ? true
+          : window.confirm(
+              hasUploading
+                ? "关闭后会取消正在上传的项目，是否继续？"
+                : "关闭后将清空待上传列表，是否继续？"
+            );
+      if (!confirmed) {
+        return;
+      }
+      controllerRef.current?.cancelAll();
+    }
+
+    onClose();
+  }
 
   return (
     <>
-      <Modal
-        open={open}
-        size="xl"
-        title="上传照片"
-        description="选择目标相册后开始上传文件"
-        onClose={onClose}
-      >
+      <Modal open={open} size="xl" title="上传照片" description="选择目标相册后开始上传文件" onClose={requestClose}>
         <div className="space-y-5">
           <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/70 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-[var(--text)]">目标相册</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">
-                  媒体会先进入“全部照片”，并同时添加到这里
-                </p>
+                <p className="mt-1 text-xs text-[var(--muted)]">媒体会先进入“全部照片”，并同时添加到这里</p>
               </div>
               <button
                 type="button"
@@ -150,12 +225,20 @@ export function GlobalUploadDialog({
           </section>
 
           {selectedAlbum ? (
-            <section className="space-y-3">
+            <section className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
                 <Upload aria-hidden="true" size={16} />
                 {selectedAlbum.name}
               </div>
-              <PhotoUploadForm albumId={selectedAlbum.id} />
+              <UploadDropzone disabled={false} onFiles={handleFiles} />
+              <UploadQueue
+                items={queueState.items}
+                onRetryItem={handleRetryItem}
+                onRetryAllFailed={handleRetryAllFailed}
+                onRemoveItem={handleRemoveItem}
+                onCancelItem={handleRemoveItem}
+              />
+              <p className="text-sm text-[var(--muted)]">上传的照片将进入你的&quot;全部照片&quot;相册，并自动添加到当前相册。</p>
             </section>
           ) : (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-sm text-[var(--muted)]">

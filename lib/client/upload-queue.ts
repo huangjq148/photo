@@ -73,6 +73,7 @@ export type CreateUploadQueueControllerOptions = {
 
 export type UploadQueueController = {
   getState: () => UploadQueueState;
+  subscribe: (listener: () => void) => () => void;
   enqueueFiles: (files: readonly File[]) => string[];
   retry: (itemIds: readonly string[]) => string[];
   cancelAll: () => void;
@@ -351,12 +352,16 @@ export function createUploadQueueController({
   let disposed = false;
   const activeRequests = new Map<string, AbortController>();
   const previewUrls = new Map<string, string>();
+  const listeners = new Set<() => void>();
   let batchCompletionPending = false;
 
   const syncState = (nextState: UploadQueueState) => {
     state = nextState;
     if (state.items.some((item) => item.status === "queued" || item.status === "uploading")) {
       batchCompletionPending = true;
+    }
+    for (const listener of listeners) {
+      listener();
     }
   };
 
@@ -572,6 +577,12 @@ export function createUploadQueueController({
 
   return {
     getState,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     enqueueFiles,
     retry,
     cancelAll,
