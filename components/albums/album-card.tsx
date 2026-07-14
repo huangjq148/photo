@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MoreHorizontal, X } from "lucide-react";
+import { MoreHorizontal, X, Image } from "lucide-react";
 import type { Route } from "next";
 
 type AlbumCardProps = {
@@ -53,7 +53,7 @@ export function AlbumCard({
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[rgba(17,17,20,0.9)] via-[rgba(10,10,12,0.86)] to-zinc-800/40">
-          <span className="text-6xl opacity-15">📷</span>
+          <Image size={64} strokeWidth={1} className="text-white/10" aria-hidden="true" />
         </div>
       )}
 

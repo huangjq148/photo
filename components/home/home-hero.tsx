@@ -37,9 +37,8 @@ function MemoryPreview({ memory }: { memory: OnThisDayMemory }) {
       <div className="relative mt-4 grid gap-2 sm:grid-cols-3 sm:grid-rows-2">
         {previewItems.length > 0 ? (
           previewItems.map((photo, index) => (
-            <a
+            <div
               key={photo.id}
-              href={photo.originalUrl}
               className={
                 index === 0
                   ? "group relative col-span-2 row-span-2 overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/35"
@@ -51,6 +50,7 @@ function MemoryPreview({ memory }: { memory: OnThisDayMemory }) {
                 src={photo.thumbnailUrl}
                 alt={resolveDisplayName(photo.displayName, photo.originalName)}
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                loading="lazy"
               />
               {index === 0 ? (
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent p-3">
@@ -58,7 +58,7 @@ function MemoryPreview({ memory }: { memory: OnThisDayMemory }) {
                   <p className="mt-1 truncate text-sm font-semibold text-white">{resolveDisplayName(photo.displayName, photo.originalName)}</p>
                 </div>
               ) : null}
-            </a>
+            </div>
           ))
         ) : (
           <div className="col-span-3 rounded-[1.4rem] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm leading-6 text-white/60">
