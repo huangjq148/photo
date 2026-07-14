@@ -16,8 +16,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
 
   try {
     await assertCanDelete(prisma, albumId, user.id);
-
-    const body = (await request.json()) as { photoIds?: string[] };
+    const body = (await request.json().catch(() => ({}))) as { photoIds?: string[] };
     const data = await batchRemovePhotosFromAlbum(prisma, {
       albumId,
       userId: user.id,

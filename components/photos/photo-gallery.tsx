@@ -239,7 +239,7 @@ export function PhotoGallery({
     }
 
     try {
-      const response = await fetch(`/api/albums/${albumId}/photos/batch-delete`, {
+      const response = await fetch(`/api/albums/${albumId}/photos/batch-remove`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -247,23 +247,41 @@ export function PhotoGallery({
         body: JSON.stringify({ photoIds: selectedIds }),
       });
 
+      const json = await response.json();
       if (!response.ok) {
-        const json = await response.json();
         throw new Error(json.error ?? "Failed to delete photos");
       }
 
-      message.success(`已删除 ${selectedIds.length} 张照片`);
-      setSelectedIds([]);
-      setRefreshToken((current) => current + 1);
+      const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
+      const failedIds = result.failed?.map((item) => item.id) ?? [];
+      const succeededCount = result.succeededIds?.length ?? 0;
+
+      if (failedIds.length > 0) {
+        setSelectedIds(failedIds);
+        message.error(result.failed?.[0]?.message ?? "部分照片删除失败");
+      } else {
+        setSelectedIds([]);
+        message.success(`已删除 ${succeededCount || selectedIds.length} 张照片`);
+      }
+
+      if ((result.succeededIds?.length ?? 0) > 0) {
+        setRefreshToken((current) => current + 1);
+      }
     } catch (error) {
       message.error(error instanceof Error ? error.message : "批量删除失败");
     }
   }
 
   async function toggleFavorite(photoId: string) {
+    const current = items.find((item) => item.id === photoId);
+
     try {
       const response = await fetch(`/api/photos/${photoId}/favorite`, {
-        method: "POST"
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ favorited: !current?.isFavorited }),
       });
       if (!response.ok) {
         const json = await response.json();
@@ -272,12 +290,8 @@ export function PhotoGallery({
 
       const json = (await response.json()) as { data?: { favorited?: boolean } };
       const nextFavorited = !!json.data?.favorited;
-      setItems((current) =>
-        current.map((item) =>
-          item.id === photoId
-            ? { ...item, isFavorited: nextFavorited }
-            : item
-        ),
+      setItems((currentItems) =>
+        currentItems.map((item) => (item.id === photoId ? { ...item, isFavorited: nextFavorited } : item)),
       );
       message.success(nextFavorited ? "收藏成功" : "已取消收藏");
       return true;

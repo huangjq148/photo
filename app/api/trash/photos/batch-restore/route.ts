@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
-import { restoreTrashPhotos } from "@/lib/photos/library";
+import { batchRestoreTrashPhotos } from "@/lib/photos/library";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUserFromRequest(request);
@@ -13,9 +13,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = (await request.json()) as { photoIds?: string[] };
-    const count = await restoreTrashPhotos(prisma, body.photoIds ?? [], user.id);
+    const data = await batchRestoreTrashPhotos(prisma, {
+      photoIds: body.photoIds ?? [],
+      userId: user.id,
+    });
 
-    return NextResponse.json({ data: { count } });
+    return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to restore photos" },

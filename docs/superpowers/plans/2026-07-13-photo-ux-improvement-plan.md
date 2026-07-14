@@ -313,11 +313,11 @@ expect(buildBatchResult(["a", "a", "b"], new Map([["b", forbidden]]))).toEqual({
 - Modify: `lib/albums/library.ts`
 - Create: `tests/batch-media-actions.integration.test.ts`
 
-- [ ] **Step 1: 写集成测试**：每个输入 ID 进入 succeeded/failed；单项权限失败不回滚其他项；收藏显式 `favorited` 幂等；单次最多 200。
-- [ ] **Step 2: 写清空测试**：结果 ID 并集等于请求开始时当前上传者回收站媒体，不处理其他上传者。
-- [ ] **Step 3: 运行确认失败。
-- [ ] **Step 4: 抽出逐项授权执行器，路由全部返回 `BatchMutationResult`；旧 batch-delete 关系接口转发到 batch-remove 并标记兼容；图库单项收藏改为 POST `{ favorited }`，收藏页取消收藏也调用同一显式接口，不再发送 DELETE。迁移期间服务端可兼容无 body 的 toggle，但 P1 gate 前前端不得再依赖。
-- [ ] **Step 5: 运行集成测试和存储一致性相关测试。
+- [x] **Step 1: 写集成测试**：每个输入 ID 进入 succeeded/failed；单项权限失败不回滚其他项；收藏显式 `favorited` 幂等；单次最多 200。
+- [x] **Step 2: 写清空测试**：结果 ID 并集等于请求开始时当前上传者回收站媒体，不处理其他上传者。
+- [x] **Step 3: 运行确认失败。
+- [x] **Step 4: 抽出逐项授权执行器，路由全部返回 `BatchMutationResult`；旧 batch-delete 关系接口转发到 batch-remove 并标记兼容；图库单项收藏改为 POST `{ favorited }`，收藏页取消收藏也调用同一显式接口，不再发送 DELETE。迁移期间服务端可兼容无 body 的 toggle，但 P1 gate 前前端不得再依赖。
+- [x] **Step 5: 运行集成测试和存储一致性相关测试。
 - [ ] **Step 6: 提交**：`git commit -m "feat: 统一批量媒体操作接口"`。
 
 ### Task 16: 建立响应式批量选择操作栏

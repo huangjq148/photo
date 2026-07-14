@@ -59,7 +59,13 @@ export function FavoritesGallery() {
 
   async function removeFavorite(photoId: string) {
     try {
-      const response = await fetch(`/api/photos/${photoId}/favorite`, { method: "DELETE" });
+      const response = await fetch(`/api/photos/${photoId}/favorite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ favorited: false }),
+      });
       if (!response.ok) {
         const json = await response.json();
         throw new Error(json.error ?? "取消失败");

@@ -2,6 +2,7 @@ import { rm } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
 import type { PrismaClient } from "@prisma/client";
 import { AppError } from "@/lib/api/errors";
+import { buildBatchResult, type BatchMutationResult } from "@/lib/api/batch-result";
 import { getStorageLayout } from "@/lib/storage/paths";
 import { assertAlbumMembership } from "@/lib/membership";
 
@@ -270,6 +271,24 @@ async function loadTrashAccessibleMedias(prisma: PrismaClient, mediaIds: string[
   return medias as unknown as MediaRecord[];
 }
 
+async function runBatchMediaOperation(
+  photoIds: readonly string[],
+  executor: (photoId: string) => Promise<void>
+): Promise<BatchMutationResult> {
+  const uniquePhotoIds = Array.from(new Set(photoIds.filter(Boolean)));
+  const failures = new Map<string, unknown>();
+
+  for (const photoId of uniquePhotoIds) {
+    try {
+      await executor(photoId);
+    } catch (error) {
+      failures.set(photoId, error);
+    }
+  }
+
+  return buildBatchResult(uniquePhotoIds, failures);
+}
+
 function assertMediaUploader(media: MediaRecord, userId: string) {
   if (media.uploader_id !== userId) {
     throw new AppError("你没有权限执行此操作", "MEDIA_UPLOADER_REQUIRED", 403);
@@ -527,7 +546,10 @@ export async function updatePhotoMetadata(
 
 // ── Favorites ──
 
-export async function toggleFavoritePhoto(prisma: PrismaClient, context: MediaContext) {
+export async function setFavoritePhoto(
+  prisma: PrismaClient,
+  context: MediaContext & { favorited?: boolean }
+) {
   const media = await loadAccessibleMedia(prisma, context.photoId, context.userId);
 
   const existing = await prisma.favorite.findUnique({
@@ -538,6 +560,38 @@ export async function toggleFavoritePhoto(prisma: PrismaClient, context: MediaCo
       },
     },
   });
+
+  if (context.favorited === false) {
+    if (!existing) {
+      return { favorited: false };
+    }
+
+    await prisma.favorite.delete({
+      where: {
+        user_id_photo_id: {
+          user_id: context.userId,
+          photo_id: media.id,
+        },
+      },
+    });
+
+    return { favorited: false };
+  }
+
+  if (context.favorited === true) {
+    if (existing) {
+      return { favorited: true };
+    }
+
+    await prisma.favorite.create({
+      data: {
+        user_id: context.userId,
+        photo_id: media.id,
+      },
+    });
+
+    return { favorited: true };
+  }
 
   if (existing) {
     await prisma.favorite.delete({
@@ -559,6 +613,19 @@ export async function toggleFavoritePhoto(prisma: PrismaClient, context: MediaCo
   });
 
   return { favorited: true };
+}
+
+export async function toggleFavoritePhoto(prisma: PrismaClient, context: MediaContext) {
+  return setFavoritePhoto(prisma, { ...context, favorited: undefined });
+}
+
+export async function batchSetFavoritePhotos(
+  prisma: PrismaClient,
+  context: { photoIds: string[]; userId: string; favorited?: boolean }
+) {
+  return runBatchMediaOperation(context.photoIds, async (photoId) => {
+    await setFavoritePhoto(prisma, { photoId, userId: context.userId, favorited: context.favorited });
+  });
 }
 
 export async function getFavoritePhotos(
@@ -620,6 +687,15 @@ export async function softDeletePhoto(prisma: PrismaClient, context: MediaContex
   return media.id;
 }
 
+export async function batchSoftDeletePhotos(
+  prisma: PrismaClient,
+  context: { photoIds: string[]; userId: string }
+) {
+  return runBatchMediaOperation(context.photoIds, async (photoId) => {
+    await softDeletePhoto(prisma, { photoId, userId: context.userId });
+  });
+}
+
 export async function softDeletePhotos(prisma: PrismaClient, context: BatchMediaContext) {
   const medias = await loadAccessibleMedias(prisma, context.albumId, context.photoIds, context.userId);
   for (const media of medias) {
@@ -664,6 +740,26 @@ export async function restorePhoto(prisma: PrismaClient, context: MediaContext) 
   });
 
   return media.id;
+}
+
+export async function restoreTrashPhoto(prisma: PrismaClient, context: MediaContext) {
+  return restorePhoto(prisma, context);
+}
+
+export async function batchRestorePhotos(
+  prisma: PrismaClient,
+  context: { photoIds: string[]; userId: string }
+) {
+  return runBatchMediaOperation(context.photoIds, async (photoId) => {
+    await restorePhoto(prisma, { photoId, userId: context.userId });
+  });
+}
+
+export async function batchRestoreTrashPhotos(
+  prisma: PrismaClient,
+  context: { photoIds: string[]; userId: string }
+) {
+  return batchRestorePhotos(prisma, context);
 }
 
 export async function restorePhotos(prisma: PrismaClient, context: BatchMediaContext) {
@@ -753,6 +849,16 @@ export async function permanentlyDeletePhoto(
   return media.id;
 }
 
+export async function batchPermanentlyDeletePhotos(
+  prisma: PrismaClient,
+  context: { photoIds: string[]; userId: string },
+  storageRoot = process.env.STORAGE_ROOT ?? "./data/storage"
+) {
+  return runBatchMediaOperation(context.photoIds, async (photoId) => {
+    await permanentlyDeletePhoto(prisma, { photoId, userId: context.userId }, storageRoot);
+  });
+}
+
 export async function permanentlyDeletePhotos(
   prisma: PrismaClient,
   context: BatchMediaContext,
@@ -820,4 +926,67 @@ export async function permanentlyDeleteTrashPhotos(
   await removePaths(allPaths);
 
   return medias.length;
+}
+
+export async function batchPermanentlyDeleteTrashPhotos(
+  prisma: PrismaClient,
+  context: { photoIds: string[]; userId: string },
+  storageRoot = process.env.STORAGE_ROOT ?? "./data/storage"
+) {
+  return batchPermanentlyDeletePhotos(prisma, context, storageRoot);
+}
+
+export async function clearTrashPhotos(
+  prisma: PrismaClient,
+  userId: string,
+  storageRoot = process.env.STORAGE_ROOT ?? "./data/storage"
+) {
+  const deletedMedia = await prisma.media.findMany({
+    where: {
+      status: "deleted",
+      uploader_id: userId,
+    },
+    select: {
+      id: true,
+      uploader_id: true,
+      size: true,
+      storage_path: true,
+      media_type: true,
+    },
+  });
+
+  if (deletedMedia.length === 0) {
+    return 0;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.media.deleteMany({
+      where: {
+        id: { in: deletedMedia.map((media) => media.id) },
+        status: "deleted",
+        uploader_id: userId,
+      },
+    });
+
+    const totalSize = deletedMedia.reduce((sum, media) => sum + media.size, BigInt(0));
+
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        storage_used: {
+          decrement: Number(totalSize),
+        },
+      },
+    });
+  });
+
+  const allPaths = deletedMedia.flatMap((media) => {
+    const isVideo = media.media_type === "video";
+    const paths = resolveMediaPaths(storageRoot, media.storage_path, isVideo);
+    return [paths.originalPath, paths.previewPath, paths.thumbnailPath];
+  });
+
+  await removePaths(allPaths);
+
+  return deletedMedia.length;
 }

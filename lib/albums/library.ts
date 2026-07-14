@@ -688,6 +688,28 @@ export async function removePhotoFromAlbum(
   });
 }
 
+export async function batchRemovePhotosFromAlbum(
+  prisma: PrismaClient,
+  context: { albumId: string; userId: string; photoIds: string[] }
+): Promise<BatchMutationResult> {
+  const uniquePhotoIds = Array.from(new Set(context.photoIds.filter(Boolean)));
+  const failures = new Map<string, unknown>();
+
+  for (const photoId of uniquePhotoIds) {
+    try {
+      await removePhotoFromAlbum(prisma, {
+        albumId: context.albumId,
+        userId: context.userId,
+        photoId,
+      });
+    } catch (error) {
+      failures.set(photoId, error);
+    }
+  }
+
+  return buildBatchResult(uniquePhotoIds, failures);
+}
+
 // ── Members ──
 
 export async function getAlbumMembers(
