@@ -9,6 +9,10 @@ import { PhotoGallery } from "@/components/photos/photo-gallery";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { useMessage } from "@/components/ui/message";
 import { useUpload } from "@/components/upload/upload-provider";
+import {
+  loadGalleryPreferences,
+  updateGalleryPreferences,
+} from "@/lib/client/gallery-preferences";
 import { shouldConfirmDisableChildAlbum, validateChildBirthDate } from "@/lib/albums/child-album-rules";
 
 type AlbumDetailData = {
@@ -71,11 +75,15 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
   const [showAddPhotos, setShowAddPhotos] = useState(false);
   const [showManagement, setShowManagement] = useState(false);
   const [showShareManager, setShowShareManager] = useState(false);
-  const [showTakenAt, setShowTakenAt] = useState(false);
-  const [photoSize, setPhotoSize] = useState<PhotoSize>("medium");
+  const [showTakenAt, setShowTakenAt] = useState(() => loadGalleryPreferences().showTakenAt);
+  const [photoSize, setPhotoSize] = useState<PhotoSize>(() => loadGalleryPreferences().photoSize);
   const [refreshToken, setRefreshToken] = useState(0);
   const [photoRefreshToken, setPhotoRefreshToken] = useState(0);
   const message = useMessage();
+
+  useEffect(() => {
+    updateGalleryPreferences({ showTakenAt, photoSize });
+  }, [photoSize, showTakenAt]);
 
   async function load({ replaceBody }: { replaceBody: boolean }) {
     if (replaceBody) {

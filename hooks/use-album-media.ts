@@ -107,14 +107,19 @@ export function createAlbumMediaLoader<T>({
   }
 
   return {
-    async reload(args: { albumId: string; query: string }) {
+    async reload(args: { albumId: string; query: string; preserveItems?: boolean }) {
       albumId = args.albumId;
       query = args.query.trim();
+      const preserveItems = args.preserveItems ?? false;
+      const currentItems = preserveItems ? state.items : [];
+      const currentTotal = preserveItems ? state.total : 0;
+      const currentNextCursor = preserveItems ? state.nextCursor : null;
+      const currentPage = preserveItems ? state.page : 0;
       state = {
-        items: [],
-        total: 0,
-        nextCursor: null,
-        page: 0,
+        items: currentItems,
+        total: currentTotal,
+        nextCursor: currentNextCursor,
+        page: currentPage,
       };
       return runRequest(1);
     },
@@ -155,8 +160,10 @@ export function useAlbumMedia<T>({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
   if (!loaderRef.current) {
     loaderRef.current = createAlbumMediaLoader({ fetchPage, pageSize });
@@ -167,11 +174,14 @@ export function useAlbumMedia<T>({
   useEffect(() => {
     let mounted = true;
 
-    setLoading(true);
+    const preserveItems = items.length > 0;
+    setLoadMoreError(null);
     setError(null);
+    setRefreshing(preserveItems);
+    setLoading(!preserveItems);
     startTransition(() => {
       void loaderRef.current
-        ?.reload({ albumId, query })
+        ?.reload({ albumId, query, preserveItems })
         .then((snapshot) => {
           if (!mounted) {
             return;
@@ -190,6 +200,7 @@ export function useAlbumMedia<T>({
         .finally(() => {
           if (mounted) {
             setLoading(false);
+            setRefreshing(false);
           }
         });
     });
@@ -200,14 +211,23 @@ export function useAlbumMedia<T>({
   }, [reloadKey]);
 
   async function reload() {
-    setLoading(true);
+    const preserveItems = items.length > 0;
+    setLoadMoreError(null);
     setError(null);
-    const snapshot = await loaderRef.current!.reload({ albumId, query });
-    setItems(snapshot.items);
-    setTotal(snapshot.total);
-    setNextCursor(snapshot.nextCursor);
-    setPage(snapshot.page);
-    setLoading(false);
+    setRefreshing(preserveItems);
+    setLoading(!preserveItems);
+    try {
+      const snapshot = await loaderRef.current!.reload({ albumId, query, preserveItems });
+      setItems(snapshot.items);
+      setTotal(snapshot.total);
+      setNextCursor(snapshot.nextCursor);
+      setPage(snapshot.page);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "加载照片失败");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }
 
   async function loadMore() {
@@ -216,12 +236,17 @@ export function useAlbumMedia<T>({
     }
 
     setLoadingMore(true);
+    setLoadMoreError(null);
     try {
       const snapshot = await loaderRef.current!.loadMore();
       setItems(snapshot.items);
       setTotal(snapshot.total);
       setNextCursor(snapshot.nextCursor);
       setPage(snapshot.page);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "加载更多失败";
+      setLoadMoreError(text);
+      throw error;
     } finally {
       setLoadingMore(false);
     }
@@ -233,8 +258,10 @@ export function useAlbumMedia<T>({
     nextCursor,
     page,
     loading,
+    refreshing,
     loadingMore,
     error,
+    loadMoreError,
     hasMore: nextCursor !== null,
     reload,
     loadMore,

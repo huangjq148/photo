@@ -7,6 +7,8 @@ import { AddPhotoToAlbumModal } from "@/components/albums/add-photo-to-album-mod
 import { BatchAddPhotosToAlbumModal } from "@/components/albums/batch-add-photos-to-album-modal";
 import type { PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { PhotoGalleryFloatTools } from "@/components/photos/photo-gallery-float-tools";
+import { AsyncState } from "@/components/ui/async-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMessage } from "@/components/ui/message";
 import type { ImageViewerNavigationItem } from "@/components/ui/image-viewer";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
@@ -20,6 +22,12 @@ import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 import { useGalleryQuery } from "@/hooks/use-gallery-query";
 import { useAlbumMedia } from "@/hooks/use-album-media";
 import { useSelection } from "@/hooks/use-selection";
+import {
+  loadGalleryPreferences,
+  updateGalleryPreferences,
+  type GalleryGroupMode,
+  type GalleryLayoutMode,
+} from "@/lib/client/gallery-preferences";
 
 type PhotoItem = {
   id: string;
@@ -39,8 +47,6 @@ type PhotoItem = {
   canEditName: boolean;
   locationHidden: boolean;
 };
-
-type GroupMode = "none" | "month" | "year";
 
 type PhotoGalleryProps = {
   albumId: string;
@@ -91,6 +97,40 @@ function buildBatchPhotoLabel(items: PhotoItem[]) {
   return `已选择 ${items.length} 张照片`;
 }
 
+type GroupMode = GalleryGroupMode;
+
+function GallerySkeleton({ photoSize }: { photoSize: PhotoSize }) {
+  const count = photoSize === "small" ? 12 : photoSize === "large" ? 6 : 9;
+
+  return (
+    <div className="space-y-4">
+      <section className="noir-glass-panel rounded-[2rem] p-4 sm:p-5">
+        <div className="space-y-3">
+          <Skeleton className="h-11 w-full rounded-2xl" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-20 rounded-lg" />
+            <Skeleton className="h-10 w-24 rounded-lg" />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-4 w-40 rounded-full" />
+            <Skeleton className="h-4 w-48 rounded-full" />
+          </div>
+        </div>
+      </section>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {Array.from({ length: count }).map((_, index) => (
+          <div key={index} className="aspect-square overflow-hidden rounded-2xl noir-glass-panel">
+            <Skeleton className="h-full w-full rounded-none bg-white/10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PhotoGallery({
   albumId,
   refreshSignal = 0,
@@ -104,8 +144,9 @@ export function PhotoGallery({
 }: PhotoGalleryProps) {
   const [committedKeyword, setCommittedKeyword] = useState("");
   const [items, setItems] = useState<PhotoItem[]>([]);
-  const [layoutMode, setLayoutMode] = useState<"grid" | "waterfall">("grid");
-  const [groupMode] = useState<GroupMode>("none");
+  const initialPreferences = useMemo(() => loadGalleryPreferences(), []);
+  const [layoutMode, setLayoutMode] = useState<GalleryLayoutMode>(initialPreferences.layoutMode);
+  const [groupMode] = useState<GalleryGroupMode>(initialPreferences.groupMode);
   const [refreshToken, setRefreshToken] = useState(0);
   const [sharePhotoId, setSharePhotoId] = useState<string | null>(null);
   const [addToAlbumPhoto, setAddToAlbumPhoto] = useState<PhotoItem | null>(null);
@@ -170,11 +211,20 @@ export function PhotoGallery({
 
   const totalCount = media.total;
   const loading = media.loading;
+  const refreshing = media.refreshing;
   const loadingMore = media.loadingMore;
   const error = media.error;
+  const loadMoreError = media.loadMoreError;
   const hasMore = media.hasMore;
   const reload = media.reload;
   const loadMore = media.loadMore;
+
+  useEffect(() => {
+    updateGalleryPreferences({
+      layoutMode,
+      groupMode,
+    });
+  }, [groupMode, layoutMode]);
 
   useEffect(() => {
     setItems(media.items);
@@ -593,101 +643,6 @@ export function PhotoGallery({
     return groupPhotos(items, groupMode);
   }, [items, groupMode]);
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        {batchActionBar}
-        <GalleryToolbar
-          query={committedKeyword}
-          searchValue={galleryQuery.searchValue}
-          filteredCount={0}
-          totalCount={totalCount}
-          activeFilterCount={0}
-          hasActiveSelection={selectedCount > 0}
-          onSearchChange={handleSearchChange}
-          onClearSearch={handleClearSearch}
-          onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
-          onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
-          onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
-          onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
-          photoSize={photoSize}
-          onPhotoSizeChange={onPhotoSizeChange}
-        />
-        <div className="noir-glass-panel rounded-2xl p-6 text-[var(--muted)]">加载照片...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-4">
-        {batchActionBar}
-        <GalleryToolbar
-          query={committedKeyword}
-          searchValue={galleryQuery.searchValue}
-          filteredCount={items.length}
-          totalCount={totalCount}
-          activeFilterCount={0}
-          hasActiveSelection={selectedCount > 0}
-          onSearchChange={handleSearchChange}
-          onClearSearch={handleClearSearch}
-          onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
-          onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
-          onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
-          onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
-          photoSize={photoSize}
-          onPhotoSizeChange={onPhotoSizeChange}
-        />
-        <GalleryEmptyState
-          reason="error"
-          title="加载照片失败"
-          description={error}
-          onPrimaryAction={() => {
-            void reload();
-          }}
-          primaryActionLabel="重新加载"
-        />
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="space-y-4">
-        {batchActionBar}
-        <GalleryToolbar
-          query={committedKeyword}
-          searchValue={galleryQuery.searchValue}
-          filteredCount={0}
-          totalCount={totalCount}
-          activeFilterCount={0}
-          hasActiveSelection={selectedCount > 0}
-          onSearchChange={handleSearchChange}
-          onClearSearch={handleClearSearch}
-          onToggleFilters={() => handleSelectionSensitiveAction(() => undefined)}
-          onChangeSort={() => handleSelectionSensitiveAction(() => undefined)}
-          onChangeGroup={() => handleSelectionSensitiveAction(() => undefined)}
-          onClearFilters={() => handleSelectionSensitiveAction(() => undefined)}
-          photoSize={photoSize}
-          onPhotoSizeChange={onPhotoSizeChange}
-        />
-        <GalleryEmptyState
-          reason={committedKeyword ? "search" : "empty"}
-          onPrimaryAction={() => {
-            if (committedKeyword) {
-              handleClearSearch();
-              return;
-            }
-            void reload();
-          }}
-          primaryActionLabel={committedKeyword ? "清空搜索" : "重新加载"}
-          secondaryActionLabel={committedKeyword ? "清空搜索" : undefined}
-          onSecondaryAction={committedKeyword ? handleClearSearch : undefined}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {batchActionBar}
@@ -708,132 +663,175 @@ export function PhotoGallery({
         onPhotoSizeChange={onPhotoSizeChange}
       />
 
-      <PhotoGalleryFloatTools
-        showTakenAt={showTakenAt}
-        onToggleTakenAt={onToggleTakenAt}
-        photoSize={photoSize}
-        onPhotoSizeChange={onPhotoSizeChange}
-        layoutMode={layoutMode}
-        onLayoutModeChange={setLayoutMode}
-        groupMode={groupMode}
-      />
-
-      {isGrouped && groupedPhotos ? (
-        <div className="space-y-8">
-          {Array.from(groupedPhotos.entries()).map(([label, photos]) => (
-            <section key={label}>
-              <h3 className="mb-3 flex items-center gap-3 text-sm font-bold text-[var(--text)]">
-                <span>{label}</span>
-                <span className="text-xs font-normal text-[var(--muted)]">{photos.length} 张</span>
-              </h3>
-              <GalleryGrid photoSize={photoSize}>
-                {photos.map((photo) => (
-                  <PhotoGalleryCard
-                    key={photo.id}
-                    albumId={albumId}
-                    photo={photo}
-                    selected={selectedIdSet.has(photo.id)}
-                    selectionMode={selectionMode}
-                    waterfall={false}
-                    showTakenAt={showTakenAt}
-                    navigableItems={navigableItems}
-                    childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
-                    onSelect={() => {
-                      selection.toggle(photo.id);
-                    }}
-                    onFavorite={() => {
-                      return toggleFavorite(photo.id);
-                    }}
-                    deleteLabel={deleteAction.label}
-                    onDelete={() => {
-                      void (isDefaultAlbum ? movePhotoToTrash(photo) : removePhotoFromAlbum(photo));
-                    }}
-                    onShare={() => {
-                      void sharePhoto(photo.id);
-                    }}
-                    onSetCover={() => {
-                      if (onSetCover) onSetCover(photo.id);
-                    }}
-                    onAddToAlbum={() => {
-                      void openAddToAlbum(photo);
-                    }}
-                    onEditTakenAt={() => {
-                      void openEditTakenAt(photo);
-                    }}
-                    onToggleLocationHidden={() => {
-                      void toggleLocationHidden(photo);
-                    }}
-                    onDisplayNameChange={updatePhotoDisplayName}
-                    onRemove={removePhotoFromState}
-                  />
-                ))}
-              </GalleryGrid>
-            </section>
-          ))}
-        </div>
-      ) : (
-        <GalleryGrid photoSize={photoSize} waterfall={layoutMode === "waterfall"}>
-          {items.map((photo) => (
-            <PhotoGalleryCard
-              key={photo.id}
-              albumId={albumId}
-              photo={photo}
-              selected={selectedIdSet.has(photo.id)}
-              selectionMode={selectionMode}
-              waterfall={layoutMode === "waterfall"}
-              showTakenAt={showTakenAt}
-              navigableItems={navigableItems}
-              childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
-              onSelect={() => {
-                selection.toggle(photo.id);
-              }}
-              onFavorite={() => {
-                return toggleFavorite(photo.id);
-              }}
-              deleteLabel={deleteAction.label}
-              onDelete={() => {
-                void (isDefaultAlbum ? movePhotoToTrash(photo) : removePhotoFromAlbum(photo));
-              }}
-              onShare={() => {
-                void sharePhoto(photo.id);
-              }}
-              onSetCover={() => {
-                if (onSetCover) onSetCover(photo.id);
-              }}
-              onAddToAlbum={() => {
-                void openAddToAlbum(photo);
-              }}
-              onEditTakenAt={() => {
-                void openEditTakenAt(photo);
-              }}
-              onToggleLocationHidden={() => {
-                void toggleLocationHidden(photo);
-              }}
-              onDisplayNameChange={updatePhotoDisplayName}
-              onRemove={removePhotoFromState}
-            />
-          ))}
-        </GalleryGrid>
-      )}
-
-      {hasMore ? (
-        <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              void loadMore().catch((err) => {
-                message.error(err instanceof Error ? err.message : "加载更多失败");
-              });
+      <AsyncState
+        loading={loading}
+        refreshing={refreshing}
+        hasContent={items.length > 0}
+        error={error}
+        loadMoreError={loadMoreError}
+        onRetry={() => {
+          void reload();
+        }}
+        onRetryLoadMore={() => {
+          void loadMore().catch((err) => {
+            message.error(err instanceof Error ? err.message : "加载更多失败");
+          });
+        }}
+        skeleton={<GallerySkeleton photoSize={photoSize} />}
+        errorFallback={
+          <GalleryEmptyState
+            reason="error"
+            title="加载照片失败"
+            description={error ?? undefined}
+            onPrimaryAction={() => {
+              void reload();
             }}
-            disabled={loadingMore}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {loadingMore ? "正在加载" : "加载更多"}
-          </button>
-        </div>
-      ) : (
-        <div className="py-4 text-center text-xs text-[var(--muted)]">已加载全部照片</div>
-      )}
+            primaryActionLabel="重新加载"
+          />
+        }
+        empty={
+          <GalleryEmptyState
+            reason={committedKeyword ? "search" : "empty"}
+            onPrimaryAction={() => {
+              if (committedKeyword) {
+                handleClearSearch();
+                return;
+              }
+              void reload();
+            }}
+            primaryActionLabel={committedKeyword ? "清空搜索" : "重新加载"}
+            secondaryActionLabel={committedKeyword ? "清空搜索" : undefined}
+            onSecondaryAction={committedKeyword ? handleClearSearch : undefined}
+          />
+        }
+      >
+        <PhotoGalleryFloatTools
+          showTakenAt={showTakenAt}
+          onToggleTakenAt={onToggleTakenAt}
+          photoSize={photoSize}
+          onPhotoSizeChange={onPhotoSizeChange}
+          layoutMode={layoutMode}
+          onLayoutModeChange={setLayoutMode}
+          groupMode={groupMode}
+        />
+
+        {isGrouped && groupedPhotos ? (
+          <div className="space-y-8">
+            {Array.from(groupedPhotos.entries()).map(([label, photos]) => (
+              <section key={label}>
+                <h3 className="mb-3 flex items-center gap-3 text-sm font-bold text-[var(--text)]">
+                  <span>{label}</span>
+                  <span className="text-xs font-normal text-[var(--muted)]">{photos.length} 张</span>
+                </h3>
+                <GalleryGrid photoSize={photoSize}>
+                  {photos.map((photo) => (
+                    <PhotoGalleryCard
+                      key={photo.id}
+                      albumId={albumId}
+                      photo={photo}
+                      selected={selectedIdSet.has(photo.id)}
+                      selectionMode={selectionMode}
+                      waterfall={false}
+                      showTakenAt={showTakenAt}
+                      navigableItems={navigableItems}
+                      childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
+                      onSelect={() => {
+                        selection.toggle(photo.id);
+                      }}
+                      onFavorite={() => {
+                        return toggleFavorite(photo.id);
+                      }}
+                      deleteLabel={deleteAction.label}
+                      onDelete={() => {
+                        void (isDefaultAlbum ? movePhotoToTrash(photo) : removePhotoFromAlbum(photo));
+                      }}
+                      onShare={() => {
+                        void sharePhoto(photo.id);
+                      }}
+                      onSetCover={() => {
+                        if (onSetCover) onSetCover(photo.id);
+                      }}
+                      onAddToAlbum={() => {
+                        void openAddToAlbum(photo);
+                      }}
+                      onEditTakenAt={() => {
+                        void openEditTakenAt(photo);
+                      }}
+                      onToggleLocationHidden={() => {
+                        void toggleLocationHidden(photo);
+                      }}
+                      onDisplayNameChange={updatePhotoDisplayName}
+                      onRemove={removePhotoFromState}
+                    />
+                  ))}
+                </GalleryGrid>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <GalleryGrid photoSize={photoSize} waterfall={layoutMode === "waterfall"}>
+            {items.map((photo) => (
+              <PhotoGalleryCard
+                key={photo.id}
+                albumId={albumId}
+                photo={photo}
+                selected={selectedIdSet.has(photo.id)}
+                selectionMode={selectionMode}
+                waterfall={layoutMode === "waterfall"}
+                showTakenAt={showTakenAt}
+                navigableItems={navigableItems}
+                childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
+                onSelect={() => {
+                  selection.toggle(photo.id);
+                }}
+                onFavorite={() => {
+                  return toggleFavorite(photo.id);
+                }}
+                deleteLabel={deleteAction.label}
+                onDelete={() => {
+                  void (isDefaultAlbum ? movePhotoToTrash(photo) : removePhotoFromAlbum(photo));
+                }}
+                onShare={() => {
+                  void sharePhoto(photo.id);
+                }}
+                onSetCover={() => {
+                  if (onSetCover) onSetCover(photo.id);
+                }}
+                onAddToAlbum={() => {
+                  void openAddToAlbum(photo);
+                }}
+                onEditTakenAt={() => {
+                  void openEditTakenAt(photo);
+                }}
+                onToggleLocationHidden={() => {
+                  void toggleLocationHidden(photo);
+                }}
+                onDisplayNameChange={updatePhotoDisplayName}
+                onRemove={removePhotoFromState}
+              />
+            ))}
+          </GalleryGrid>
+        )}
+
+        {hasMore ? (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                void loadMore().catch((err) => {
+                  message.error(err instanceof Error ? err.message : "加载更多失败");
+                });
+              }}
+              disabled={loadingMore}
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loadingMore ? "正在加载" : "加载更多"}
+            </button>
+          </div>
+        ) : (
+          <div className="py-4 text-center text-xs text-[var(--muted)]">已加载全部照片</div>
+        )}
+      </AsyncState>
 
       {/* Infinite scroll sentinel */}
       <div ref={sentinelRef} className="h-1" />

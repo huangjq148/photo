@@ -28,6 +28,8 @@ export function PhotoGalleryControlsModal({
   onClose,
 }: PhotoGalleryControlsModalProps) {
   const isGrouped = groupMode !== "none";
+  const layoutLabel = layoutMode === "grid" ? "网格" : "瀑布流";
+  const groupLabel = groupMode === "month" ? "按月" : groupMode === "year" ? "按年" : "不分组";
   return (
     <Modal open={open} title="照片操作" size="sm" onClose={onClose}>
       <div className="space-y-3">
@@ -95,6 +97,10 @@ export function PhotoGalleryControlsModal({
             ) : null}
           </div>
         </section>
+
+        <div className="rounded-2xl border border-[var(--border)] bg-black/30 px-4 py-3 text-xs text-[var(--muted)]">
+          当前偏好：{showTakenAt ? "显示时间" : "隐藏时间"} · {layoutLabel} · {groupLabel} · {photoSize}
+        </div>
       </div>
     </Modal>
   );
