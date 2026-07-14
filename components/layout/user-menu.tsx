@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Shield } from "lucide-react";
 
 type CurrentUser = {
@@ -42,11 +42,22 @@ export function UserMenu() {
     };
   }, []);
 
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
+
+  const logout = useCallback(async () => {
+    setLoggingOut(true);
+    setLogoutError(false);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch {
+      setLogoutError(true);
+    } finally {
+      setLoggingOut(false);
+    }
+  }, [router]);
 
   if (!user) {
     if (loading) {
@@ -84,9 +95,12 @@ export function UserMenu() {
         <button
           type="button"
           onClick={logout}
-          className="inline-flex h-[40px] items-center rounded-lg noir-glass-chip px-3.5 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--text)]"
+          disabled={loggingOut}
+          className="inline-flex h-[40px] items-center rounded-lg noir-glass-chip px-3.5 text-sm font-medium transition hover:text-[var(--text)] disabled:opacity-60"
         >
-          退出
+          <span className={logoutError ? "text-[var(--danger)]" : "text-[var(--muted)]"}>
+            {loggingOut ? "退出中…" : logoutError ? "退出失败，重试" : "退出"}
+          </span>
         </button>
       </div>
       <div className="hidden items-center gap-3 rounded-lg noir-glass-panel px-3 py-2 lg:flex">
@@ -104,9 +118,12 @@ export function UserMenu() {
         <button
           type="button"
           onClick={logout}
-          className="rounded-md px-3 py-1.5 text-sm font-medium text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+          disabled={loggingOut}
+          className="rounded-md px-3 py-1.5 text-sm font-medium transition hover:bg-white/[0.08] disabled:opacity-60"
         >
-          退出
+          <span className={logoutError ? "text-[var(--danger)]" : "text-[var(--muted)]"}>
+            {loggingOut ? "退出中…" : logoutError ? "退出失败，重试" : "退出"}
+          </span>
         </button>
       </div>
     </>
