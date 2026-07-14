@@ -232,10 +232,16 @@ export function PhotoGallery({
     [urlState],
   );
 
+  // Increment on every filter change so useAlbumMedia re-fetches
+  const [filterSeq, setFilterSeq] = useState(0);
+  useEffect(() => {
+    setFilterSeq((s) => s + 1);
+  }, [filterHash]);
+
   const media = useAlbumMedia<PhotoItem>({
     albumId,
-    query: `${committedKeyword}${filterHash ? `|f:${filterHash}` : ""}`,
-    refreshSignal: refreshToken + refreshSignal,
+    query: committedKeyword,
+    refreshSignal: refreshToken + refreshSignal + filterSeq,
     fetchPage: fetchAlbumPage,
     pageSize: 24,
   });

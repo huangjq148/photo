@@ -276,8 +276,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         <PhotoGallery
           key={photoRefreshToken}
           albumId={albumId}
-          albumIsDefault={album.isDefault}
-          currentUserId={album.currentUserId}
+          isDefaultAlbum={album.isDefault}
           refreshSignal={photoRefreshToken}
           onSetCover={(photoId) => {
             void handleSetCover(photoId);
@@ -287,7 +286,6 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
           photoSize={photoSize}
           onPhotoSizeChange={setPhotoSize}
           childBirthDate={album.childBirthDate}
-          isDefaultAlbum={album.isDefault}
         />
       </section>
 
