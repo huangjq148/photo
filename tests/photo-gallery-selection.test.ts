@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  canApplySelectionSensitiveQueryChange,
   canMutateSelection,
   resolveBatchSelectionAfterResult,
   resolveGalleryPanelOpenState,
+  resolvePhotoGallerySelectionMode,
   resolveSelectionModeAfterQueryChange,
   retainOnlyFailedSelection,
   shouldExitSelectionMode,
@@ -67,6 +69,37 @@ describe("photo gallery batch selection", () => {
       }),
     ).toEqual({ retainedIds: [], exitSelectionMode: true });
   });
+
+  it("keeps partial failures visibly selectable through the derived selected count", () => {
+    const result = resolveBatchSelectionAfterResult(["photo-1", "photo-2"], {
+      succeededIds: ["photo-1"],
+      failed: [{ id: "photo-2", message: "失败" }],
+    });
+
+    expect(
+      resolvePhotoGallerySelectionMode({
+        explicitSelectionMode: false,
+        selectedCount: result.retainedIds.length,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("photo gallery selection mode", () => {
+  it("derives desktop checkbox mode from the selected count", () => {
+    expect(
+      resolvePhotoGallerySelectionMode({ explicitSelectionMode: false, selectedCount: 1 }),
+    ).toBe(true);
+    expect(
+      resolvePhotoGallerySelectionMode({ explicitSelectionMode: false, selectedCount: 0 }),
+    ).toBe(false);
+  });
+
+  it("keeps explicit mobile selection mode active without selected ids", () => {
+    expect(
+      resolvePhotoGallerySelectionMode({ explicitSelectionMode: true, selectedCount: 0 }),
+    ).toBe(true);
+  });
 });
 
 describe("photo gallery panel visibility", () => {
@@ -84,6 +117,11 @@ describe("photo gallery panel visibility", () => {
 });
 
 describe("photo gallery query changes", () => {
+  it("blocks selection-sensitive query mutations while busy", () => {
+    expect(canApplySelectionSensitiveQueryChange(true)).toBe(false);
+    expect(canApplySelectionSensitiveQueryChange(false)).toBe(true);
+  });
+
   it("does not exit when selection mode is inactive", () => {
     expect(
       resolveSelectionModeAfterQueryChange({

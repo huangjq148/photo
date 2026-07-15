@@ -405,7 +405,7 @@ export function PhotoGalleryCard({
             }}
             aria-pressed={selected}
             aria-label={selectionActionLabel}
-            className="group/img relative block w-full overflow-hidden text-left disabled:cursor-not-allowed disabled:opacity-70"
+            className="group/img relative block w-full overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--film)] disabled:cursor-not-allowed disabled:opacity-70"
           >
             <img
               src={photo.thumbnailUrl}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PhotoGalleryCard } from "@/components/photos/photo-gallery-card";
 import { TakenAtEditorModal } from "@/components/photos/taken-at-editor-modal";
 import { AddPhotoToAlbumModal } from "@/components/albums/add-photo-to-album-modal";
@@ -89,6 +89,20 @@ export function canMutateSelection(selectionBusy: boolean) {
   return !selectionBusy;
 }
 
+export function canApplySelectionSensitiveQueryChange(selectionBusy: boolean) {
+  return !selectionBusy;
+}
+
+export function resolvePhotoGallerySelectionMode({
+  explicitSelectionMode,
+  selectedCount,
+}: {
+  explicitSelectionMode: boolean;
+  selectedCount: number;
+}) {
+  return explicitSelectionMode || selectedCount > 0;
+}
+
 export function resolveBatchSelectionAfterResult<Failure extends { id: string }>(
   selectedIds: readonly string[],
   result: BatchSelectionResult<Failure>,
@@ -174,13 +188,19 @@ function buildBatchPhotoLabel(items: PhotoItem[]) {
 
 type GroupMode = GalleryGroupMode;
 
-function GallerySkeleton({ photoSize }: { photoSize: PhotoSize }) {
+export function GallerySkeleton({ photoSize }: { photoSize: PhotoSize }) {
   const count = photoSize === "small" ? 12 : photoSize === "large" ? 6 : 9;
 
   return (
     <div className="space-y-4">
       <section className="noir-glass-panel rounded-[2rem] p-4 sm:p-5">
-        <div className="space-y-3">
+        <div className="flex h-11 items-center gap-2 sm:hidden">
+          <Skeleton className="h-11 w-11 rounded-xl" />
+          <Skeleton className="h-11 w-11 rounded-xl" />
+          <Skeleton className="h-11 w-11 rounded-xl" />
+          <Skeleton className="ml-auto h-11 w-20 rounded-xl" />
+        </div>
+        <div className="hidden sm:block sm:space-y-3">
           <Skeleton className="h-11 w-full rounded-2xl" />
           <div className="flex flex-wrap gap-2">
             <Skeleton className="h-10 w-20 rounded-lg" />
@@ -232,7 +252,7 @@ export function PhotoGallery({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
   const selection = useSelection();
-  const [selectionMode, setSelectionMode] = useState(false);
+  const [explicitSelectionMode, setExplicitSelectionMode] = useState(false);
   const galleryQuery = useGalleryQuery({
     onCommit: setCommittedKeyword,
   });
@@ -474,7 +494,7 @@ export function PhotoGallery({
 
   function exitSelectionMode() {
     selection.clear();
-    setSelectionMode(false);
+    setExplicitSelectionMode(false);
   }
 
   async function batchDeleteSelected() {
@@ -678,6 +698,10 @@ export function PhotoGallery({
   const selectedIds = useMemo(() => Array.from(selection.selectedIds), [selection.selectedIds]);
   const selectedCount = selection.size;
   const selectionBusy = Boolean(busyAction);
+  const selectionMode = resolvePhotoGallerySelectionMode({
+    explicitSelectionMode,
+    selectedCount,
+  });
   const selectedIdSet = selection.selectedIds;
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIdSet.has(item.id)),
@@ -728,6 +752,10 @@ export function PhotoGallery({
   }
 
   function applySelectionSensitiveQueryChange(action: () => void) {
+    if (!canApplySelectionSensitiveQueryChange(selectionBusy)) {
+      return;
+    }
+
     const transition = resolveSelectionModeAfterQueryChange({
       selectionMode,
       selectedCount,
@@ -783,16 +811,25 @@ export function PhotoGallery({
         selectionBusy={selectionBusy}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
-        onToggleFilters={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "toggleFilters"))}
-        onChangeSort={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "showSort"))}
-        onChangeGroup={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "showGroup"))}
+        onToggleFilters={() => {
+          if (!canApplySelectionSensitiveQueryChange(selectionBusy)) return;
+          setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "toggleFilters"));
+        }}
+        onChangeSort={() => {
+          if (!canApplySelectionSensitiveQueryChange(selectionBusy)) return;
+          setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "showSort"));
+        }}
+        onChangeGroup={() => {
+          if (!canApplySelectionSensitiveQueryChange(selectionBusy)) return;
+          setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "showGroup"));
+        }}
         onClearFilters={() => applySelectionSensitiveQueryChange(galleryQuery.clearFilters)}
         onToggleSelectionMode={() => {
           if (selectionMode) {
             exitSelectionMode();
             return;
           }
-          setSelectionMode(true);
+          setExplicitSelectionMode(true);
         }}
         photoSize={photoSize}
         onPhotoSizeChange={onPhotoSizeChange}
@@ -884,7 +921,6 @@ export function PhotoGallery({
                       childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                       onSelect={() => {
                         if (!canMutateSelection(selectionBusy)) return;
-                        setSelectionMode(true);
                         selection.toggle(photo.id);
                       }}
                       onFavorite={() => {
@@ -933,7 +969,6 @@ export function PhotoGallery({
                 childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                 onSelect={() => {
                   if (!canMutateSelection(selectionBusy)) return;
-                  setSelectionMode(true);
                   selection.toggle(photo.id);
                 }}
                 onFavorite={() => {

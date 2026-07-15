@@ -17,6 +17,10 @@ type AlbumItem = {
   role: string;
 };
 
+export function canDismissBatchAddModal(savingAlbumId: string | null) {
+  return savingAlbumId === null;
+}
+
 type BatchAddPhotosToAlbumModalProps = {
   open: boolean;
   photoIds: string[];
@@ -43,6 +47,12 @@ export function BatchAddPhotosToAlbumModal({
   const message = useMessage();
 
   const photoCount = useMemo(() => photoIds.length, [photoIds]);
+
+  function handleClose() {
+    if (canDismissBatchAddModal(savingAlbumId)) {
+      onClose();
+    }
+  }
 
   useEffect(() => {
     if (!open) {
@@ -125,7 +135,7 @@ export function BatchAddPhotosToAlbumModal({
       size="lg"
       title="批量添加到相册"
       description={photoLabel}
-      onClose={onClose}
+      onClose={handleClose}
     >
       <div className="space-y-4">
         <p className="text-sm text-[var(--muted)]">

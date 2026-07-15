@@ -118,6 +118,8 @@ describe("PhotoGalleryCard", () => {
     expect(html).toMatch(/<button[^>]*data-photo-selection-body=""[^>]*aria-pressed="false"/);
     expect(html).toMatch(/<button[^>]*data-photo-selection-body=""[^>]*disabled=""/);
     expect(html).toMatch(/<button[^>]*data-photo-selection-control-button=""[^>]*disabled=""/);
+    expect(html).toContain("focus-visible:ring-2");
+    expect(html).toContain("focus-visible:ring-inset");
   });
 
   it("renders the menu panel with menu semantics when open", () => {

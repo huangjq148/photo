@@ -27,6 +27,7 @@ import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/pho
 
 type FilterPanelProps = {
   state: GalleryUrlState;
+  disabled?: boolean;
   sortSectionRef: React.RefObject<HTMLFieldSetElement | null>;
   showUploader: boolean;
   onMediaTypeChange: (value?: GalleryMediaType) => void;
@@ -42,6 +43,7 @@ type FilterPanelProps = {
 
 function FilterPanel({
   state,
+  disabled = false,
   sortSectionRef,
   showUploader,
   onMediaTypeChange,
@@ -62,9 +64,10 @@ function FilterPanel({
     !!state.takenTo;
 
   return (
-    <div
+    <fieldset
       id="gallery-filter-panel"
-      className="rounded-2xl border border-[var(--border)] bg-black/30 p-4"
+      disabled={disabled}
+      className="rounded-2xl border border-[var(--border)] bg-black/30 p-4 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Media type */}
@@ -322,7 +325,7 @@ function FilterPanel({
           </button>
         </div>
       ) : null}
-    </div>
+    </fieldset>
   );
 }
 
@@ -431,7 +434,8 @@ export function GalleryToolbar({
             <button
               type="button"
               onClick={openMobileSearch}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              disabled={selectionBusy}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="搜索照片和视频"
               aria-expanded={mobileSearchOpen}
               aria-controls="gallery-mobile-search"
@@ -441,7 +445,8 @@ export function GalleryToolbar({
             <button
               type="button"
               onClick={onToggleFilters}
-              className={`relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border transition ${
+              disabled={selectionBusy}
+              className={`relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-60 ${
                 filtersOpen
                   ? "border-[var(--accent)] bg-[var(--accent)] text-black"
                   : "border-[var(--border-strong)] text-[var(--text)] hover:border-white/35 hover:bg-white/[0.08]"
@@ -460,7 +465,8 @@ export function GalleryToolbar({
             <button
               type="button"
               onClick={handleMobileSort}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              disabled={selectionBusy}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="排序"
             >
               <SlidersHorizontal aria-hidden="true" size={17} />
@@ -482,7 +488,7 @@ export function GalleryToolbar({
               className="mt-3 block"
             >
               <span className="sr-only">搜索照片和视频</span>
-              <div className="flex min-h-11 items-center gap-2 rounded-2xl noir-glass-chip px-4">
+              <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-transparent noir-glass-chip px-4 transition focus-within:border-[var(--film)] focus-within:ring-2 focus-within:ring-[var(--film)]/45">
                 <Search aria-hidden="true" size={16} className="text-[var(--muted)]" />
                 <input
                   ref={mobileSearchRef}
@@ -493,13 +499,15 @@ export function GalleryToolbar({
                   }}
                   onKeyDown={handleMobileSearchKeyDown}
                   placeholder="搜索名称或原始文件名"
-                  className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                  disabled={selectionBusy}
+                  className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
                 />
                 {searchValue ? (
                   <button
                     type="button"
                     onClick={onClearSearch}
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+                    disabled={selectionBusy}
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="清空搜索"
                   >
                     <X aria-hidden="true" size={14} />
@@ -520,13 +528,15 @@ export function GalleryToolbar({
                   value={searchValue}
                   onChange={(event) => onSearchChange(event.target.value)}
                   placeholder="搜索名称或原始文件名"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                  disabled={selectionBusy}
+                  className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
                 />
                 {searchValue ? (
                   <button
                     type="button"
                     onClick={onClearSearch}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+                    disabled={selectionBusy}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-60"
                     aria-label="清空搜索"
                   >
                     <X aria-hidden="true" size={14} />
@@ -539,7 +549,8 @@ export function GalleryToolbar({
               <button
                 type="button"
                 onClick={onToggleFilters}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition ${
+                disabled={selectionBusy}
+                className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                   filtersOpen
                     ? "border-[var(--accent)] bg-[var(--accent)] text-black"
                     : "border-[var(--border-strong)] text-[var(--text)] hover:border-white/35 hover:bg-white/[0.08]"
@@ -557,7 +568,8 @@ export function GalleryToolbar({
               <button
                 type="button"
                 onClick={onChangeSort}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+                disabled={selectionBusy}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <SlidersHorizontal aria-hidden="true" size={16} />
                 排序
@@ -566,7 +578,8 @@ export function GalleryToolbar({
               <button
                 type="button"
                 onClick={onChangeGroup}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+                disabled={selectionBusy}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Layers3 aria-hidden="true" size={16} />
                 分组
@@ -575,7 +588,8 @@ export function GalleryToolbar({
               <button
                 type="button"
                 onClick={onClearFilters}
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-4 text-sm font-medium text-[var(--muted)] transition hover:border-white/35 hover:bg-white/[0.08] hover:text-[var(--text)]"
+                disabled={selectionBusy}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-4 text-sm font-medium text-[var(--muted)] transition hover:border-white/35 hover:bg-white/[0.08] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 清空条件
               </button>
@@ -587,6 +601,7 @@ export function GalleryToolbar({
         {filtersOpen && urlState ? (
           <FilterPanel
             state={urlState}
+            disabled={selectionBusy}
             sortSectionRef={sortSectionRef}
             showUploader={showUploaderFilter}
             onMediaTypeChange={onMediaTypeChange ?? (() => undefined)}

@@ -216,6 +216,58 @@ describe("GalleryToolbar", () => {
     expect(html).toContain("取消");
   });
 
+  it("disables search, query controls, and the filter panel while selection is busy", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "旅行",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 1,
+        hasActiveSelection: true,
+        selectionMode: true,
+        selectionBusy: true,
+        searchValue: "旅行",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
+        filtersOpen: true,
+        urlState: { q: "旅行", mediaType: "image", sortOrder: "desc" },
+      }),
+    );
+
+    expect(html).toMatch(/<input[^>]*placeholder="搜索名称或原始文件名"[^>]*disabled=""/);
+    expect(html).toMatch(/<[^>]+id="gallery-filter-panel"[^>]*disabled=""/);
+    expect(html).toContain("disabled:cursor-not-allowed");
+  });
+
+  it("shows a visible focus-within treatment around mobile search", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "旅行",
+        filteredCount: 10,
+        totalCount: 10,
+        activeFilterCount: 0,
+        hasActiveSelection: false,
+        selectionMode: false,
+        searchValue: "旅行",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("focus-within:ring-2");
+    expect(html).toContain("focus-within:border-[var(--film)]");
+  });
+
   it("gives every filter panel control a 44px mobile target and compact desktop target", () => {
     const html = renderToStaticMarkup(
       createElement(GalleryToolbar, {
