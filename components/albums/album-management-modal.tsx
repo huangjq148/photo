@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import { AlbumInviteForm } from "@/components/albums/album-invite-form";
 import { AlbumInviteList } from "@/components/albums/album-invite-list";
@@ -89,7 +89,6 @@ export function AlbumManagementModal({
   const [activeTab, setActiveTab] = useState<ManageTab>("details");
   const controllerRef = useRef<UploadQueueController | null>(null);
   const [queueState, setQueueState] = useState<UploadQueueState>(createInitialState());
-  const detailsFormId = useId();
 
   function handleSaveSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,7 +160,7 @@ export function AlbumManagementModal({
         </nav>
 
         {activeTab === "details" ? (
-          <div id={detailsFormId} className="space-y-5">
+          <div className="space-y-5">
             {formError ? (
               <div className="rounded-xl border border-red-400/25 bg-red-950/20 px-4 py-3 text-sm text-[var(--danger)]" role="alert">
                 {formError}

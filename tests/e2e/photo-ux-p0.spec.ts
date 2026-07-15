@@ -193,11 +193,12 @@ test.describe.serial("photo UX P0", () => {
     await mobileToolbar.getByRole("button", { name: "搜索照片和视频" }).click();
     const mobileGallerySearch = mobileToolbar.getByPlaceholder("搜索名称或原始文件名");
     await expect(mobileGallerySearch).toBeFocused();
-    await mobileGallerySearch.fill("photo-51");
-    await expect(page.getByText("photo-51")).toBeVisible();
+    await mobileGallerySearch.fill(`missing-${uniqueId}`);
+    await expect(page.getByRole("heading", { name: "没有找到匹配的照片" })).toBeVisible();
     await mobileGallerySearch.fill("");
     await page.getByText("PHOTOS", { exact: true }).click();
     await expect(mobileToolbar.getByPlaceholder("搜索名称或原始文件名")).toHaveCount(0);
+    await expect(page.getByText("photo-51")).toBeVisible();
 
     const photoCard = page.locator("article").filter({ hasText: "photo-51" }).first();
     const photoSelectControl = photoCard.locator("[data-photo-select-control]");
