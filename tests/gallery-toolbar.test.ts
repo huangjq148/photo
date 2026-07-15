@@ -30,6 +30,10 @@ describe("GalleryToolbar", () => {
     );
 
     expect(html).toContain('aria-label="搜索照片和视频"');
+    expect(html).toContain('aria-controls="gallery-mobile-search"');
+    expect(html).toContain('aria-controls="gallery-filter-panel"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('id="gallery-filter-panel"');
     expect(html).toContain("sm:hidden");
     expect(html).toContain("hidden sm:block");
     expect(html).toContain("min-h-11");
@@ -210,5 +214,43 @@ describe("GalleryToolbar", () => {
     );
 
     expect(html).toContain("取消");
+  });
+
+  it("gives every filter panel control a 44px mobile target and compact desktop target", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 1,
+        hasActiveSelection: false,
+        selectionMode: false,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
+        filtersOpen: true,
+        urlState: {
+          q: "",
+          mediaType: "image",
+          sortOrder: "desc",
+        },
+        showUploaderFilter: true,
+      }),
+    );
+    const panelMarkup = html.slice(
+      html.indexOf('id="gallery-filter-panel"'),
+      html.indexOf('class="flex flex-wrap items-center justify-between'),
+    );
+    const controls = panelMarkup.match(/<(?:button|input)[^>]*>/g) ?? [];
+
+    expect(controls.length).toBeGreaterThan(0);
+    controls.forEach((control) => {
+      expect(control).toContain("min-h-11 sm:min-h-9");
+    });
   });
 });

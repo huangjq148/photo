@@ -62,7 +62,10 @@ function FilterPanel({
     !!state.takenTo;
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-black/30 p-4">
+    <div
+      id="gallery-filter-panel"
+      className="rounded-2xl border border-[var(--border)] bg-black/30 p-4"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Media type */}
         <fieldset>
@@ -73,7 +76,7 @@ function FilterPanel({
             <button
               type="button"
               onClick={() => onMediaTypeChange(undefined)}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 !state.mediaType
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -87,7 +90,7 @@ function FilterPanel({
               onClick={() =>
                 onMediaTypeChange(state.mediaType === "image" ? undefined : "image")
               }
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.mediaType === "image"
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -101,7 +104,7 @@ function FilterPanel({
               onClick={() =>
                 onMediaTypeChange(state.mediaType === "video" ? undefined : "video")
               }
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.mediaType === "video"
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -122,7 +125,7 @@ function FilterPanel({
             <button
               type="button"
               onClick={() => onFavoritedOnlyChange(undefined)}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 !state.favoritedOnly
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -135,7 +138,7 @@ function FilterPanel({
               onClick={() =>
                 onFavoritedOnlyChange(state.favoritedOnly ? undefined : true)
               }
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.favoritedOnly
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -158,7 +161,7 @@ function FilterPanel({
               type="date"
               value={state.takenFrom ?? ""}
               onChange={(e) => onTakenFromChange(e.target.value || undefined)}
-              className="min-h-9 rounded-lg border border-[var(--border)] bg-black px-3 text-xs text-[var(--text)] outline-none focus:border-[var(--film)]"
+              className="min-h-11 sm:min-h-9 rounded-lg border border-[var(--border)] bg-black px-3 text-xs text-[var(--text)] outline-none focus:border-[var(--film)]"
               aria-label="起始日期"
             />
             <span className="text-xs text-[var(--muted)]">至</span>
@@ -166,7 +169,7 @@ function FilterPanel({
               type="date"
               value={state.takenTo ?? ""}
               onChange={(e) => onTakenToChange(e.target.value || undefined)}
-              className="min-h-9 rounded-lg border border-[var(--border)] bg-black px-3 text-xs text-[var(--text)] outline-none focus:border-[var(--film)]"
+              className="min-h-11 sm:min-h-9 rounded-lg border border-[var(--border)] bg-black px-3 text-xs text-[var(--text)] outline-none focus:border-[var(--film)]"
               aria-label="结束日期"
             />
           </div>
@@ -183,7 +186,7 @@ function FilterPanel({
               <button
                 type="button"
                 onClick={() => onUploaderIdChange(undefined)}
-                className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+                className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                   !state.uploaderId
                     ? "bg-[var(--accent)] text-black"
                     : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -216,7 +219,7 @@ function FilterPanel({
                 onClick={() =>
                   onSortByChange(state.sortBy === opt.value ? undefined : opt.value)
                 }
-                className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+                className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                   state.sortBy === opt.value
                     ? "bg-[var(--accent)] text-black"
                     : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -237,7 +240,7 @@ function FilterPanel({
             <button
               type="button"
               onClick={() => onSortOrderChange("desc")}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.sortOrder === "desc" || !state.sortOrder
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -248,7 +251,7 @@ function FilterPanel({
             <button
               type="button"
               onClick={() => onSortOrderChange("asc")}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.sortOrder === "asc"
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -269,7 +272,7 @@ function FilterPanel({
             <button
               type="button"
               onClick={() => onGroupByChange(undefined)}
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 !state.groupBy
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -282,7 +285,7 @@ function FilterPanel({
               onClick={() =>
                 onGroupByChange(state.groupBy === "year" ? undefined : "year")
               }
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.groupBy === "year"
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -295,7 +298,7 @@ function FilterPanel({
               onClick={() =>
                 onGroupByChange(state.groupBy === "month" ? undefined : "month")
               }
-              className={`inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
+              className={`inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition ${
                 state.groupBy === "month"
                   ? "bg-[var(--accent)] text-black"
                   : "border border-[var(--border)] text-[var(--muted)] hover:border-white/25 hover:text-[var(--text)]"
@@ -312,7 +315,7 @@ function FilterPanel({
           <button
             type="button"
             onClick={onClearFilters}
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-[var(--danger)] transition hover:bg-[var(--danger)]/10"
+            className="inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-[var(--danger)] transition hover:bg-[var(--danger)]/10"
           >
             <X size={14} aria-hidden="true" />
             清除所有筛选
@@ -412,7 +415,9 @@ export function GalleryToolbar({
   }
 
   function handleMobileSort() {
-    onChangeSort();
+    if (!filtersOpen) {
+      onChangeSort();
+    }
     requestAnimationFrame(() => sortSectionRef.current?.focus());
   }
 
@@ -426,6 +431,8 @@ export function GalleryToolbar({
               onClick={openMobileSearch}
               className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
               aria-label="搜索照片和视频"
+              aria-expanded={mobileSearchOpen}
+              aria-controls="gallery-mobile-search"
             >
               <Search aria-hidden="true" size={17} />
             </button>
@@ -438,6 +445,8 @@ export function GalleryToolbar({
                   : "border-[var(--border-strong)] text-[var(--text)] hover:border-white/35 hover:bg-white/[0.08]"
               }`}
               aria-label="筛选"
+              aria-expanded={filtersOpen}
+              aria-controls="gallery-filter-panel"
             >
               <Filter aria-hidden="true" size={17} />
               {activeFilterCount > 0 ? (
@@ -464,7 +473,11 @@ export function GalleryToolbar({
           </div>
 
           {mobileSearchOpen ? (
-            <label data-testid="gallery-mobile-search" className="mt-3 block">
+            <label
+              id="gallery-mobile-search"
+              data-testid="gallery-mobile-search"
+              className="mt-3 block"
+            >
               <span className="sr-only">搜索照片和视频</span>
               <div className="flex min-h-11 items-center gap-2 rounded-2xl noir-glass-chip px-4">
                 <Search aria-hidden="true" size={16} className="text-[var(--muted)]" />
