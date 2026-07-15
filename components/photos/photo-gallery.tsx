@@ -85,6 +85,29 @@ export function shouldExitSelectionMode({
   return failedCount === 0 || selectedCount === 0;
 }
 
+export function resolveBatchSelectionAfterResult<Failure extends { id: string }>(
+  selectedIds: readonly string[],
+  result: BatchSelectionResult<Failure>,
+) {
+  const retainedIds = retainOnlyFailedSelection(selectedIds, result);
+  return {
+    retainedIds,
+    exitSelectionMode: shouldExitSelectionMode({
+      selectedCount: retainedIds.length,
+      failedCount: result.failed.length,
+    }),
+  };
+}
+
+type GalleryPanelOpenAction = "toggleFilters" | "showSort" | "showGroup";
+
+export function resolveGalleryPanelOpenState(
+  currentOpen: boolean,
+  action: GalleryPanelOpenAction,
+) {
+  return action === "toggleFilters" ? !currentOpen : true;
+}
+
 export function resolveSelectionModeAfterQueryChange({
   selectionMode,
   selectedCount,
@@ -472,19 +495,21 @@ export function PhotoGallery({
 
       const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
       const failed = result.failed ?? [];
-      const failedIds = retainOnlyFailedSelection(selectedIds, {
+      const batchSelection = resolveBatchSelectionAfterResult(selectedIds, {
         succeededIds: result.succeededIds ?? [],
         failed,
       });
       const succeededCount = result.succeededIds?.length ?? 0;
 
+      if (batchSelection.exitSelectionMode) {
+        exitSelectionMode();
+      } else {
+        selection.retainOnly(batchSelection.retainedIds);
+      }
+
       if (failed.length > 0) {
-        selection.retainOnly(failedIds);
         message.error(failed[0]?.message ?? "部分照片删除失败");
       } else {
-        if (shouldExitSelectionMode({ selectedCount: failedIds.length, failedCount: failed.length })) {
-          exitSelectionMode();
-        }
         message.success(`已删除 ${succeededCount || selectedIds.length} 张照片`);
       }
 
@@ -551,7 +576,7 @@ export function PhotoGallery({
 
       const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
       const failed = result.failed ?? [];
-      const failedIds = retainOnlyFailedSelection(selectedIds, {
+      const batchSelection = resolveBatchSelectionAfterResult(selectedIds, {
         succeededIds: result.succeededIds ?? [],
         failed,
       });
@@ -563,13 +588,15 @@ export function PhotoGallery({
         ),
       );
 
+      if (batchSelection.exitSelectionMode) {
+        exitSelectionMode();
+      } else {
+        selection.retainOnly(batchSelection.retainedIds);
+      }
+
       if (failed.length > 0) {
-        selection.retainOnly(failedIds);
         message.error(failed[0]?.message ?? "部分照片收藏失败");
       } else {
-        if (shouldExitSelectionMode({ selectedCount: failedIds.length, failedCount: failed.length })) {
-          exitSelectionMode();
-        }
         message.success(nextFavorited ? "已收藏选中照片" : "已取消收藏选中照片");
       }
     } catch (error) {
@@ -714,14 +741,12 @@ export function PhotoGallery({
   }
 
   function handleBatchAddResult(result: { succeededIds: string[]; failed: Array<{ id: string; message: string }> }) {
-    const failedIds = retainOnlyFailedSelection(selectedIds, result);
+    const batchSelection = resolveBatchSelectionAfterResult(selectedIds, result);
 
-    if (result.failed.length > 0) {
-      selection.retainOnly(failedIds);
+    if (batchSelection.exitSelectionMode) {
+      exitSelectionMode();
     } else {
-      if (shouldExitSelectionMode({ selectedCount: failedIds.length, failedCount: result.failed.length })) {
-        exitSelectionMode();
-      }
+      selection.retainOnly(batchSelection.retainedIds);
     }
 
     if (result.succeededIds.length > 0) {
@@ -752,9 +777,9 @@ export function PhotoGallery({
         selectionMode={selectionMode}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
-        onToggleFilters={() => applySelectionSensitiveQueryChange(() => setFiltersOpen(!filtersOpen))}
-        onChangeSort={() => applySelectionSensitiveQueryChange(() => setFiltersOpen(!filtersOpen))}
-        onChangeGroup={() => applySelectionSensitiveQueryChange(() => setFiltersOpen(!filtersOpen))}
+        onToggleFilters={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "toggleFilters"))}
+        onChangeSort={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "showSort"))}
+        onChangeGroup={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "showGroup"))}
         onClearFilters={() => applySelectionSensitiveQueryChange(galleryQuery.clearFilters)}
         onToggleSelectionMode={() => {
           if (selectionMode) {
