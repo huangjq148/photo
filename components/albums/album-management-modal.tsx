@@ -161,14 +161,7 @@ export function AlbumManagementModal({
         </nav>
 
         {activeTab === "details" ? (
-          <form
-            id={detailsFormId}
-            className="space-y-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              onSave();
-            }}
-          >
+          <div id={detailsFormId} className="space-y-5">
             {formError ? (
               <div className="rounded-xl border border-red-400/25 bg-red-950/20 px-4 py-3 text-sm text-[var(--danger)]" role="alert">
                 {formError}
@@ -280,7 +273,7 @@ export function AlbumManagementModal({
                 </button>
               </div>
             ) : null}
-          </form>
+          </div>
         ) : null}
 
         {activeTab === "upload" ? (

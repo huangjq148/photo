@@ -171,19 +171,62 @@ test.describe.serial("photo UX P0", () => {
     await expect(addDialog).toHaveCount(0);
     await expect(page.getByText("photo-51")).toBeVisible({ timeout: 20_000 });
 
-    const gallerySearch = page.getByPlaceholder("搜索名称或原始文件名");
-    await gallerySearch.fill("missing-" + uniqueId);
-    await expect(page.getByRole("heading", { name: "没有找到匹配的照片" })).toBeVisible();
-    const gallerySearchSection = page.locator("section").filter({ hasText: "PHOTOS" });
-    await expect(gallerySearchSection.getByLabel("清空搜索")).toBeVisible();
-    await gallerySearchSection.getByLabel("清空搜索").click();
-    await expect(gallerySearch).toHaveValue("");
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    await expect(page.getByRole("button", { name: "上传照片", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "从全部照片添加", exact: true })).toBeVisible();
+    const mobileAlbumMenu = page.getByRole("button", { name: "更多相册操作" });
+    await mobileAlbumMenu.click();
+    const mobileManageMenuItem = page.getByRole("menuitem", { name: "管理相册" });
+    await expect(mobileManageMenuItem).toBeVisible();
+    await expect(page.getByRole("menuitem", { name: "公开分享" })).toBeVisible();
+    await expect(mobileManageMenuItem).toBeFocused();
+    await mobileManageMenuItem.press("Escape");
+    await expect(mobileManageMenuItem).toHaveCount(0);
+    await expect(mobileAlbumMenu).toBeFocused();
+
+    const mobileToolbar = page.getByTestId("gallery-mobile-toolbar");
+    await mobileToolbar.getByRole("button", { name: "排序" }).click();
+    await expect(page.locator("#gallery-sort-options")).toBeFocused();
+
+    await expect(mobileToolbar.getByPlaceholder("搜索名称或原始文件名")).toHaveCount(0);
+    await mobileToolbar.getByRole("button", { name: "搜索照片和视频" }).click();
+    const mobileGallerySearch = mobileToolbar.getByPlaceholder("搜索名称或原始文件名");
+    await expect(mobileGallerySearch).toBeFocused();
+    await mobileGallerySearch.fill("photo-51");
     await expect(page.getByText("photo-51")).toBeVisible();
+    await mobileGallerySearch.fill("");
+    await page.getByText("PHOTOS", { exact: true }).click();
+    await expect(mobileToolbar.getByPlaceholder("搜索名称或原始文件名")).toHaveCount(0);
 
     const photoCard = page.locator("article").filter({ hasText: "photo-51" }).first();
-    await photoCard.getByRole("button", { name: "更多操作" }).click({ force: true });
+    const photoSelectControl = photoCard.locator("[data-photo-select-control]");
+    await expect(photoSelectControl).toBeHidden();
+    await mobileToolbar.getByRole("button", { name: "选择", exact: true }).click();
+    await expect(photoSelectControl).toBeVisible();
+    await expect(photoCard.getByRole("button", { name: "更多操作" })).toHaveCount(0);
+    await photoSelectControl.getByRole("button", { name: "选择 photo-51" }).click();
+    await expect(page.getByText("已选择 1 项")).toBeVisible();
+    await mobileToolbar.getByRole("button", { name: "取消", exact: true }).click();
+    await expect(page.getByText("已选择 1 项")).toHaveCount(0);
+    await expect(photoSelectControl).toBeHidden();
+
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(hasHorizontalOverflow).toBe(false);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(page.getByRole("button", { name: "从全部照片添加", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "管理", exact: true })).toBeVisible();
+    const desktopPhotoMenu = photoCard.getByRole("button", { name: "更多操作" });
+    await photoCard.hover();
+    await expect(desktopPhotoMenu).toBeVisible();
+    await desktopPhotoMenu.click();
+    const deletePhotoMenuItem = page.getByRole("menuitem", { name: "从相册移除", exact: true });
+    await expect(deletePhotoMenuItem).toBeVisible();
     await page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("menuitem", { name: "删除" }).click();
+    await deletePhotoMenuItem.click();
     await expect(page.locator("article").filter({ hasText: "photo-51" })).toHaveCount(0, {
       timeout: 20_000,
     });
@@ -194,6 +237,10 @@ test.describe.serial("photo UX P0", () => {
     const nameInput = manageDialog.getByRole("textbox").first();
     await nameInput.fill(updatedAlbumName);
     await page.route(`**/api/albums/${targetAlbumId}`, async (route) => {
+      if (route.request().method() !== "PATCH") {
+        await route.continue();
+        return;
+      }
       await route.fulfill({
         status: 500,
         contentType: "application/json",
