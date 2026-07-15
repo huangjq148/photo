@@ -85,12 +85,7 @@ export function AlbumDetailHeader({
           <Menu
             label="更多相册操作"
             title="更多相册操作"
-            triggerContent={
-              <>
-                <Ellipsis aria-hidden="true" size={20} />
-                <span className="sr-only">管理相册、公开分享</span>
-              </>
-            }
+            triggerContent={<Ellipsis aria-hidden="true" size={20} />}
             items={[
               {
                 key: "manage",
