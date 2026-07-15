@@ -233,6 +233,7 @@ export function PhotoGalleryCard({
   const isGif = photo.mimeType === "image/gif";
   const favoriteLabel = favoriteState ? "取消收藏" : "收藏";
   const resolvedName = resolveDisplayName(displayName, photo.originalName);
+  const selectionActionLabel = `${selected ? "取消选择" : "选择"} ${resolvedName}`;
   const placeholderName = getOriginalNameWithoutExtension(photo.originalName);
   const isCustomName = !!normalizeDisplayName(displayName);
   const dateLabel =
@@ -393,12 +394,14 @@ export function PhotoGalleryCard({
         {selectionMode ? (
           <button
             type="button"
+            data-photo-selection-body=""
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
               onSelect();
             }}
-            aria-label={`选择 ${resolvedName}`}
+            aria-pressed={selected}
+            aria-label={selectionActionLabel}
             className="group/img relative block w-full overflow-hidden text-left"
           >
             <img
@@ -516,7 +519,14 @@ export function PhotoGalleryCard({
         </div>
       ) : null}
 
-      <div className="absolute left-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100">
+      <div
+        data-photo-select-control=""
+        className={`absolute left-3 top-3 z-20 transition ${
+          selectionMode
+            ? "block opacity-100"
+            : "hidden sm:block sm:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100"
+        }`}
+      >
         <button
           type="button"
           onClick={(event) => {
@@ -528,25 +538,32 @@ export function PhotoGalleryCard({
             selected ? "border-blue-500 bg-blue-500 text-white" : "noir-glass-chip text-[var(--text)]"
           }`}
           aria-pressed={selected}
-          aria-label={`选择 ${resolvedName}`}
+          aria-label={selectionActionLabel}
         >
           <Check aria-hidden="true" size={16} className={selected ? "opacity-100" : "opacity-45"} />
         </button>
       </div>
 
-      <div className="absolute right-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:pointer-events-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-hover:[@media(hover:hover)_and_(pointer:fine)]:opacity-100 group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:opacity-100">
-        <Menu
-          label="更多操作"
-          triggerContent={<Ellipsis aria-hidden="true" size={16} />}
-          items={menuItems.map((item) => ({
-            key: item.key,
-            label: item.label,
-            icon: item.icon,
-            tone: item.danger ? "danger" : item.className ? "accent" : "default",
-            onSelect: item.onSelect,
-          }))}
-        />
-      </div>
+      {!selectionMode ? (
+        <div className="absolute right-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:pointer-events-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-hover:[@media(hover:hover)_and_(pointer:fine)]:opacity-100 group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:opacity-100">
+          <Menu
+            label="更多操作"
+            triggerClassName="h-11 w-11 border-0 bg-transparent p-0"
+            triggerContent={
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full noir-glass-chip">
+                <Ellipsis aria-hidden="true" size={15} />
+              </span>
+            }
+            items={menuItems.map((item) => ({
+              key: item.key,
+              label: item.label,
+              icon: item.icon,
+              tone: item.danger ? "danger" : item.className ? "accent" : "default",
+              onSelect: item.onSelect,
+            }))}
+          />
+        </div>
+      ) : null}
     </article>
   );
 }

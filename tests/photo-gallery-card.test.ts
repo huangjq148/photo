@@ -60,6 +60,9 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain('aria-haspopup="menu"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("h-11 w-11");
+    expect(html).toContain("h-7 w-7");
+    expect(html).toContain("hidden sm:block");
+    expect(html).toContain("data-photo-select-control");
     expect(html).toContain("更多操作");
     expect(html).not.toContain("1200 × 900");
   });
@@ -109,7 +112,9 @@ describe("PhotoGalleryCard", () => {
 
     expect(html).toContain("点击选择");
     expect(html).not.toContain("点击查看原图");
-    expect(html).toContain('role="button"');
+    expect(html).not.toContain('aria-label="更多操作"');
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toMatch(/<button[^>]*data-photo-selection-body=""[^>]*aria-pressed="false"/);
   });
 
   it("renders the menu panel with menu semantics when open", () => {
@@ -256,6 +261,7 @@ describe("PhotoGalleryCard", () => {
             albumCount: 0,
           },
           selected: true,
+          selectionMode: true,
           waterfall: false,
           showTakenAt: false,
           onSelect: () => true,
@@ -274,6 +280,7 @@ describe("PhotoGalleryCard", () => {
     expect(html).toContain("bg-blue-500");
     expect(html).toContain("text-white");
     expect(html).toContain("selected");
+    expect(html).toContain('aria-label="取消选择 selected"');
   });
 
   it("switches the media preview area into selection mode", () => {

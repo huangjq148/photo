@@ -62,6 +62,48 @@ type PhotoGalleryProps = {
   isDefaultAlbum?: boolean;
 };
 
+type BatchSelectionResult<Failure extends { id: string }> = {
+  succeededIds: readonly string[];
+  failed: readonly Failure[];
+};
+
+export function retainOnlyFailedSelection<Failure extends { id: string }>(
+  selectedIds: readonly string[],
+  result: BatchSelectionResult<Failure>,
+) {
+  const failedIds = new Set(result.failed.map((item) => item.id));
+  return selectedIds.filter((id) => failedIds.has(id));
+}
+
+export function shouldExitSelectionMode({
+  selectedCount,
+  failedCount,
+}: {
+  selectedCount: number;
+  failedCount: number;
+}) {
+  return selectedCount === 0 && failedCount === 0;
+}
+
+export function resolveSelectionModeAfterQueryChange({
+  selectionMode,
+  selectedCount,
+  confirmed,
+}: {
+  selectionMode: boolean;
+  selectedCount: number;
+  confirmed: boolean;
+}) {
+  if (selectedCount > 0 && !confirmed) {
+    return { proceed: false, exitSelectionMode: false };
+  }
+
+  return {
+    proceed: true,
+    exitSelectionMode: selectionMode,
+  };
+}
+
 function getSortDate(photo: PhotoItem): Date {
   return photo.takenAt ? new Date(photo.takenAt) : new Date(photo.uploadedAt);
 }
@@ -159,6 +201,7 @@ export function PhotoGallery({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const message = useMessage();
   const selection = useSelection();
+  const [selectionMode, setSelectionMode] = useState(false);
   const galleryQuery = useGalleryQuery({
     onCommit: setCommittedKeyword,
   });
@@ -398,6 +441,11 @@ export function PhotoGallery({
     [isDefaultAlbum],
   );
 
+  function exitSelectionMode() {
+    selection.clear();
+    setSelectionMode(false);
+  }
+
   async function batchDeleteSelected() {
     if (selectedIds.length === 0 || busyAction) {
       return;
@@ -419,14 +467,20 @@ export function PhotoGallery({
       }
 
       const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
-      const failedIds = result.failed?.map((item) => item.id) ?? [];
+      const failed = result.failed ?? [];
+      const failedIds = retainOnlyFailedSelection(selectedIds, {
+        succeededIds: result.succeededIds ?? [],
+        failed,
+      });
       const succeededCount = result.succeededIds?.length ?? 0;
 
-      if (failedIds.length > 0) {
+      if (failed.length > 0) {
         selection.retainOnly(failedIds);
-        message.error(result.failed?.[0]?.message ?? "部分照片删除失败");
+        message.error(failed[0]?.message ?? "部分照片删除失败");
       } else {
-        selection.clear();
+        if (shouldExitSelectionMode({ selectedCount: failedIds.length, failedCount: failed.length })) {
+          exitSelectionMode();
+        }
         message.success(`已删除 ${succeededCount || selectedIds.length} 张照片`);
       }
 
@@ -492,7 +546,11 @@ export function PhotoGallery({
       }
 
       const result = json.data as { succeededIds?: string[]; failed?: Array<{ id: string; message: string }> };
-      const failedIds = result.failed?.map((item) => item.id) ?? [];
+      const failed = result.failed ?? [];
+      const failedIds = retainOnlyFailedSelection(selectedIds, {
+        succeededIds: result.succeededIds ?? [],
+        failed,
+      });
       const succeededIdSet = new Set(result.succeededIds ?? []);
 
       setItems((currentItems) =>
@@ -501,11 +559,13 @@ export function PhotoGallery({
         ),
       );
 
-      if (failedIds.length > 0) {
+      if (failed.length > 0) {
         selection.retainOnly(failedIds);
-        message.error(result.failed?.[0]?.message ?? "部分照片收藏失败");
+        message.error(failed[0]?.message ?? "部分照片收藏失败");
       } else {
-        selection.clear();
+        if (shouldExitSelectionMode({ selectedCount: failedIds.length, failedCount: failed.length })) {
+          exitSelectionMode();
+        }
         message.success(nextFavorited ? "已收藏选中照片" : "已取消收藏选中照片");
       }
     } catch (error) {
@@ -587,13 +647,12 @@ export function PhotoGallery({
     () => items.filter((item) => selectedIdSet.has(item.id)),
     [items, selectedIdSet],
   );
-  const selectionMode = selectedCount > 0;
   const favoriteBatchLabel = selectedItems.length > 0 && selectedItems.every((item) => item.isFavorited)
     ? "取消收藏"
     : "收藏";
   const effectiveGroupMode = urlState.groupBy ?? groupMode;
   const isGrouped = effectiveGroupMode !== "none";
-  const batchActionBar = selectionMode ? (
+  const batchActionBar = selectedCount > 0 ? (
     <BatchActionBar
       selectedCount={selectedCount}
       favoriteLabel={favoriteBatchLabel}
@@ -606,13 +665,13 @@ export function PhotoGallery({
       onDeleteSelected={() => {
         void batchDeleteSelected();
       }}
-      onClearSelection={() => selection.clear()}
+      onClearSelection={exitSelectionMode}
       busyAction={busyAction}
     />
   ) : null;
 
   function confirmDiscardSelection() {
-    if (!selectionMode) {
+    if (selectedCount === 0) {
       return true;
     }
 
@@ -620,46 +679,45 @@ export function PhotoGallery({
   }
 
   function handleSearchChange(next: string) {
-    if (next !== galleryQuery.searchValue && selectionMode && !confirmDiscardSelection()) {
+    if (next === galleryQuery.searchValue) {
+      galleryQuery.setSearchValue(next);
       return;
     }
 
-    if (selectionMode) {
-      selection.clear();
-    }
-
-    galleryQuery.setSearchValue(next);
+    applySelectionSensitiveQueryChange(() => galleryQuery.setSearchValue(next));
   }
 
   function handleClearSearch() {
-    if (selectionMode && !confirmDiscardSelection()) {
-      return;
-    }
-
-    if (selectionMode) {
-      selection.clear();
-    }
-
-    galleryQuery.clearSearch();
+    applySelectionSensitiveQueryChange(galleryQuery.clearSearch);
   }
 
-  function handleSelectionSensitiveAction(action: () => void) {
-    if (selectionMode && !confirmDiscardSelection()) {
+  function applySelectionSensitiveQueryChange(action: () => void) {
+    const transition = resolveSelectionModeAfterQueryChange({
+      selectionMode,
+      selectedCount,
+      confirmed: selectedCount > 0 ? confirmDiscardSelection() : false,
+    });
+
+    if (!transition.proceed) {
       return;
     }
 
-    if (selectionMode) {
-      selection.clear();
+    if (transition.exitSelectionMode || selectedCount > 0) {
+      exitSelectionMode();
     }
 
     action();
   }
 
   function handleBatchAddResult(result: { succeededIds: string[]; failed: Array<{ id: string; message: string }> }) {
+    const failedIds = retainOnlyFailedSelection(selectedIds, result);
+
     if (result.failed.length > 0) {
-      selection.retainOnly(result.failed.map((item) => item.id));
+      selection.retainOnly(failedIds);
     } else {
-      selection.clear();
+      if (shouldExitSelectionMode({ selectedCount: failedIds.length, failedCount: result.failed.length })) {
+        exitSelectionMode();
+      }
     }
 
     if (result.succeededIds.length > 0) {
@@ -690,28 +748,30 @@ export function PhotoGallery({
         selectionMode={selectionMode}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
-        onToggleFilters={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
-        onChangeSort={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
-        onChangeGroup={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
-        onClearFilters={() => {
-          if (selectionMode && !confirmDiscardSelection()) return;
-          if (selectionMode) selection.clear();
-          galleryQuery.clearFilters();
+        onToggleFilters={() => applySelectionSensitiveQueryChange(() => setFiltersOpen(!filtersOpen))}
+        onChangeSort={() => applySelectionSensitiveQueryChange(() => setFiltersOpen(!filtersOpen))}
+        onChangeGroup={() => applySelectionSensitiveQueryChange(() => setFiltersOpen(!filtersOpen))}
+        onClearFilters={() => applySelectionSensitiveQueryChange(galleryQuery.clearFilters)}
+        onToggleSelectionMode={() => {
+          if (selectionMode) {
+            exitSelectionMode();
+            return;
+          }
+          setSelectionMode(true);
         }}
-        onToggleSelectionMode={() => undefined}
         photoSize={photoSize}
         onPhotoSizeChange={onPhotoSizeChange}
         filtersOpen={filtersOpen}
         urlState={urlState}
         showUploaderFilter={!isDefaultAlbum}
-        onMediaTypeChange={(v) => galleryQuery.setMediaType(v)}
-        onFavoritedOnlyChange={(v) => galleryQuery.setFavoritedOnly(v)}
-        onUploaderIdChange={(v) => galleryQuery.setUploaderId(v)}
-        onTakenFromChange={(v) => galleryQuery.setTakenRange(v, urlState.takenTo)}
-        onTakenToChange={(v) => galleryQuery.setTakenRange(urlState.takenFrom, v)}
-        onSortByChange={(v) => galleryQuery.setSortBy(v)}
-        onSortOrderChange={(v) => galleryQuery.setSortOrder(v)}
-        onGroupByChange={(v) => galleryQuery.setGroupBy(v)}
+        onMediaTypeChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setMediaType(v))}
+        onFavoritedOnlyChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setFavoritedOnly(v))}
+        onUploaderIdChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setUploaderId(v))}
+        onTakenFromChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setTakenRange(v, urlState.takenTo))}
+        onTakenToChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setTakenRange(urlState.takenFrom, v))}
+        onSortByChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setSortBy(v))}
+        onSortOrderChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setSortOrder(v))}
+        onGroupByChange={(v) => applySelectionSensitiveQueryChange(() => galleryQuery.setGroupBy(v))}
       />
 
       <AsyncState
@@ -787,6 +847,7 @@ export function PhotoGallery({
                       navigableItems={navigableItems}
                       childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                       onSelect={() => {
+                        setSelectionMode(true);
                         selection.toggle(photo.id);
                       }}
                       onFavorite={() => {
@@ -833,6 +894,7 @@ export function PhotoGallery({
                 navigableItems={navigableItems}
                 childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                 onSelect={() => {
+                  setSelectionMode(true);
                   selection.toggle(photo.id);
                 }}
                 onFavorite={() => {
