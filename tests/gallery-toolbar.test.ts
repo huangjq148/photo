@@ -12,6 +12,7 @@ describe("GalleryToolbar", () => {
         totalCount: 48,
         activeFilterCount: 2,
         hasActiveSelection: false,
+        selectionMode: false,
         searchValue: "旅行",
         onSearchChange: () => undefined,
         onClearSearch: () => undefined,
@@ -19,10 +20,21 @@ describe("GalleryToolbar", () => {
         onChangeSort: () => undefined,
         onChangeGroup: () => undefined,
         onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
+        filtersOpen: true,
+        urlState: {
+          q: "旅行",
+          sortOrder: "desc",
+        },
       }),
     );
 
-    expect(html).toContain("搜索照片和视频");
+    expect(html).toContain('aria-label="搜索照片和视频"');
+    expect(html).toContain("sm:hidden");
+    expect(html).toContain("hidden sm:block");
+    expect(html).toContain("min-h-11");
+    expect(html).toContain("选择");
+    expect(html).toContain('id="gallery-sort-options"');
     expect(html).toContain("筛选");
     expect(html).toContain("排序");
     expect(html).toContain("分组");
@@ -38,6 +50,7 @@ describe("GalleryToolbar", () => {
         totalCount: 0,
         activeFilterCount: 3,
         hasActiveSelection: false,
+        selectionMode: false,
         searchValue: "",
         onSearchChange: () => undefined,
         onClearSearch: () => undefined,
@@ -45,6 +58,7 @@ describe("GalleryToolbar", () => {
         onChangeSort: () => undefined,
         onChangeGroup: () => undefined,
         onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
       }),
     );
 
@@ -59,6 +73,7 @@ describe("GalleryToolbar", () => {
         totalCount: 100,
         activeFilterCount: 0,
         hasActiveSelection: false,
+        selectionMode: false,
         searchValue: "",
         onSearchChange: () => undefined,
         onClearSearch: () => undefined,
@@ -66,6 +81,7 @@ describe("GalleryToolbar", () => {
         onChangeSort: () => undefined,
         onChangeGroup: () => undefined,
         onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
         filtersOpen: true,
         urlState: {
           q: "",
@@ -90,6 +106,7 @@ describe("GalleryToolbar", () => {
         totalCount: 100,
         activeFilterCount: 0,
         hasActiveSelection: false,
+        selectionMode: false,
         searchValue: "",
         onSearchChange: () => undefined,
         onClearSearch: () => undefined,
@@ -97,6 +114,7 @@ describe("GalleryToolbar", () => {
         onChangeSort: () => undefined,
         onChangeGroup: () => undefined,
         onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
         filtersOpen: true,
         urlState: {
           q: "",
@@ -117,6 +135,7 @@ describe("GalleryToolbar", () => {
         totalCount: 100,
         activeFilterCount: 1,
         hasActiveSelection: false,
+        selectionMode: false,
         searchValue: "",
         onSearchChange: () => undefined,
         onClearSearch: () => undefined,
@@ -124,6 +143,7 @@ describe("GalleryToolbar", () => {
         onChangeSort: () => undefined,
         onChangeGroup: () => undefined,
         onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
         filtersOpen: true,
         urlState: {
           q: "",
@@ -147,6 +167,7 @@ describe("GalleryToolbar", () => {
         totalCount: 100,
         activeFilterCount: 0,
         hasActiveSelection: false,
+        selectionMode: false,
         searchValue: "",
         onSearchChange: () => undefined,
         onClearSearch: () => undefined,
@@ -154,6 +175,7 @@ describe("GalleryToolbar", () => {
         onChangeSort: () => undefined,
         onChangeGroup: () => undefined,
         onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
         filtersOpen: false,
         urlState: {
           q: "",
@@ -165,5 +187,28 @@ describe("GalleryToolbar", () => {
 
     expect(html).not.toContain("媒体类型");
     expect(html).not.toContain("拍摄日期");
+  });
+
+  it("shows cancel while selection mode is active", () => {
+    const html = renderToStaticMarkup(
+      createElement(GalleryToolbar, {
+        query: "",
+        filteredCount: 10,
+        totalCount: 100,
+        activeFilterCount: 0,
+        hasActiveSelection: false,
+        selectionMode: true,
+        searchValue: "",
+        onSearchChange: () => undefined,
+        onClearSearch: () => undefined,
+        onToggleFilters: () => undefined,
+        onChangeSort: () => undefined,
+        onChangeGroup: () => undefined,
+        onClearFilters: () => undefined,
+        onToggleSelectionMode: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("取消");
   });
 });

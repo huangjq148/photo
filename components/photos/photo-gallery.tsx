@@ -687,6 +687,7 @@ export function PhotoGallery({
         totalCount={totalCount}
         activeFilterCount={galleryQuery.activeFilterCount}
         hasActiveSelection={selectedCount > 0}
+        selectionMode={selectionMode}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
         onToggleFilters={() => handleSelectionSensitiveAction(() => setFiltersOpen(!filtersOpen))}
@@ -697,6 +698,7 @@ export function PhotoGallery({
           if (selectionMode) selection.clear();
           galleryQuery.clearFilters();
         }}
+        onToggleSelectionMode={() => undefined}
         photoSize={photoSize}
         onPhotoSizeChange={onPhotoSizeChange}
         filtersOpen={filtersOpen}

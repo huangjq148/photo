@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Filter,
   Search,
   SlidersHorizontal,
   Layers3,
   X,
-  Check,
   Star,
   Image,
   Video,
@@ -28,6 +27,7 @@ import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/pho
 
 type FilterPanelProps = {
   state: GalleryUrlState;
+  sortSectionRef: React.RefObject<HTMLFieldSetElement | null>;
   showUploader: boolean;
   onMediaTypeChange: (value?: GalleryMediaType) => void;
   onFavoritedOnlyChange: (value?: boolean) => void;
@@ -42,6 +42,7 @@ type FilterPanelProps = {
 
 function FilterPanel({
   state,
+  sortSectionRef,
   showUploader,
   onMediaTypeChange,
   onFavoritedOnlyChange,
@@ -195,7 +196,7 @@ function FilterPanel({
         ) : null}
 
         {/* Sort */}
-        <fieldset>
+        <fieldset id="gallery-sort-options" ref={sortSectionRef} tabIndex={-1}>
           <legend className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
             <ArrowUpDown size={12} className="mr-1 inline" aria-hidden="true" />
             排序
@@ -331,12 +332,14 @@ type GalleryToolbarProps = {
   totalCount: number;
   activeFilterCount: number;
   hasActiveSelection: boolean;
+  selectionMode: boolean;
   onSearchChange: (value: string) => void;
   onClearSearch: () => void;
   onToggleFilters: () => void;
   onChangeSort: () => void;
   onChangeGroup: () => void;
   onClearFilters: () => void;
+  onToggleSelectionMode: () => void;
   photoSize?: PhotoSize;
   onPhotoSizeChange?: (value: PhotoSize) => void;
   // Filter panel props
@@ -360,12 +363,14 @@ export function GalleryToolbar({
   totalCount,
   activeFilterCount,
   hasActiveSelection,
+  selectionMode,
   onSearchChange,
   onClearSearch,
   onToggleFilters,
   onChangeSort,
   onChangeGroup,
   onClearFilters,
+  onToggleSelectionMode,
   photoSize,
   onPhotoSizeChange,
   filtersOpen = false,
@@ -380,82 +385,193 @@ export function GalleryToolbar({
   onSortOrderChange,
   onGroupByChange,
 }: GalleryToolbarProps) {
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(() => Boolean(query || searchValue));
+  const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const sortSectionRef = useRef<HTMLFieldSetElement>(null);
+
+  useEffect(() => {
+    if (query || searchValue) {
+      setMobileSearchOpen(true);
+    }
+  }, [query, searchValue]);
+
+  function openMobileSearch() {
+    setMobileSearchOpen(true);
+    requestAnimationFrame(() => mobileSearchRef.current?.focus());
+  }
+
+  function handleMobileSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Escape") return;
+
+    if (searchValue) {
+      event.currentTarget.blur();
+      return;
+    }
+
+    setMobileSearchOpen(false);
+  }
+
+  function handleMobileSort() {
+    onChangeSort();
+    requestAnimationFrame(() => sortSectionRef.current?.focus());
+  }
+
   return (
     <section className="noir-glass-panel rounded-[2rem] p-4 sm:p-5">
       <div className="grid gap-3">
-        <label className="block">
-          <span className="sr-only">搜索照片和视频</span>
-          <div className="flex items-center gap-2 rounded-2xl noir-glass-chip px-4 py-3">
-            <Search aria-hidden="true" size={16} className="text-[var(--muted)]" />
-            <input
-              value={searchValue}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="搜索名称或原始文件名"
-              className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
-            />
-            {searchValue ? (
+        <div data-testid="gallery-mobile-toolbar" className="sm:hidden">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openMobileSearch}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              aria-label="搜索照片和视频"
+            >
+              <Search aria-hidden="true" size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleFilters}
+              className={`relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border transition ${
+                filtersOpen
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-black"
+                  : "border-[var(--border-strong)] text-[var(--text)] hover:border-white/35 hover:bg-white/[0.08]"
+              }`}
+              aria-label="筛选"
+            >
+              <Filter aria-hidden="true" size={17} />
+              {activeFilterCount > 0 ? (
+                <span className="absolute -right-1 -top-1 rounded-full bg-[var(--accent)] px-1.5 text-[10px] font-bold text-black">
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              onClick={handleMobileSort}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--border-strong)] text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              aria-label="排序"
+            >
+              <SlidersHorizontal aria-hidden="true" size={17} />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleSelectionMode}
+              className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+            >
+              {selectionMode ? "取消" : "选择"}
+            </button>
+          </div>
+
+          {mobileSearchOpen ? (
+            <label data-testid="gallery-mobile-search" className="mt-3 block">
+              <span className="sr-only">搜索照片和视频</span>
+              <div className="flex min-h-11 items-center gap-2 rounded-2xl noir-glass-chip px-4">
+                <Search aria-hidden="true" size={16} className="text-[var(--muted)]" />
+                <input
+                  ref={mobileSearchRef}
+                  value={searchValue}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  onBlur={() => {
+                    if (!searchValue) setMobileSearchOpen(false);
+                  }}
+                  onKeyDown={handleMobileSearchKeyDown}
+                  placeholder="搜索名称或原始文件名"
+                  className="min-h-11 min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                />
+                {searchValue ? (
+                  <button
+                    type="button"
+                    onClick={onClearSearch}
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+                    aria-label="清空搜索"
+                  >
+                    <X aria-hidden="true" size={14} />
+                  </button>
+                ) : null}
+              </div>
+            </label>
+          ) : null}
+        </div>
+
+        <div className="hidden sm:block">
+          <div className="grid gap-3">
+            <label className="block">
+              <span className="sr-only">搜索照片和视频</span>
+              <div className="flex items-center gap-2 rounded-2xl noir-glass-chip px-4 py-3">
+                <Search aria-hidden="true" size={16} className="text-[var(--muted)]" />
+                <input
+                  value={searchValue}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder="搜索名称或原始文件名"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                />
+                {searchValue ? (
+                  <button
+                    type="button"
+                    onClick={onClearSearch}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+                    aria-label="清空搜索"
+                  >
+                    <X aria-hidden="true" size={14} />
+                  </button>
+                ) : null}
+              </div>
+            </label>
+
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={onClearSearch}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
-                aria-label="清空搜索"
+                onClick={onToggleFilters}
+                className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition ${
+                  filtersOpen
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-black"
+                    : "border-[var(--border-strong)] text-[var(--text)] hover:border-white/35 hover:bg-white/[0.08]"
+                }`}
               >
-                <X aria-hidden="true" size={14} />
+                <Filter aria-hidden="true" size={16} />
+                筛选
+                {activeFilterCount > 0 ? (
+                  <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-black">
+                    {activeFilterCount}
+                  </span>
+                ) : null}
               </button>
-            ) : null}
+
+              <button
+                type="button"
+                onClick={onChangeSort}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              >
+                <SlidersHorizontal aria-hidden="true" size={16} />
+                排序
+              </button>
+
+              <button
+                type="button"
+                onClick={onChangeGroup}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              >
+                <Layers3 aria-hidden="true" size={16} />
+                分组
+              </button>
+
+              <button
+                type="button"
+                onClick={onClearFilters}
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-4 text-sm font-medium text-[var(--muted)] transition hover:border-white/35 hover:bg-white/[0.08] hover:text-[var(--text)]"
+              >
+                清空条件
+              </button>
+            </div>
           </div>
-        </label>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggleFilters}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition ${
-              filtersOpen
-                ? "border-[var(--accent)] bg-[var(--accent)] text-black"
-                : "border-[var(--border-strong)] text-[var(--text)] hover:border-white/35 hover:bg-white/[0.08]"
-            }`}
-          >
-            <Filter aria-hidden="true" size={16} />
-            筛选
-            {activeFilterCount > 0 ? (
-              <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-bold text-black">
-                {activeFilterCount}
-              </span>
-            ) : null}
-          </button>
-
-          <button
-            type="button"
-            onClick={onChangeSort}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
-          >
-            <SlidersHorizontal aria-hidden="true" size={16} />
-            排序
-          </button>
-
-          <button
-            type="button"
-            onClick={onChangeGroup}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
-          >
-            <Layers3 aria-hidden="true" size={16} />
-            分组
-          </button>
-
-          <button
-            type="button"
-            onClick={onClearFilters}
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[var(--border)] px-4 text-sm font-medium text-[var(--muted)] transition hover:border-white/35 hover:bg-white/[0.08] hover:text-[var(--text)]"
-          >
-            清空条件
-          </button>
         </div>
 
         {/* Filter panel */}
         {filtersOpen && urlState ? (
           <FilterPanel
             state={urlState}
+            sortSectionRef={sortSectionRef}
             showUploader={showUploaderFilter}
             onMediaTypeChange={onMediaTypeChange ?? (() => undefined)}
             onFavoritedOnlyChange={onFavoritedOnlyChange ?? (() => undefined)}
@@ -477,7 +593,7 @@ export function GalleryToolbar({
         </div>
 
         {photoSize && onPhotoSizeChange ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-black/35 p-3">
+          <div className="hidden rounded-2xl border border-[var(--border)] bg-black/35 p-3 sm:block">
             <PhotoGallerySizeControl value={photoSize} onChange={onPhotoSizeChange} compact />
           </div>
         ) : null}
