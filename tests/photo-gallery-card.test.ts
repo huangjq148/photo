@@ -96,6 +96,7 @@ describe("PhotoGalleryCard", () => {
           },
           selected: false,
           selectionMode: true,
+          selectionDisabled: true,
           waterfall: false,
           showTakenAt: false,
           onSelect: () => undefined,
@@ -115,6 +116,8 @@ describe("PhotoGalleryCard", () => {
     expect(html).not.toContain('aria-label="更多操作"');
     expect(html).toContain('aria-pressed="false"');
     expect(html).toMatch(/<button[^>]*data-photo-selection-body=""[^>]*aria-pressed="false"/);
+    expect(html).toMatch(/<button[^>]*data-photo-selection-body=""[^>]*disabled=""/);
+    expect(html).toMatch(/<button[^>]*data-photo-selection-control-button=""[^>]*disabled=""/);
   });
 
   it("renders the menu panel with menu semantics when open", () => {

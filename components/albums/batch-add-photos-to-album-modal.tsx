@@ -24,6 +24,7 @@ type BatchAddPhotosToAlbumModalProps = {
   onClose: () => void;
   onAdded?: () => void;
   onResult?: (result: BatchMutationResult) => void;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 export function BatchAddPhotosToAlbumModal({
@@ -33,6 +34,7 @@ export function BatchAddPhotosToAlbumModal({
   onClose,
   onAdded,
   onResult,
+  onBusyChange,
 }: BatchAddPhotosToAlbumModalProps) {
   const [albums, setAlbums] = useState<AlbumItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,7 @@ export function BatchAddPhotosToAlbumModal({
     }
 
     setSavingAlbumId(album.id);
+    onBusyChange?.(true);
     setError(null);
 
     try {
@@ -112,6 +115,7 @@ export function BatchAddPhotosToAlbumModal({
       message.error(text);
     } finally {
       setSavingAlbumId(null);
+      onBusyChange?.(false);
     }
   }
 

@@ -50,6 +50,7 @@ type PhotoGalleryCardProps = {
   photo: PhotoGalleryCardItem;
   selected: boolean;
   selectionMode?: boolean;
+  selectionDisabled?: boolean;
   waterfall: boolean;
   showTakenAt: boolean;
   navigableItems?: ImageViewerNavigationItem[];
@@ -203,6 +204,7 @@ export function PhotoGalleryCard({
   photo,
   selected,
   selectionMode = false,
+  selectionDisabled = false,
   waterfall,
   showTakenAt,
   navigableItems,
@@ -395,6 +397,7 @@ export function PhotoGalleryCard({
           <button
             type="button"
             data-photo-selection-body=""
+            disabled={selectionDisabled}
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -402,7 +405,7 @@ export function PhotoGalleryCard({
             }}
             aria-pressed={selected}
             aria-label={selectionActionLabel}
-            className="group/img relative block w-full overflow-hidden text-left"
+            className="group/img relative block w-full overflow-hidden text-left disabled:cursor-not-allowed disabled:opacity-70"
           >
             <img
               src={photo.thumbnailUrl}
@@ -529,12 +532,14 @@ export function PhotoGalleryCard({
       >
         <button
           type="button"
+          data-photo-selection-control-button=""
+          disabled={selectionDisabled}
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
             onSelect();
           }}
-          className={`inline-flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur transition ${
+          className={`inline-flex h-11 w-11 items-center justify-center rounded-full border backdrop-blur transition disabled:cursor-not-allowed disabled:opacity-60 ${
             selected ? "border-blue-500 bg-blue-500 text-white" : "noir-glass-chip text-[var(--text)]"
           }`}
           aria-pressed={selected}

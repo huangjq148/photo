@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  canMutateSelection,
   resolveBatchSelectionAfterResult,
   resolveGalleryPanelOpenState,
   resolveSelectionModeAfterQueryChange,
@@ -14,6 +15,11 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("photo gallery batch selection", () => {
+  it("blocks selection mutations while a batch action is in flight", () => {
+    expect(canMutateSelection(true)).toBe(false);
+    expect(canMutateSelection(false)).toBe(true);
+  });
+
   it("keeps only failed ids selected after a partial batch result", () => {
     expect(
       retainOnlyFailedSelection(["photo-1", "photo-2", "photo-3"], {

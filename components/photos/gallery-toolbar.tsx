@@ -336,6 +336,7 @@ type GalleryToolbarProps = {
   activeFilterCount: number;
   hasActiveSelection: boolean;
   selectionMode: boolean;
+  selectionBusy?: boolean;
   onSearchChange: (value: string) => void;
   onClearSearch: () => void;
   onToggleFilters: () => void;
@@ -367,6 +368,7 @@ export function GalleryToolbar({
   activeFilterCount,
   hasActiveSelection,
   selectionMode,
+  selectionBusy = false,
   onSearchChange,
   onClearSearch,
   onToggleFilters,
@@ -466,7 +468,8 @@ export function GalleryToolbar({
             <button
               type="button"
               onClick={onToggleSelectionMode}
-              className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+              disabled={selectionBusy}
+              className="ml-auto inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--border-strong)] px-4 text-sm font-medium text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {selectionMode ? "取消" : "选择"}
             </button>

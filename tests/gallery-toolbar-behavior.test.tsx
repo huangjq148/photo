@@ -10,7 +10,13 @@ import { GalleryToolbar } from "@/components/photos/gallery-toolbar";
 const mountedRoots: Root[] = [];
 let animationFrameCallbacks: FrameRequestCallback[] = [];
 
-function ToolbarHarness({ onToggleSelectionMode = vi.fn() } = {}) {
+function ToolbarHarness({
+  onToggleSelectionMode = vi.fn(),
+  selectionBusy = false,
+}: {
+  onToggleSelectionMode?: () => void;
+  selectionBusy?: boolean;
+} = {}) {
   const [searchValue, setSearchValue] = useState("");
 
   return (
@@ -22,6 +28,7 @@ function ToolbarHarness({ onToggleSelectionMode = vi.fn() } = {}) {
       activeFilterCount={0}
       hasActiveSelection={false}
       selectionMode={false}
+      selectionBusy={selectionBusy}
       onSearchChange={setSearchValue}
       onClearSearch={() => setSearchValue("")}
       onToggleFilters={() => undefined}
@@ -45,6 +52,7 @@ function SortHarness({ initiallyOpen, onOpen }: { initiallyOpen: boolean; onOpen
       activeFilterCount={0}
       hasActiveSelection={false}
       selectionMode={false}
+      selectionBusy={false}
       onSearchChange={() => undefined}
       onClearSearch={() => undefined}
       onToggleFilters={() => undefined}
@@ -61,14 +69,19 @@ function SortHarness({ initiallyOpen, onOpen }: { initiallyOpen: boolean; onOpen
   );
 }
 
-function renderToolbar(onToggleSelectionMode = vi.fn()) {
+function renderToolbar(onToggleSelectionMode = vi.fn(), selectionBusy = false) {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   mountedRoots.push(root);
 
   act(() => {
-    root.render(<ToolbarHarness onToggleSelectionMode={onToggleSelectionMode} />);
+    root.render(
+      <ToolbarHarness
+        onToggleSelectionMode={onToggleSelectionMode}
+        selectionBusy={selectionBusy}
+      />,
+    );
   });
 
   return { container, onToggleSelectionMode };
@@ -210,6 +223,22 @@ describe("GalleryToolbar mobile behavior", () => {
     });
 
     expect(onToggleSelectionMode).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables the selection mode toggle while a batch action is in flight", () => {
+    const onToggleSelectionMode = vi.fn();
+    const { container } = renderToolbar(onToggleSelectionMode, true);
+    const selectButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "选择",
+    ) as HTMLButtonElement;
+
+    expect(selectButton.disabled).toBe(true);
+
+    act(() => {
+      selectButton.click();
+    });
+
+    expect(onToggleSelectionMode).not.toHaveBeenCalled();
   });
 
   it("opens a closed filter panel before focusing the sort fieldset", () => {

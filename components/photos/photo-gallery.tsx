@@ -85,6 +85,10 @@ export function shouldExitSelectionMode({
   return failedCount === 0 || selectedCount === 0;
 }
 
+export function canMutateSelection(selectionBusy: boolean) {
+  return !selectionBusy;
+}
+
 export function resolveBatchSelectionAfterResult<Failure extends { id: string }>(
   selectedIds: readonly string[],
   result: BatchSelectionResult<Failure>,
@@ -673,6 +677,7 @@ export function PhotoGallery({
 
   const selectedIds = useMemo(() => Array.from(selection.selectedIds), [selection.selectedIds]);
   const selectedCount = selection.size;
+  const selectionBusy = Boolean(busyAction);
   const selectedIdSet = selection.selectedIds;
   const selectedItems = useMemo(
     () => items.filter((item) => selectedIdSet.has(item.id)),
@@ -775,6 +780,7 @@ export function PhotoGallery({
         activeFilterCount={galleryQuery.activeFilterCount}
         hasActiveSelection={selectedCount > 0}
         selectionMode={selectionMode}
+        selectionBusy={selectionBusy}
         onSearchChange={handleSearchChange}
         onClearSearch={handleClearSearch}
         onToggleFilters={() => setFiltersOpen((current) => resolveGalleryPanelOpenState(current, "toggleFilters"))}
@@ -871,11 +877,13 @@ export function PhotoGallery({
                       photo={photo}
                       selected={selectedIdSet.has(photo.id)}
                       selectionMode={selectionMode}
+                      selectionDisabled={selectionBusy}
                       waterfall={false}
                       showTakenAt={showTakenAt}
                       navigableItems={navigableItems}
                       childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                       onSelect={() => {
+                        if (!canMutateSelection(selectionBusy)) return;
                         setSelectionMode(true);
                         selection.toggle(photo.id);
                       }}
@@ -918,11 +926,13 @@ export function PhotoGallery({
                 photo={photo}
                 selected={selectedIdSet.has(photo.id)}
                 selectionMode={selectionMode}
+                selectionDisabled={selectionBusy}
                 waterfall={layoutMode === "waterfall"}
                 showTakenAt={showTakenAt}
                 navigableItems={navigableItems}
                 childAgeLabel={formatChildAgeLabel(photo.takenAt, childBirthDate)}
                 onSelect={() => {
+                  if (!canMutateSelection(selectionBusy)) return;
                   setSelectionMode(true);
                   selection.toggle(photo.id);
                 }}
@@ -1016,6 +1026,7 @@ export function PhotoGallery({
         photoLabel={buildBatchPhotoLabel(selectedItems)}
         onClose={() => setBatchAddOpen(false)}
         onResult={handleBatchAddResult}
+        onBusyChange={(busy) => setBusyAction(busy ? "add" : null)}
       />
     </div>
   );
