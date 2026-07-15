@@ -28,9 +28,23 @@ describe("photo gallery batch selection", () => {
   it("keeps selection mode after a partial batch failure", () => {
     expect(shouldExitSelectionMode({ selectedCount: 2, failedCount: 1 })).toBe(false);
   });
+
+  it("exits selection mode when no selected ids remain after a failed batch", () => {
+    expect(shouldExitSelectionMode({ selectedCount: 0, failedCount: 1 })).toBe(true);
+  });
 });
 
 describe("photo gallery query changes", () => {
+  it("does not exit when selection mode is inactive", () => {
+    expect(
+      resolveSelectionModeAfterQueryChange({
+        selectionMode: false,
+        selectedCount: 2,
+        confirmed: false,
+      }),
+    ).toEqual({ proceed: true, exitSelectionMode: false });
+  });
+
   it("exits an empty explicit selection mode without confirmation", () => {
     expect(
       resolveSelectionModeAfterQueryChange({

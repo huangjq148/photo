@@ -82,7 +82,7 @@ export function shouldExitSelectionMode({
   selectedCount: number;
   failedCount: number;
 }) {
-  return selectedCount === 0 && failedCount === 0;
+  return failedCount === 0 || selectedCount === 0;
 }
 
 export function resolveSelectionModeAfterQueryChange({
@@ -94,6 +94,10 @@ export function resolveSelectionModeAfterQueryChange({
   selectedCount: number;
   confirmed: boolean;
 }) {
+  if (!selectionMode) {
+    return { proceed: true, exitSelectionMode: false };
+  }
+
   if (selectedCount > 0 && !confirmed) {
     return { proceed: false, exitSelectionMode: false };
   }
