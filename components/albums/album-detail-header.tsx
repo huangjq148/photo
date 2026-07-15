@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, FolderPlus, Settings, Share2, Upload } from "lucide-react";
+import { ArrowLeft, Ellipsis, FolderPlus, Settings, Share2, Upload } from "lucide-react";
+import { Menu } from "@/components/ui/menu";
 
 type HeaderAlbum = {
   name: string;
@@ -63,7 +64,52 @@ export function AlbumDetailHeader({
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row lg:shrink-0">
+        <div className="flex items-center gap-2 sm:hidden">
+          <button
+            type="button"
+            onClick={onUploadNew}
+            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
+          >
+            <Upload aria-hidden="true" size={17} />
+            上传照片
+          </button>
+          <button
+            type="button"
+            aria-label="从全部照片添加"
+            title="从全部照片添加"
+            onClick={onAddFromAllPhotos}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full noir-glass-chip text-white transition hover:border-[var(--border-strong)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
+          >
+            <FolderPlus aria-hidden="true" size={18} />
+          </button>
+          <Menu
+            label="更多相册操作"
+            title="更多相册操作"
+            triggerContent={
+              <>
+                <Ellipsis aria-hidden="true" size={20} />
+                <span className="sr-only">管理相册、公开分享</span>
+              </>
+            }
+            items={[
+              {
+                key: "manage",
+                label: "管理相册",
+                icon: <Settings aria-hidden="true" size={17} />,
+                onSelect: onManage,
+              },
+              {
+                key: "share",
+                label: "公开分享",
+                icon: <Share2 aria-hidden="true" size={17} />,
+                onSelect: onShare,
+              },
+            ]}
+            triggerClassName="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
+          />
+        </div>
+
+        <div className="hidden sm:flex gap-2 lg:shrink-0">
           <button
             type="button"
             onClick={onUploadNew}

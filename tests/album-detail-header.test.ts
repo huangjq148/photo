@@ -31,6 +31,12 @@ describe("AlbumDetailHeader", () => {
     expect(html).toContain("从全部照片添加");
     expect(html).toContain("管理");
     expect(html).toContain("公开分享");
+    expect(html).toContain("sm:hidden");
+    expect(html).toContain("hidden sm:flex");
+    expect(html).toContain('aria-label="从全部照片添加"');
+    expect(html).toContain('aria-label="更多相册操作"');
+    expect(html).toContain("管理相册");
+    expect(html).toContain("公开分享");
     expect(html).not.toContain("邀请");
     expect(html).toContain("text-3xl");
     expect(html).not.toContain("sm:text-6xl");
