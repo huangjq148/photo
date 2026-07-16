@@ -27,6 +27,113 @@ export function applyTrashItemMutation(
   return succeeded ? items.filter((item) => item.id !== photoId) : items;
 }
 
+export type TrashItemAction = "restore" | "delete";
+
+type TrashItemActionResult = "success" | "failure" | "skipped";
+
+type RunTrashItemActionOptions = {
+  pendingActions: Map<string, TrashItemAction>;
+  photoId: string;
+  action: TrashItemAction;
+  request: () => Promise<void>;
+  shouldProceed?: () => boolean;
+  onStart?: () => void;
+  onSuccess: () => void;
+  onFailure: (error: unknown) => void;
+  onPendingChange: (pendingActions: ReadonlyMap<string, TrashItemAction>) => void;
+};
+
+export async function runTrashItemAction({
+  pendingActions,
+  photoId,
+  action,
+  request,
+  shouldProceed,
+  onStart,
+  onSuccess,
+  onFailure,
+  onPendingChange,
+}: RunTrashItemActionOptions): Promise<TrashItemActionResult> {
+  if (pendingActions.has(photoId)) return "skipped";
+
+  pendingActions.set(photoId, action);
+  onPendingChange(new Map(pendingActions));
+
+  try {
+    onStart?.();
+    if (shouldProceed && !shouldProceed()) return "skipped";
+    await request();
+    onSuccess();
+    return "success";
+  } catch (error) {
+    onFailure(error);
+    return "failure";
+  } finally {
+    pendingActions.delete(photoId);
+    onPendingChange(new Map(pendingActions));
+  }
+}
+
+type RefreshTask = () => Promise<void>;
+
+type TrailingRefreshController = {
+  request: (task: RefreshTask) => Promise<void>;
+};
+
+export function createTrailingRefreshController(): TrailingRefreshController {
+  let running = false;
+  let queuedTask: RefreshTask | null = null;
+
+  return {
+    async request(task: RefreshTask): Promise<void> {
+      if (running) {
+        queuedTask = task;
+        return;
+      }
+
+      running = true;
+      let nextTask: RefreshTask | null = task;
+      let failure: { error: unknown } | null = null;
+
+      try {
+        while (nextTask) {
+          try {
+            await nextTask();
+          } catch (error) {
+            failure ??= { error };
+          }
+          nextTask = queuedTask;
+          queuedTask = null;
+        }
+      } finally {
+        running = false;
+      }
+
+      if (failure) throw failure.error;
+    },
+  };
+}
+
+export function claimTrashItemReconciliation(
+  reconciledIds: Set<string>,
+  photoId: string
+): boolean {
+  if (reconciledIds.has(photoId)) return false;
+  reconciledIds.add(photoId);
+  return true;
+}
+
+async function throwTrashActionResponseError(response: Response, fallback: string): Promise<never> {
+  let message = fallback;
+  try {
+    const json = (await response.json()) as { error?: unknown };
+    if (typeof json.error === "string") message = json.error;
+  } catch {
+    // A malformed error response still resolves to the action-specific fallback.
+  }
+  throw new Error(message);
+}
+
 export function TrashGallery() {
   const [items, setItems] = useState<TrashItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +145,12 @@ export function TrashGallery() {
   const [total, setTotal] = useState(0);
   const [clearing, setClearing] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
-  const loadingRef = useRef(false);
+  const [pendingActions, setPendingActions] = useState<ReadonlyMap<string, TrashItemAction>>(
+    () => new Map()
+  );
+  const pendingActionsRef = useRef(new Map<string, TrashItemAction>());
+  const reconciledIdsRef = useRef(new Set<string>());
+  const refreshControllerRef = useRef(createTrailingRefreshController());
   const deleteAction = useMemo(() => getMediaDeleteActions({ surface: "trash" }), []);
   const [photoSize, setPhotoSize] = useState<PhotoSize>(() => loadGalleryPreferences().photoSize);
 
@@ -48,33 +160,32 @@ export function TrashGallery() {
 
   const hasMore = items.length < total;
 
-  const loadPage = useCallback(async (pageNum: number, append = false) => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    if (append) setLoadingMore(true);
+  const loadPage = useCallback((pageNum: number, append = false): Promise<void> => {
+    return refreshControllerRef.current.request(async () => {
+      if (append) setLoadingMore(true);
 
-    try {
-      const response = await fetch(`/api/trash/photos?page=${pageNum}&pageSize=${PAGE_SIZE}`);
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error ?? "加载回收站失败");
+      try {
+        const response = await fetch(`/api/trash/photos?page=${pageNum}&pageSize=${PAGE_SIZE}`);
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error ?? "加载回收站失败");
 
-      setItems((current) => (append ? [...current, ...(json.data.items ?? [])] : json.data.items ?? []));
-      setTotal(json.data.total ?? 0);
-      setPage(pageNum);
-      setSelectedIds((current) =>
-        current.filter((id) =>
-          (append ? [...items, ...(json.data.items ?? [])] : json.data.items ?? []).some(
-            (item: TrashItem) => item.id === id
+        setItems((current) => (append ? [...current, ...(json.data.items ?? [])] : json.data.items ?? []));
+        setTotal(json.data.total ?? 0);
+        setPage(pageNum);
+        setSelectedIds((current) =>
+          current.filter((id) =>
+            (append ? [...items, ...(json.data.items ?? [])] : json.data.items ?? []).some(
+              (item: TrashItem) => item.id === id
+            )
           )
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "加载回收站失败");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      loadingRef.current = false;
-    }
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "加载回收站失败");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    });
   }, [items]);
 
   useEffect(() => {
@@ -97,34 +208,56 @@ export function TrashGallery() {
   }
 
   async function restorePhoto(photoId: string) {
-    const response = await fetch(`/api/photos/${photoId}/restore`, { method: "POST" });
-    if (!response.ok) {
-      const json = await response.json();
-      throw new Error(json.error ?? "恢复失败");
-    }
-
-    setItems((current) => applyTrashItemMutation(current, photoId, true));
-    setSelectedIds((current) => current.filter((id) => id !== photoId));
-    setTotal((current) => Math.max(0, current - 1));
-    setNotice("已恢复 1 张照片");
-    setRefreshToken((current) => current + 1);
+    await runTrashItemAction({
+      pendingActions: pendingActionsRef.current,
+      photoId,
+      action: "restore",
+      request: async () => {
+        const response = await fetch(`/api/photos/${photoId}/restore`, { method: "POST" });
+        if (!response.ok) await throwTrashActionResponseError(response, "恢复失败");
+      },
+      onStart: () => setNotice(null),
+      onSuccess: () => {
+        if (claimTrashItemReconciliation(reconciledIdsRef.current, photoId)) {
+          setItems((current) => applyTrashItemMutation(current, photoId, true));
+          setSelectedIds((current) => current.filter((id) => id !== photoId));
+          setTotal((current) => Math.max(0, current - 1));
+        }
+        setNotice("已恢复 1 张照片");
+        setRefreshToken((current) => current + 1);
+      },
+      onFailure: (error) => {
+        setNotice(error instanceof Error ? error.message : "恢复失败");
+      },
+      onPendingChange: setPendingActions,
+    });
   }
 
   async function deleteForever(photoId: string) {
-    if (!confirm(deleteAction.confirmMessage ?? "确定永久删除吗？")) {
-      return;
-    }
-    const response = await fetch(`/api/trash/photos/${photoId}`, { method: "DELETE" });
-    if (!response.ok) {
-      const json = await response.json();
-      throw new Error(json.error ?? "永久删除失败");
-    }
-
-    setItems((current) => applyTrashItemMutation(current, photoId, true));
-    setSelectedIds((current) => current.filter((id) => id !== photoId));
-    setTotal((current) => Math.max(0, current - 1));
-    setNotice("已永久删除 1 张照片");
-    setRefreshToken((current) => current + 1);
+    await runTrashItemAction({
+      pendingActions: pendingActionsRef.current,
+      photoId,
+      action: "delete",
+      shouldProceed: () => confirm(deleteAction.confirmMessage ?? "确定永久删除吗？"),
+      request: async () => {
+        const response = await fetch(`/api/trash/photos/${photoId}`, { method: "DELETE" });
+        if (!response.ok) await throwTrashActionResponseError(response, "永久删除失败");
+      },
+      onStart: () => setNotice(null),
+      onSuccess: () => {
+        if (claimTrashItemReconciliation(reconciledIdsRef.current, photoId)) {
+          setItems((current) => applyTrashItemMutation(current, photoId, true));
+          setSelectedIds((current) => current.filter((id) => id !== photoId));
+          setTotal((current) => Math.max(0, current - 1));
+        }
+        setNotice("已永久删除 1 张照片");
+        setRefreshToken((current) => current + 1);
+      },
+      onFailure: (error) => {
+        setNotice(error instanceof Error ? error.message : "永久删除失败");
+      },
+      onPendingChange: setPendingActions,
+    });
   }
 
   async function batchRestore() {
@@ -278,11 +411,15 @@ export function TrashGallery() {
       ) : null}
 
       <GalleryGrid photoSize={photoSize}>
-        {items.map((photo) => (
-          <article
-            key={photo.id}
-            className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30"
-          >
+        {items.map((photo) => {
+          const pendingAction = pendingActions.get(photo.id);
+          const isPending = pendingAction !== undefined;
+
+          return (
+            <article
+              key={photo.id}
+              className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-white/30"
+            >
             <div className="relative">
               <img
                 src={photo.thumbnailUrl}
@@ -331,21 +468,28 @@ export function TrashGallery() {
                 <button
                   type="button"
                   onClick={() => { void restorePhoto(photo.id); }}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
+                  disabled={isPending}
+                  aria-disabled={isPending}
+                  aria-busy={pendingAction === "restore"}
+                  className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)] disabled:cursor-wait disabled:opacity-50"
                 >
-                  恢复
+                  {pendingAction === "restore" ? "恢复中..." : "恢复"}
                 </button>
                 <button
                   type="button"
                   onClick={() => { void deleteForever(photo.id); }}
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black"
+                  disabled={isPending}
+                  aria-disabled={isPending}
+                  aria-busy={pendingAction === "delete"}
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black disabled:cursor-wait disabled:opacity-50"
                 >
-                  {deleteAction.label}
+                  {pendingAction === "delete" ? `${deleteAction.label}中...` : deleteAction.label}
                 </button>
               </div>
             </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </GalleryGrid>
 
       {loadingMore && (
