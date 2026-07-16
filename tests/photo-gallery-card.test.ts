@@ -9,6 +9,37 @@ import { Menu } from "@/components/ui/menu";
 import { MessageProvider } from "@/components/ui/message";
 import { getMediaDeleteActions } from "@/lib/photos/delete-actions";
 
+const deleteMenuBase = {
+  photo: {
+    id: "photo-delete",
+    displayName: null,
+    originalName: "family.jpg",
+    thumbnailUrl: "/thumb.jpg",
+    previewUrl: "/preview.jpg",
+    originalUrl: "/api/files/originals/test.jpg",
+    mimeType: "image/jpeg",
+    mediaType: "image",
+    duration: null,
+    width: 1200,
+    height: 900,
+    takenAt: null,
+    uploadedAt: "2026-01-01T00:00:00.000Z",
+    isFavorited: false,
+    canEditName: true,
+    locationHidden: false,
+    size: 0,
+    albumCount: 0,
+  },
+  favoriteLabel: "收藏",
+  onFavorite: () => true,
+  onShare: () => undefined,
+  onEditTakenAt: () => undefined,
+  onToggleLocationHidden: () => undefined,
+  onAddToAlbum: () => undefined,
+  onSetCover: () => undefined,
+  onShowInfo: () => undefined,
+};
+
 describe("PhotoGalleryCard", () => {
   it("keeps photo actions visible on touch and exposes a click-triggered menu", () => {
     const html = renderToStaticMarkup(
@@ -198,34 +229,7 @@ describe("PhotoGalleryCard", () => {
   it("renders shared delete actions when the strategy returns multiple choices", () => {
     const selectedDeleteActions: string[] = [];
     const items = buildPhotoGalleryCardMenuItems({
-      photo: {
-        id: "photo-delete",
-        displayName: null,
-        originalName: "family.jpg",
-        thumbnailUrl: "/thumb.jpg",
-        previewUrl: "/preview.jpg",
-        originalUrl: "/api/files/originals/test.jpg",
-        mimeType: "image/jpeg",
-        mediaType: "image",
-        duration: null,
-        width: 1200,
-        height: 900,
-        takenAt: null,
-        uploadedAt: "2026-01-01T00:00:00.000Z",
-        isFavorited: false,
-        canEditName: true,
-        locationHidden: false,
-            size: 0,
-            albumCount: 0,
-      },
-      favoriteLabel: "收藏",
-      onFavorite: () => true,
-      onShare: () => undefined,
-      onEditTakenAt: () => undefined,
-      onToggleLocationHidden: () => undefined,
-      onAddToAlbum: () => undefined,
-      onSetCover: () => undefined,
-      onShowInfo: () => undefined,
+      ...deleteMenuBase,
       deleteActions: getMediaDeleteActions({
         scope: "album",
         albumIsDefault: false,
@@ -246,6 +250,55 @@ describe("PhotoGalleryCard", () => {
 
     deleteItems.forEach((item) => item.onSelect());
     expect(selectedDeleteActions).toEqual(["removeFromAlbum", "moveToTrash"]);
+  });
+
+  it("does not expose semantic delete actions without an action handler", () => {
+    let singularDeleteCalls = 0;
+    const items = buildPhotoGalleryCardMenuItems({
+      ...deleteMenuBase,
+      deleteActions: getMediaDeleteActions({
+        scope: "album",
+        albumIsDefault: false,
+        isOwnMedia: true,
+      }),
+      onDelete: () => {
+        singularDeleteCalls += 1;
+      },
+    });
+
+    const deleteItems = items.filter((item) => item.key.startsWith("delete"));
+    expect(deleteItems.map(({ key, label }) => ({ key, label }))).toEqual([
+      { key: "delete", label: "删除" },
+    ]);
+
+    deleteItems[0]?.onSelect();
+    expect(singularDeleteCalls).toBe(1);
+  });
+
+  it("uses the singular fallback once when delete actions are empty", () => {
+    let singularDeleteCalls = 0;
+    const items = buildPhotoGalleryCardMenuItems({
+      ...deleteMenuBase,
+      deleteActions: [],
+      deleteLabel: "移除",
+      onDelete: () => {
+        singularDeleteCalls += 1;
+      },
+    });
+
+    const deleteItems = items.filter((item) => item.key.startsWith("delete"));
+    expect(deleteItems.map(({ key, label }) => ({ key, label }))).toEqual([
+      { key: "delete", label: "移除" },
+    ]);
+
+    deleteItems[0]?.onSelect();
+    expect(singularDeleteCalls).toBe(1);
+  });
+
+  it("omits delete items when no delete handler is available", () => {
+    const items = buildPhotoGalleryCardMenuItems(deleteMenuBase);
+
+    expect(items.some((item) => item.key.startsWith("delete"))).toBe(false);
   });
 
   it("renders the selection control in blue when selected", () => {

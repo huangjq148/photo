@@ -100,6 +100,39 @@ function formatDateTime(dateStr: string) {
   return `${month}月${day}日 ${hour}:${minute}`;
 }
 
+type PhotoGalleryCardDeleteMenuOptions = {
+  onDelete?: () => void;
+  deleteLabel?: string;
+} & (
+  | {
+      deleteActions: MediaDeleteAction[];
+      onDeleteAction: (kind: MediaDeleteActionKind) => Promise<void> | void;
+    }
+  | {
+      deleteActions?: MediaDeleteAction[];
+      onDeleteAction?: undefined;
+    }
+);
+
+type PhotoGalleryCardMenuOptions = {
+  photo: PhotoGalleryCardItem;
+  favoriteLabel: string;
+  onFavorite: () => Promise<boolean> | boolean;
+  onShare: () => void;
+  onEditTakenAt: () => void;
+  onToggleLocationHidden: () => void;
+  onAddToAlbum: () => void;
+  onSetCover?: () => void;
+  onShowInfo: () => void;
+  canShare?: boolean;
+  canEditTakenAt?: boolean;
+  canToggleLocationHidden?: boolean;
+  canAddToAlbum?: boolean;
+  canSetCover?: boolean;
+  canShowInfo?: boolean;
+  canDelete?: boolean;
+} & PhotoGalleryCardDeleteMenuOptions;
+
 export function buildPhotoGalleryCardMenuItems({
   photo,
   favoriteLabel,
@@ -121,54 +154,29 @@ export function buildPhotoGalleryCardMenuItems({
   canSetCover = true,
   canShowInfo = true,
   canDelete = true,
-}: {
-  photo: PhotoGalleryCardItem;
-  favoriteLabel: string;
-  onFavorite: () => Promise<boolean> | boolean;
-  onShare: () => void;
-  onEditTakenAt: () => void;
-  onToggleLocationHidden: () => void;
-  onAddToAlbum: () => void;
-  onSetCover?: () => void;
-  onShowInfo: () => void;
-  onDelete?: () => void;
-  deleteLabel?: string;
-  deleteActions?: MediaDeleteAction[];
-  onDeleteAction?: (kind: MediaDeleteActionKind) => Promise<void> | void;
-  canShare?: boolean;
-  canEditTakenAt?: boolean;
-  canToggleLocationHidden?: boolean;
-  canAddToAlbum?: boolean;
-  canSetCover?: boolean;
-  canShowInfo?: boolean;
-  canDelete?: boolean;
-}): PhotoGalleryCardMenuItem[] {
-  const deleteMenuItems: PhotoGalleryCardMenuItem[] = deleteActions.length > 0
-    ? deleteActions.map((action) => ({
-        key: `delete-${action.kind}`,
-        label: action.label,
-        visible: canDelete,
-        danger: action.danger ?? action.kind === "permanentDelete",
-        icon: <Trash2 aria-hidden="true" size={15} />,
-        onSelect: () => {
-          if (onDeleteAction) {
-            return onDeleteAction(action.kind);
-          }
-          return onDelete?.();
-        },
-      }))
-    : typeof onDelete === "function"
-      ? [
-          {
-            key: "delete",
-            label: deleteLabel ?? "删除",
-            visible: canDelete,
-            danger: true,
-            icon: <Trash2 aria-hidden="true" size={15} />,
-            onSelect: onDelete,
-          },
-        ]
-      : [];
+}: PhotoGalleryCardMenuOptions): PhotoGalleryCardMenuItem[] {
+  const deleteMenuItems: PhotoGalleryCardMenuItem[] =
+    deleteActions.length > 0 && typeof onDeleteAction === "function"
+      ? deleteActions.map((action) => ({
+          key: `delete-${action.kind}`,
+          label: action.label,
+          visible: canDelete,
+          danger: action.danger ?? action.kind === "permanentDelete",
+          icon: <Trash2 aria-hidden="true" size={15} />,
+          onSelect: () => onDeleteAction(action.kind),
+        }))
+      : typeof onDelete === "function"
+        ? [
+            {
+              key: "delete",
+              label: deleteLabel ?? "删除",
+              visible: canDelete,
+              danger: true,
+              icon: <Trash2 aria-hidden="true" size={15} />,
+              onSelect: onDelete,
+            },
+          ]
+        : [];
 
   return [
     {
