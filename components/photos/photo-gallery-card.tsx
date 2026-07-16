@@ -23,6 +23,10 @@ import {
   normalizeDisplayName,
   resolveDisplayName,
 } from "@/lib/media/display-name";
+import {
+  type MediaDeleteAction,
+  type MediaDeleteActionKind,
+} from "@/lib/photos/delete-actions";
 
 export type PhotoGalleryCardItem = {
   id: string;
@@ -108,6 +112,8 @@ export function buildPhotoGalleryCardMenuItems({
   onShowInfo,
   onDelete,
   deleteLabel,
+  deleteActions = [],
+  onDeleteAction,
   canShare = true,
   canEditTakenAt = true,
   canToggleLocationHidden = true,
@@ -125,8 +131,10 @@ export function buildPhotoGalleryCardMenuItems({
   onAddToAlbum: () => void;
   onSetCover?: () => void;
   onShowInfo: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   deleteLabel?: string;
+  deleteActions?: MediaDeleteAction[];
+  onDeleteAction?: (kind: MediaDeleteActionKind) => Promise<void> | void;
   canShare?: boolean;
   canEditTakenAt?: boolean;
   canToggleLocationHidden?: boolean;
@@ -135,6 +143,33 @@ export function buildPhotoGalleryCardMenuItems({
   canShowInfo?: boolean;
   canDelete?: boolean;
 }): PhotoGalleryCardMenuItem[] {
+  const deleteMenuItems: PhotoGalleryCardMenuItem[] = deleteActions.length > 0
+    ? deleteActions.map((action) => ({
+        key: `delete-${action.kind}`,
+        label: action.label,
+        visible: canDelete,
+        danger: action.danger ?? action.kind === "permanentDelete",
+        icon: <Trash2 aria-hidden="true" size={15} />,
+        onSelect: () => {
+          if (onDeleteAction) {
+            return onDeleteAction(action.kind);
+          }
+          return onDelete?.();
+        },
+      }))
+    : typeof onDelete === "function"
+      ? [
+          {
+            key: "delete",
+            label: deleteLabel ?? "删除",
+            visible: canDelete,
+            danger: true,
+            icon: <Trash2 aria-hidden="true" size={15} />,
+            onSelect: onDelete,
+          },
+        ]
+      : [];
+
   return [
     {
       key: "favorite",
@@ -188,14 +223,7 @@ export function buildPhotoGalleryCardMenuItems({
       icon: <Info aria-hidden="true" size={15} />,
       onSelect: onShowInfo,
     },
-    {
-      key: "delete",
-      label: deleteLabel ?? "删除",
-      visible: canDelete,
-      danger: true,
-      icon: <Trash2 aria-hidden="true" size={15} />,
-      onSelect: onDelete,
-    },
+    ...deleteMenuItems,
   ].filter((item) => item.visible);
 }
 

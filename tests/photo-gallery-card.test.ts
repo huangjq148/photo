@@ -196,6 +196,7 @@ describe("PhotoGalleryCard", () => {
   });
 
   it("renders shared delete actions when the strategy returns multiple choices", () => {
+    const selectedDeleteActions: string[] = [];
     const items = buildPhotoGalleryCardMenuItems({
       photo: {
         id: "photo-delete",
@@ -230,12 +231,21 @@ describe("PhotoGalleryCard", () => {
         albumIsDefault: false,
         isOwnMedia: true,
       }),
-      onDeleteAction: () => undefined,
+      onDeleteAction: (kind) => {
+        selectedDeleteActions.push(kind);
+      },
     });
 
-    expect(items.map((item) => item.label)).toContain("移出相册");
-    expect(items.map((item) => item.label)).toContain("移入回收站");
+    const deleteItems = items.filter((item) => item.key.startsWith("delete-"));
+
+    expect(deleteItems.map(({ key, label }) => ({ key, label }))).toEqual([
+      { key: "delete-removeFromAlbum", label: "移出相册" },
+      { key: "delete-moveToTrash", label: "移入回收站" },
+    ]);
     expect(items.map((item) => item.label)).not.toContain("删除");
+
+    deleteItems.forEach((item) => item.onSelect());
+    expect(selectedDeleteActions).toEqual(["removeFromAlbum", "moveToTrash"]);
   });
 
   it("renders the selection control in blue when selected", () => {
