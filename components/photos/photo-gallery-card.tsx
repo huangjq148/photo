@@ -589,9 +589,10 @@ export function PhotoGalleryCard({
         <div className="absolute right-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:pointer-events-none [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-hover:[@media(hover:hover)_and_(pointer:fine)]:opacity-100 group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:pointer-events-auto group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:opacity-100">
           <Menu
             label="更多操作"
-            triggerClassName="h-11 w-11 border-0 bg-transparent p-0"
+            triggerVariant="plain"
+            triggerClassName="h-11 w-11 p-0"
             triggerContent={
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full noir-glass-chip">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.35)] backdrop-blur-sm">
                 <Ellipsis aria-hidden="true" size={15} />
               </span>
             }
