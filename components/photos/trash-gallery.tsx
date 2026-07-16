@@ -19,6 +19,14 @@ type TrashItem = {
 
 const PAGE_SIZE = 24;
 
+export function applyTrashItemMutation(
+  items: TrashItem[],
+  photoId: string,
+  succeeded: boolean
+): TrashItem[] {
+  return succeeded ? items.filter((item) => item.id !== photoId) : items;
+}
+
 export function TrashGallery() {
   const [items, setItems] = useState<TrashItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,6 +102,11 @@ export function TrashGallery() {
       const json = await response.json();
       throw new Error(json.error ?? "恢复失败");
     }
+
+    setItems((current) => applyTrashItemMutation(current, photoId, true));
+    setSelectedIds((current) => current.filter((id) => id !== photoId));
+    setTotal((current) => Math.max(0, current - 1));
+    setNotice("已恢复 1 张照片");
     setRefreshToken((current) => current + 1);
   }
 
@@ -106,6 +119,11 @@ export function TrashGallery() {
       const json = await response.json();
       throw new Error(json.error ?? "永久删除失败");
     }
+
+    setItems((current) => applyTrashItemMutation(current, photoId, true));
+    setSelectedIds((current) => current.filter((id) => id !== photoId));
+    setTotal((current) => Math.max(0, current - 1));
+    setNotice("已永久删除 1 张照片");
     setRefreshToken((current) => current + 1);
   }
 

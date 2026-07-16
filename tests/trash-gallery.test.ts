@@ -16,15 +16,14 @@ describe("applyTrashItemMutation", () => {
   });
 
   it("keeps the trash entry visible after a failed action", () => {
-    expect(
-      applyTrashItemMutation(
-        [
-          { id: "a", originalName: "a.jpg", thumbnailUrl: "/a", mimeType: "image/jpeg", mediaType: "image", uploadedAt: "2026-01-01T00:00:00.000Z", deletedAt: null },
-          { id: "b", originalName: "b.jpg", thumbnailUrl: "/b", mimeType: "image/jpeg", mediaType: "image", uploadedAt: "2026-01-01T00:00:00.000Z", deletedAt: null },
-        ],
-        "a",
-        false,
-      ).map((item) => item.id),
-    ).toEqual(["a", "b"]);
+    const items = [
+      { id: "a", originalName: "a.jpg", thumbnailUrl: "/a", mimeType: "image/jpeg", mediaType: "image", uploadedAt: "2026-01-01T00:00:00.000Z", deletedAt: null },
+      { id: "b", originalName: "b.jpg", thumbnailUrl: "/b", mimeType: "image/jpeg", mediaType: "image", uploadedAt: "2026-01-01T00:00:00.000Z", deletedAt: null },
+    ];
+
+    const result = applyTrashItemMutation(items, "a", false);
+
+    expect(result).toBe(items);
+    expect(result.map((item) => item.id)).toEqual(["a", "b"]);
   });
 });
