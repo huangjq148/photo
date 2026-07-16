@@ -3,7 +3,9 @@ import {
   applyTrashItemMutation,
   claimTrashItemReconciliation,
   createTrailingRefreshController,
+  getTrashFailureNotice,
   runTrashItemAction,
+  type TrashNotice,
 } from "@/components/photos/trash-gallery";
 
 describe("applyTrashItemMutation", () => {
@@ -37,7 +39,7 @@ describe("runTrashItemAction", () => {
   it("replaces a stale notice and releases pending state after a request failure", async () => {
     const pendingActions = new Map();
     const pendingSnapshots: string[][] = [];
-    let notice: string | null = "已恢复 1 张照片";
+    let notice: TrashNotice | null = { message: "已恢复 1 张照片", type: "success" };
     let successCount = 0;
 
     const result = await runTrashItemAction({
@@ -54,7 +56,7 @@ describe("runTrashItemAction", () => {
         successCount += 1;
       },
       onFailure: (error) => {
-        notice = error instanceof Error ? error.message : "恢复失败";
+        notice = getTrashFailureNotice(error, "恢复失败");
       },
       onPendingChange: (current) => {
         pendingSnapshots.push([...current.keys()]);
@@ -62,7 +64,7 @@ describe("runTrashItemAction", () => {
     });
 
     expect(result).toBe("failure");
-    expect(notice).toBe("网络连接失败");
+    expect(notice).toEqual({ message: "网络连接失败", type: "error" });
     expect(successCount).toBe(0);
     expect(pendingSnapshots).toEqual([["a"], []]);
     expect(pendingActions.size).toBe(0);
@@ -122,6 +124,31 @@ describe("createTrailingRefreshController", () => {
     await firstLoad;
 
     expect(calls).toEqual(["first", "trailing"]);
+  });
+
+  it("does not let a later append overwrite an already queued full refresh", async () => {
+    const controller = createTrailingRefreshController();
+    const calls: string[] = [];
+    let releaseFirstLoad: (() => void) | undefined;
+    const firstLoadGate = new Promise<void>((resolve) => {
+      releaseFirstLoad = resolve;
+    });
+
+    const firstLoad = controller.request(async () => {
+      calls.push("active-append");
+      await firstLoadGate;
+    }, "append");
+    await controller.request(async () => {
+      calls.push("queued-refresh");
+    }, "refresh");
+    await controller.request(async () => {
+      calls.push("later-append");
+    }, "append");
+
+    releaseFirstLoad?.();
+    await firstLoad;
+
+    expect(calls).toEqual(["active-append", "queued-refresh"]);
   });
 });
 

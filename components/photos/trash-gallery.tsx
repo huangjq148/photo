@@ -74,10 +74,15 @@ export async function runTrashItemAction({
   }
 }
 
-type RefreshTask = () => Promise<void>;
+type RefreshKind = "refresh" | "append";
+
+type RefreshTask = {
+  kind: RefreshKind;
+  run: () => Promise<void>;
+};
 
 type TrailingRefreshController = {
-  request: (task: RefreshTask) => Promise<void>;
+  request: (task: () => Promise<void>, kind?: RefreshKind) => Promise<void>;
 };
 
 export function createTrailingRefreshController(): TrailingRefreshController {
@@ -85,20 +90,22 @@ export function createTrailingRefreshController(): TrailingRefreshController {
   let queuedTask: RefreshTask | null = null;
 
   return {
-    async request(task: RefreshTask): Promise<void> {
+    async request(task: () => Promise<void>, kind: RefreshKind = "refresh"): Promise<void> {
       if (running) {
-        queuedTask = task;
+        if (queuedTask?.kind !== "refresh" || kind === "refresh") {
+          queuedTask = { kind, run: task };
+        }
         return;
       }
 
       running = true;
-      let nextTask: RefreshTask | null = task;
+      let nextTask: RefreshTask | null = { kind, run: task };
       let failure: { error: unknown } | null = null;
 
       try {
         while (nextTask) {
           try {
-            await nextTask();
+            await nextTask.run();
           } catch (error) {
             failure ??= { error };
           }
@@ -112,6 +119,22 @@ export function createTrailingRefreshController(): TrailingRefreshController {
       if (failure) throw failure.error;
     },
   };
+}
+
+export type TrashNotice = {
+  message: string;
+  type: "success" | "error";
+};
+
+export function getTrashFailureNotice(error: unknown, fallback: string): TrashNotice {
+  return {
+    message: error instanceof Error ? error.message : fallback,
+    type: "error",
+  };
+}
+
+function getTrashSuccessNotice(message: string): TrashNotice {
+  return { message, type: "success" };
 }
 
 export function claimTrashItemReconciliation(
@@ -140,7 +163,7 @@ export function TrashGallery() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<TrashNotice | null>(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [clearing, setClearing] = useState(false);
@@ -185,7 +208,7 @@ export function TrashGallery() {
         setLoading(false);
         setLoadingMore(false);
       }
-    });
+    }, append ? "append" : "refresh");
   }, [items]);
 
   useEffect(() => {
@@ -223,11 +246,11 @@ export function TrashGallery() {
           setSelectedIds((current) => current.filter((id) => id !== photoId));
           setTotal((current) => Math.max(0, current - 1));
         }
-        setNotice("已恢复 1 张照片");
+        setNotice(getTrashSuccessNotice("已恢复 1 张照片"));
         setRefreshToken((current) => current + 1);
       },
       onFailure: (error) => {
-        setNotice(error instanceof Error ? error.message : "恢复失败");
+        setNotice(getTrashFailureNotice(error, "恢复失败"));
       },
       onPendingChange: setPendingActions,
     });
@@ -250,11 +273,11 @@ export function TrashGallery() {
           setSelectedIds((current) => current.filter((id) => id !== photoId));
           setTotal((current) => Math.max(0, current - 1));
         }
-        setNotice("已永久删除 1 张照片");
+        setNotice(getTrashSuccessNotice("已永久删除 1 张照片"));
         setRefreshToken((current) => current + 1);
       },
       onFailure: (error) => {
-        setNotice(error instanceof Error ? error.message : "永久删除失败");
+        setNotice(getTrashFailureNotice(error, "永久删除失败"));
       },
       onPendingChange: setPendingActions,
     });
@@ -271,7 +294,7 @@ export function TrashGallery() {
       const json = await response.json();
       throw new Error(json.error ?? "批量恢复失败");
     }
-    setNotice(`已恢复 ${selectedIds.length} 张照片`);
+    setNotice(getTrashSuccessNotice(`已恢复 ${selectedIds.length} 张照片`));
     setSelectedIds([]);
     setRefreshToken((current) => current + 1);
   }
@@ -290,7 +313,7 @@ export function TrashGallery() {
       const json = await response.json();
       throw new Error(json.error ?? "批量永久删除失败");
     }
-    setNotice(`已永久删除 ${selectedIds.length} 张照片`);
+    setNotice(getTrashSuccessNotice(`已永久删除 ${selectedIds.length} 张照片`));
     setSelectedIds([]);
     setRefreshToken((current) => current + 1);
   }
@@ -302,11 +325,11 @@ export function TrashGallery() {
       const response = await fetch("/api/trash/photos/clear", { method: "POST" });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error ?? "清空失败");
-      setNotice(`已清空回收站，永久删除了 ${json.data.cleared} 个文件`);
+      setNotice(getTrashSuccessNotice(`已清空回收站，永久删除了 ${json.data.cleared} 个文件`));
       setSelectedIds([]);
       setRefreshToken((current) => current + 1);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : "清空失败");
+      setNotice(getTrashFailureNotice(e, "清空失败"));
     } finally {
       setClearing(false);
     }
@@ -405,8 +428,15 @@ export function TrashGallery() {
       </div>
 
       {notice ? (
-        <div className="rounded-xl border border-emerald-400/30 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-200">
-          {notice}
+        <div
+          role={notice.type === "error" ? "alert" : "status"}
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            notice.type === "error"
+              ? "border-red-400/30 bg-red-950/30 text-[var(--danger)]"
+              : "border-emerald-400/30 bg-emerald-950/30 text-emerald-200"
+          }`}
+        >
+          {notice.message}
         </div>
       ) : null}
 
