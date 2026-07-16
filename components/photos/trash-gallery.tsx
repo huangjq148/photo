@@ -86,24 +86,26 @@ type TrailingRefreshController = {
 };
 
 export function createTrailingRefreshController(): TrailingRefreshController {
-  let running = false;
+  let activeKind: RefreshKind | null = null;
   let queuedTask: RefreshTask | null = null;
 
   return {
     async request(task: () => Promise<void>, kind: RefreshKind = "refresh"): Promise<void> {
-      if (running) {
+      if (activeKind) {
+        if (activeKind === "refresh" && kind === "append") return;
         if (queuedTask?.kind !== "refresh" || kind === "refresh") {
           queuedTask = { kind, run: task };
         }
         return;
       }
 
-      running = true;
+      activeKind = kind;
       let nextTask: RefreshTask | null = { kind, run: task };
       let failure: { error: unknown } | null = null;
 
       try {
         while (nextTask) {
+          activeKind = nextTask.kind;
           try {
             await nextTask.run();
           } catch (error) {
@@ -113,7 +115,7 @@ export function createTrailingRefreshController(): TrailingRefreshController {
           queuedTask = null;
         }
       } finally {
-        running = false;
+        activeKind = null;
       }
 
       if (failure) throw failure.error;

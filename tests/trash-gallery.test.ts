@@ -150,6 +150,28 @@ describe("createTrailingRefreshController", () => {
 
     expect(calls).toEqual(["active-append", "queued-refresh"]);
   });
+
+  it("absorbs an append requested while a full refresh is active", async () => {
+    const controller = createTrailingRefreshController();
+    const calls: string[] = [];
+    let releaseRefresh: (() => void) | undefined;
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+
+    const refresh = controller.request(async () => {
+      calls.push("active-refresh-page-1");
+      await refreshGate;
+    }, "refresh");
+    await controller.request(async () => {
+      calls.push("stale-append-page-4");
+    }, "append");
+
+    releaseRefresh?.();
+    await refresh;
+
+    expect(calls).toEqual(["active-refresh-page-1"]);
+  });
 });
 
 describe("claimTrashItemReconciliation", () => {
