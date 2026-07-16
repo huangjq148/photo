@@ -41,6 +41,10 @@ function pressKey(target: Element | Window, key: string, options: KeyboardEventI
 
 afterEach(() => {
   document.body.innerHTML = "";
+  document.body.style.overflow = "";
+  document.body.style.overscrollBehavior = "";
+  document.documentElement.style.overflow = "";
+  document.documentElement.style.overscrollBehavior = "";
 });
 
 describe("Modal keyboard behavior", () => {
@@ -142,5 +146,43 @@ describe("Modal keyboard behavior", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
 
     cleanup();
+  });
+
+  it("does not bubble wheel events from the modal body", () => {
+    const onWheel = vi.fn();
+    const { container, cleanup } = renderIntoDocument(
+      <div onWheel={onWheel}>
+        <Modal open title="Dialog" onClose={() => undefined}>
+          <div style={{ height: "1200px" }}>scrollable content</div>
+        </Modal>
+      </div>,
+    );
+
+    const body = container.querySelector("[data-modal-body]") as HTMLElement;
+    body.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 120 }));
+
+    expect(onWheel).not.toHaveBeenCalled();
+
+    cleanup();
+  });
+
+  it("locks scrolling on both body and html while open", () => {
+    const { cleanup } = renderIntoDocument(
+      <Modal open title="Dialog" onClose={() => undefined}>
+        <div style={{ height: "1200px" }}>scrollable content</div>
+      </Modal>,
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overscrollBehavior).toBe("none");
+    expect(document.body.style.overscrollBehavior).toBe("none");
+
+    cleanup();
+
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
+    expect(document.documentElement.style.overscrollBehavior).toBe("");
+    expect(document.body.style.overscrollBehavior).toBe("");
   });
 });

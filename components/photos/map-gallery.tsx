@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ImageViewer from "@/components/ui/image-viewer";
+import { DatePicker } from "@/components/ui/date-picker";
 import { useMessage } from "@/components/ui/message";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 import { resolveDisplayName } from "@/lib/media/display-name";
@@ -341,17 +342,19 @@ export function MapGallery() {
                   <option value="hidden">仅位置隐藏</option>
                 </select>
                 <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="date"
+                  <DatePicker
                     value={takenFrom}
-                    onChange={(event) => setTakenFrom(event.target.value)}
-                    className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
+                    onChange={setTakenFrom}
+                    className="h-11 w-full"
+                    placeholder="起始日期"
+                    id="map-taken-from"
                   />
-                  <input
-                    type="date"
+                  <DatePicker
                     value={takenTo}
-                    onChange={(event) => setTakenTo(event.target.value)}
-                    className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
+                    onChange={setTakenTo}
+                    className="h-11 w-full"
+                    placeholder="结束日期"
+                    id="map-taken-to"
                   />
                 </div>
               </div>

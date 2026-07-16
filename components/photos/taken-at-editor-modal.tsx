@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/modal";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 type TakenAtEditorModalProps = {
   open: boolean;
@@ -131,11 +132,11 @@ export function TakenAtEditorModal({
 
         <label className="block space-y-2">
           <span className="text-sm font-medium text-[var(--text)]">拍摄时间</span>
-          <input
-            type="datetime-local"
+          <DateTimePicker
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            className="h-12 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
+            onChange={setDraft}
+            className="h-12 w-full"
+            placeholder="请选择日期和时间"
           />
         </label>
 

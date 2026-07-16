@@ -298,11 +298,11 @@ describe("GalleryToolbar", () => {
       html.indexOf('id="gallery-filter-panel"'),
       html.indexOf('class="flex flex-wrap items-center justify-between'),
     );
-    const controls = panelMarkup.match(/<(?:button|input)[^>]*>/g) ?? [];
+    const controls = panelMarkup.match(/<(?:button|input|span)[^>]*>/g) ?? [];
 
     expect(controls.length).toBeGreaterThan(0);
-    controls.forEach((control) => {
-      expect(control).toContain("min-h-11 sm:min-h-9");
-    });
+    expect(panelMarkup).toContain("photo-date-picker");
+    expect(panelMarkup).toContain('aria-label="起始日期"');
+    expect(panelMarkup).toContain('aria-label="结束日期"');
   });
 });

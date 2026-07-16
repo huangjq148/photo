@@ -14,6 +14,7 @@ import {
   ArrowUpDown,
   Upload,
 } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import type {
   GalleryMediaType,
   GallerySortBy,
@@ -160,19 +161,21 @@ function FilterPanel({
             拍摄日期
           </legend>
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="date"
+            <DatePicker
               value={state.takenFrom ?? ""}
-              onChange={(e) => onTakenFromChange(e.target.value || undefined)}
-              className="min-h-11 sm:min-h-9 rounded-lg border border-[var(--border)] bg-black px-3 text-xs text-[var(--text)] outline-none focus:border-[var(--film)]"
+              onChange={(value) => onTakenFromChange(value || undefined)}
+              className="min-h-11 w-full sm:w-[10rem]"
+              placeholder="起始日期"
+              id="gallery-taken-from"
               aria-label="起始日期"
             />
             <span className="text-xs text-[var(--muted)]">至</span>
-            <input
-              type="date"
+            <DatePicker
               value={state.takenTo ?? ""}
-              onChange={(e) => onTakenToChange(e.target.value || undefined)}
-              className="min-h-11 sm:min-h-9 rounded-lg border border-[var(--border)] bg-black px-3 text-xs text-[var(--text)] outline-none focus:border-[var(--film)]"
+              onChange={(value) => onTakenToChange(value || undefined)}
+              className="min-h-11 w-full sm:w-[10rem]"
+              placeholder="结束日期"
+              id="gallery-taken-to"
               aria-label="结束日期"
             />
           </div>

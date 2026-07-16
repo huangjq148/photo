@@ -37,26 +37,54 @@ export function Modal({
 }: ModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const stopScrollPropagation = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
 
   useEffect(() => {
     if (!open) return;
 
     previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousHtmlOverscrollBehavior = document.documentElement.style.overscrollBehavior;
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+    document.body.style.overscrollBehavior = "none";
     const focusables = getFocusableElements(dialogRef.current);
     const autofocusTarget =
-      dialogRef.current?.querySelector<HTMLElement>("[autofocus]") ?? focusables[0] ?? dialogRef.current;
+      dialogRef.current?.querySelector<HTMLElement>("[data-modal-body]") ??
+      dialogRef.current?.querySelector<HTMLElement>("[autofocus]") ??
+      focusables[0] ??
+      dialogRef.current;
+    autofocusTarget?.focus({ preventScroll: true });
     window.requestAnimationFrame(() => {
-      autofocusTarget?.focus();
       setActiveIndex(focusables.findIndex((element) => element === autofocusTarget));
     });
 
+    const backdropEl = backdropRef.current;
+    const stopBackdropScroll = (event: WheelEvent | TouchEvent) => {
+      if (event.target === backdropEl) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    backdropEl?.addEventListener("wheel", stopBackdropScroll, { capture: true, passive: false });
+    backdropEl?.addEventListener("touchmove", stopBackdropScroll, { capture: true, passive: false });
+
     return () => {
+      backdropEl?.removeEventListener("wheel", stopBackdropScroll, true);
+      backdropEl?.removeEventListener("touchmove", stopBackdropScroll, true);
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = previousHtmlOverscrollBehavior;
+      document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
       window.requestAnimationFrame(() => {
         previousActiveElementRef.current?.focus();
       });
@@ -68,7 +96,26 @@ export function Modal({
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onWheelCapture={(event) => {
+        event.stopPropagation();
+      }}
+      onWheel={(event) => {
+        if (event.target === event.currentTarget) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      onTouchMoveCapture={(event) => {
+        event.stopPropagation();
+      }}
+      onTouchMove={(event) => {
+        if (event.target === event.currentTarget) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -124,7 +171,14 @@ export function Modal({
           </button>
         </div>
 
-        <div className="overflow-y-auto p-6" style={{ maxHeight: "calc(90dvh - 145px)" }}>
+        <div
+          data-modal-body
+          tabIndex={-1}
+          className="overflow-y-auto p-6"
+          style={{ maxHeight: "calc(90dvh - 145px)", overscrollBehavior: "contain" }}
+          onWheelCapture={stopScrollPropagation}
+          onTouchMoveCapture={stopScrollPropagation}
+        >
           {children}
         </div>
 

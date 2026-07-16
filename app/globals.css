@@ -307,6 +307,213 @@ button:disabled {
   padding-bottom: 0.25rem;
 }
 
+.photo-date-time-picker-popup.rc-picker-dropdown {
+  min-width: 0 !important;
+  width: fit-content !important;
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  background: rgba(12, 12, 14, 0.96);
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  backdrop-filter: blur(18px) saturate(130%);
+  overscroll-behavior: contain;
+}
+
+.photo-date-time-picker-popup .rc-picker-panel-container {
+  padding: 12px;
+  background: transparent;
+}
+
+.photo-date-time-picker-popup .rc-picker-panel {
+  background: linear-gradient(180deg, rgba(20, 20, 24, 0.98), rgba(11, 11, 13, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: var(--text);
+  overflow: hidden;
+}
+
+.photo-date-time-picker-popup .rc-picker-datetime-panel {
+  color: var(--text);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column-title {
+  color: var(--muted-strong);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column {
+  color: rgba(244, 240, 232, 0.9);
+  overflow-y: auto;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column > li {
+  color: rgba(244, 240, 232, 0.9);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column::-webkit-scrollbar {
+  width: 10px;
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-in-view {
+  color: var(--text);
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-selected .rc-picker-cell-inner,
+.photo-date-time-picker-popup .rc-picker-cell-today .rc-picker-cell-inner {
+  border-color: var(--film);
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-selected .rc-picker-cell-inner {
+  background: linear-gradient(180deg, #f4f0e8, #d6b46c);
+  color: #030303;
+  box-shadow: 0 10px 22px rgba(214, 180, 108, 0.28);
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-selected .rc-picker-cell-inner:hover {
+  background: linear-gradient(180deg, #f7f3ed, #dfbe78);
+  color: #030303;
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-disabled .rc-picker-cell-inner {
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.28);
+  transform: none;
+}
+
+.photo-date-time-picker-popup .rc-picker-header,
+.photo-date-time-picker-popup .rc-picker-content {
+  border-color: rgba(255, 255, 255, 0.08);
+  overscroll-behavior: contain;
+}
+
+.photo-date-time-picker-popup .rc-picker-header button,
+.photo-date-time-picker-popup .rc-picker-header-view,
+.photo-date-time-picker-popup .rc-picker-cell-inner,
+.photo-date-time-picker-popup .rc-picker-time-panel-cell-inner {
+  color: var(--text);
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-inner {
+  border-radius: 999px;
+}
+
+.photo-date-time-picker-popup .rc-picker-header {
+  padding: 0.2rem 0.25rem 0.35rem;
+  align-items: center;
+}
+
+.photo-date-time-picker-popup .rc-picker-header-view {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.photo-date-time-picker-popup .rc-picker-header button {
+  border-radius: 999px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.photo-date-time-picker-popup .rc-picker-header button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.photo-date-time-picker-popup .rc-picker-cell {
+  padding: 2px 0;
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-inner {
+  width: 2rem;
+  height: 2rem;
+  line-height: 2rem;
+  margin-inline: auto;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-inner:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.photo-date-time-picker-popup .rc-picker-cell-today > .rc-picker-cell-inner {
+  box-shadow: inset 0 0 0 1px rgba(214, 180, 108, 0.7);
+  background: rgba(214, 180, 108, 0.08);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-cell-inner {
+  color: rgba(244, 240, 232, 0.92);
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column > li .rc-picker-time-panel-cell-inner {
+  color: rgba(244, 240, 232, 0.92);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-cell-inner:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-cell-selected .rc-picker-time-panel-cell-inner {
+  background: linear-gradient(180deg, #f4f0e8, #d6b46c);
+  color: #030303;
+}
+
+.photo-date-time-picker-popup .rc-picker-time-panel-column > li.rc-picker-time-panel-cell-selected .rc-picker-time-panel-cell-inner {
+  color: #030303;
+}
+
+.photo-date-time-picker-popup .rc-picker-footer,
+.photo-date-time-picker-popup .rc-picker-picker-footer {
+  background: transparent;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.photo-date-time-picker-popup .rc-picker-ok button {
+  border: 1px solid rgba(244, 240, 232, 0.16);
+  background: var(--accent);
+  color: #030303;
+  border-radius: 999px;
+}
+
+.photo-date-time-picker-popup .rc-picker-ok button:hover {
+  background: #fff7ea;
+  color: #030303;
+}
+
 @keyframes background-drift {
   0% {
     transform: translate3d(-1.5%, -0.5%, 0) scale(1.08);
