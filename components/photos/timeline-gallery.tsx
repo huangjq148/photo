@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, Ellipsis } from "lucide-react";
 import ImageViewer from "@/components/ui/image-viewer";
+import { Menu } from "@/components/ui/menu";
 import { useMessage } from "@/components/ui/message";
 import { BatchAddPhotosToAlbumModal } from "@/components/albums/batch-add-photos-to-album-modal";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
@@ -38,6 +40,101 @@ function buildPhotoSummary(items: TimelinePhotoItem[]) {
   }
 
   return `已选择 ${items.length} 项媒体`;
+}
+
+type TimelinePhotoActionsProps = {
+  photoName: string;
+  selected: boolean;
+  downloadHref?: string;
+  onToggleSelection: () => void;
+  onDownload?: () => void;
+  onEditTakenAt: () => void;
+  onAddToAlbum: () => void;
+};
+
+export function buildTimelinePhotoActionItems({
+  downloadHref,
+  onDownload,
+  onEditTakenAt,
+  onAddToAlbum,
+}: Pick<TimelinePhotoActionsProps, "downloadHref" | "onDownload" | "onEditTakenAt" | "onAddToAlbum">) {
+  return [
+    ...(downloadHref
+      ? [
+          {
+            key: "download",
+            label: "下载",
+            onSelect:
+              onDownload ??
+              (() => {
+                window.location.href = downloadHref;
+              }),
+          },
+        ]
+      : []),
+    { key: "edit-taken-at", label: "修改时间", onSelect: onEditTakenAt },
+    { key: "add-to-album", label: "添加到相册", onSelect: onAddToAlbum },
+  ];
+}
+
+export function TimelinePhotoActions({
+  photoName,
+  selected,
+  downloadHref,
+  onToggleSelection,
+  onDownload,
+  onEditTakenAt,
+  onAddToAlbum,
+}: TimelinePhotoActionsProps) {
+  const menuItems = buildTimelinePhotoActionItems({
+    downloadHref,
+    onDownload,
+    onEditTakenAt,
+    onAddToAlbum,
+  });
+
+  return (
+    <div data-timeline-photo-actions="">
+      <div
+        data-photo-select-control=""
+        className="absolute left-3 top-3 z-20 opacity-100 transition [@media(hover:hover)_and_(pointer:fine)]:opacity-0 group-hover:[@media(hover:hover)_and_(pointer:fine)]:opacity-100 group-focus-within:[@media(hover:hover)_and_(pointer:fine)]:opacity-100"
+      >
+        <button
+          type="button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleSelection();
+          }}
+          className={`inline-flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur transition sm:h-11 sm:w-11 ${
+            selected ? "border-blue-500 bg-blue-500 text-white" : "noir-glass-chip text-[var(--text)]"
+          }`}
+          aria-pressed={selected}
+          aria-label={`${selected ? "取消选择" : "选择"} ${photoName}`}
+        >
+          <Check aria-hidden="true" size={14} className={selected ? "opacity-100" : "opacity-45"} />
+        </button>
+      </div>
+
+      <div className="absolute right-3 top-3 z-20">
+        <Menu
+          label="更多操作"
+          triggerVariant="plain"
+          triggerClassName="h-11 w-11 p-0"
+          triggerContent={
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white/90 shadow-[0_1px_2px_rgba(0,0,0,0.35)] backdrop-blur-sm">
+              <Ellipsis aria-hidden="true" size={15} />
+            </span>
+          }
+          items={menuItems.map((item) => ({
+            key: item.key,
+            label: item.label,
+            onSelect: item.onSelect,
+          }))}
+        />
+      </div>
+    </div>
+  );
 }
 
 export function TimelineGallery() {
@@ -362,19 +459,9 @@ export function TimelineGallery() {
                 return (
                   <article
                     key={photo.id}
-                    className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/80 transition hover:border-[var(--border-strong)]"
+                    className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)]/80 transition hover:border-[var(--border-strong)]"
                   >
                     <div className="relative">
-                      <label className="absolute left-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedIdSet.has(photo.id)}
-                          onChange={() => toggleSelection(photo.id)}
-                          className="h-4 w-4 accent-[var(--accent)]"
-                          aria-label={`选择 ${displayName}`}
-                        />
-                      </label>
-
                       <ImageViewer
                         src={photo.thumbnailUrl}
                         alt={displayName}
@@ -387,33 +474,19 @@ export function TimelineGallery() {
                         imgClassName="aspect-[4/3] w-full object-cover transition duration-300 group-hover/img:scale-[1.02]"
                       />
 
-                      <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2">
-                        <a
-                          href={`/api/photos/${photo.id}/download`}
-                          className="inline-flex h-8 items-center justify-center rounded-full bg-black/70 px-3 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black"
-                        >
-                          下载
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => setEditingPhoto(photo)}
-                          className="inline-flex h-8 items-center justify-center rounded-full bg-black/70 px-3 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black"
-                        >
-                          修改时间
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedIds((current) =>
-                              current.includes(photo.id) ? current : [...current, photo.id]
-                            );
-                            setBatchAddOpen(true);
-                          }}
-                          className="inline-flex h-8 items-center justify-center rounded-full bg-black/70 px-3 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black"
-                        >
-                          添加到相册
-                        </button>
-                      </div>
+                      <TimelinePhotoActions
+                        photoName={displayName}
+                        selected={selectedIdSet.has(photo.id)}
+                        downloadHref={`/api/photos/${photo.id}/download`}
+                        onToggleSelection={() => toggleSelection(photo.id)}
+                        onEditTakenAt={() => setEditingPhoto(photo)}
+                        onAddToAlbum={() => {
+                          setSelectedIds((current) =>
+                            current.includes(photo.id) ? current : [...current, photo.id]
+                          );
+                          setBatchAddOpen(true);
+                        }}
+                      />
                     </div>
 
                     <div className="space-y-2 p-4">
