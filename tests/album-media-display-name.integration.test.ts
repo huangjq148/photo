@@ -89,12 +89,26 @@ describe("album media display names", () => {
       }
     );
 
+    const uploadedByOwner = await uploadPhotoToAlbum(
+      prisma,
+      {
+        storageRoot,
+        jwtSecret: "x".repeat(32),
+      },
+      {
+        albumId: album.id,
+        userId: owner.id,
+        file: new File([tinyPng], "sunset.png", { type: "image/png" }),
+      }
+    );
+
     return {
       ownerId: owner.id,
       uploaderId: uploader.id,
       memberId: member.id,
       albumId: album.id,
       photoId: uploaded.id,
+      ownerPhotoId: uploadedByOwner.id,
     };
   }
 
@@ -108,7 +122,7 @@ describe("album media display names", () => {
       pageSize: 20,
     });
 
-    expect(ownerView.items[0]).toMatchObject({
+    expect(ownerView.items.find((item) => item.id === seeded.photoId)).toMatchObject({
       id: seeded.photoId,
       originalName: "seed.png",
       displayName: null,
@@ -144,7 +158,7 @@ describe("album media display names", () => {
       pageSize: 20,
     });
 
-    expect(listed.items[0]?.displayName).toBe("海边的日落");
+    expect(listed.items.find((item) => item.id === seeded.photoId)?.displayName).toBe("海边的日落");
 
     const cleared = await updateAlbumPhotoDisplayName(prisma, {
       albumId: seeded.albumId,
@@ -176,5 +190,78 @@ describe("album media display names", () => {
         displayName: "😀".repeat(101),
       })
     ).rejects.toThrow("名称最多 100 个字符");
+  });
+
+  it("applies media filters in album listings", async () => {
+    const seeded = await seed();
+
+    await prisma.media.update({
+      where: { id: seeded.photoId },
+      data: {
+        display_name: "海边合影",
+        taken_at: new Date("2026-07-12T08:30:00.000Z"),
+      },
+    });
+
+    await prisma.media.update({
+      where: { id: seeded.ownerPhotoId },
+      data: {
+        media_type: "video",
+        taken_at: new Date("2026-07-10T08:30:00.000Z"),
+      },
+    });
+
+    await prisma.favorite.create({
+      data: {
+        user_id: seeded.ownerId,
+        photo_id: seeded.photoId,
+      },
+    });
+
+    const byDisplayName = await getAlbumPhotos(prisma, {
+      albumId: seeded.albumId,
+      userId: seeded.ownerId,
+      page: 1,
+      pageSize: 20,
+      keyword: "海边",
+    });
+    expect(byDisplayName.items.map((item) => item.id)).toEqual([seeded.photoId]);
+
+    const byMediaType = await getAlbumPhotos(prisma, {
+      albumId: seeded.albumId,
+      userId: seeded.ownerId,
+      page: 1,
+      pageSize: 20,
+      mediaType: "video",
+    });
+    expect(byMediaType.items.map((item) => item.id)).toEqual([seeded.ownerPhotoId]);
+
+    const byUploader = await getAlbumPhotos(prisma, {
+      albumId: seeded.albumId,
+      userId: seeded.ownerId,
+      page: 1,
+      pageSize: 20,
+      uploaderId: seeded.uploaderId,
+    });
+    expect(byUploader.items.map((item) => item.id)).toEqual([seeded.photoId]);
+
+    const favoritedOnly = await getAlbumPhotos(prisma, {
+      albumId: seeded.albumId,
+      userId: seeded.ownerId,
+      page: 1,
+      pageSize: 20,
+      favoritedOnly: true,
+    });
+    expect(favoritedOnly.items.map((item) => item.id)).toEqual([seeded.photoId]);
+
+    const takenRange = await getAlbumPhotos(prisma, {
+      albumId: seeded.albumId,
+      userId: seeded.ownerId,
+      page: 1,
+      pageSize: 20,
+      takenFrom: "2026-07-12",
+      takenTo: "2026-07-12",
+    });
+    expect(takenRange.items.map((item) => item.id)).toEqual([seeded.photoId]);
   });
 });

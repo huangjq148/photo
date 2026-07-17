@@ -36,6 +36,7 @@ type TrashContext = {
 
 type MediaListItem = {
   id: string;
+  displayName: string | null;
   originalName: string;
   thumbnailUrl: string;
   previewUrl: string;
@@ -90,6 +91,7 @@ type MediaRecord = {
   deleted_at: Date | null;
   size: bigint;
   original_name: string;
+  display_name: string | null;
   thumbnail_url: string;
   preview_url: string;
   original_url: string;
@@ -148,6 +150,7 @@ async function assertMediaAccessible(
 function mapMediaListItem(media: MediaRecord): MediaListItem {
   return {
     id: media.id,
+    displayName: media.display_name ?? null,
     originalName: media.original_name,
     thumbnailUrl: media.thumbnail_url,
     previewUrl: media.preview_url,
@@ -357,6 +360,7 @@ export async function getAlbumPhotos(
     ...(keyword
       ? {
           OR: [
+            { display_name: { contains: keyword, mode: "insensitive" as const } },
             { original_name: { contains: keyword, mode: "insensitive" as const } },
             { file_name: { contains: keyword, mode: "insensitive" as const } },
           ],
@@ -448,6 +452,7 @@ export async function getPhotoDetails(
     id: media.id,
     albumId: media.album_id,
     uploaderId: media.uploader_id,
+    displayName: media.display_name ?? null,
     originalName: media.original_name,
     thumbnailUrl: media.thumbnail_url,
     previewUrl: media.preview_url,

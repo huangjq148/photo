@@ -181,6 +181,21 @@ describe("photo library flows", () => {
     });
     expect(empty.items).toHaveLength(0);
 
+    await prisma.media.update({
+      where: { id: photoId },
+      data: { display_name: "海边合影" },
+    });
+
+    const byDisplayName = await getAlbumPhotos(prisma, {
+      albumId,
+      userId,
+      page: 1,
+      pageSize: 20,
+      keyword: "海边",
+    });
+    expect(byDisplayName.items).toHaveLength(1);
+    expect(byDisplayName.items[0]?.displayName).toBe("海边合影");
+
     await toggleFavoritePhoto(prisma, { photoId, userId });
     const favorites = await getFavoritePhotos(prisma, userId);
     expect(favorites.items).toHaveLength(1);

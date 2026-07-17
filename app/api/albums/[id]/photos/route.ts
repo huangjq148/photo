@@ -19,6 +19,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   const page = Number(url.searchParams.get("page") ?? "1");
   const pageSize = Number(url.searchParams.get("pageSize") ?? "20");
   const keyword = url.searchParams.get("keyword") ?? undefined;
+  const mediaType = url.searchParams.get("mediaType") as "image" | "video" | null;
+  const favoritedOnly = url.searchParams.get("favoritedOnly") === "1";
+  const uploaderId = url.searchParams.get("uploaderId") ?? undefined;
+  const takenFrom = url.searchParams.get("takenFrom") ?? undefined;
+  const takenTo = url.searchParams.get("takenTo") ?? undefined;
+  const sortBy = url.searchParams.get("sortBy") as "uploadedAt" | "takenAt" | "fileName" | "size" | null;
+  const sortOrder = url.searchParams.get("sortOrder") as "asc" | "desc" | null;
   const cursor = url.searchParams.get("cursor") ?? undefined;
   const excludeAlbumId = url.searchParams.get("excludeAlbumId") ?? undefined;
 
@@ -35,6 +42,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       page,
       pageSize,
       keyword,
+      mediaType: mediaType ?? undefined,
+      favoritedOnly: favoritedOnly || undefined,
+      uploaderId,
+      takenFrom,
+      takenTo,
+      sortBy: sortBy ?? undefined,
+      sortOrder: sortOrder ?? undefined,
       cursor,
       excludeAlbumId,
     });

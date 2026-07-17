@@ -76,6 +76,9 @@ export type AlbumPhotoItem = {
   canEditName: boolean;
 };
 
+type AlbumPhotoSortBy = "uploadedAt" | "takenAt" | "fileName" | "size";
+type AlbumPhotoSortOrder = "asc" | "desc";
+
 export type MediaDisplayNameUpdate = {
   id: string;
   displayName: string | null;
@@ -95,6 +98,27 @@ function parseBirthDateInput(value: string | null | undefined): Date | null {
   const parsed = new Date(`${trimmed}T00:00:00.000Z`);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error("孩子生日格式不正确");
+  }
+
+  return parsed;
+}
+
+function parseDateFilterInput(
+  value: string | null | undefined,
+  mode: "start" | "end",
+): Date | null {
+  if (value == null) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const parsed = new Date(`${trimmed}T${mode === "start" ? "00:00:00.000" : "23:59:59.999"}Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("拍摄日期格式不正确");
   }
 
   return parsed;
@@ -398,6 +422,13 @@ export async function getAlbumPhotos(
     page?: number;
     pageSize: number;
     keyword?: string;
+    mediaType?: "image" | "video";
+    favoritedOnly?: boolean;
+    uploaderId?: string;
+    takenFrom?: string;
+    takenTo?: string;
+    sortBy?: AlbumPhotoSortBy;
+    sortOrder?: AlbumPhotoSortOrder;
     cursor?: string;
     excludeAlbumId?: string;
   }
@@ -415,6 +446,8 @@ export async function getAlbumPhotos(
   const page = Math.max(1, Math.floor(context.page ?? 1));
   const pageSize = Math.min(Math.max(Math.floor(context.pageSize), 1), 200);
   const keyword = context.keyword?.trim();
+  const takenFrom = parseDateFilterInput(context.takenFrom, "start");
+  const takenTo = parseDateFilterInput(context.takenTo, "end");
   const parsedCursor = context.cursor ? decodeAlbumPhotosCursor(context.cursor) : null;
   const excludeAlbumId = context.excludeAlbumId?.trim();
   const excludedPhotoIds = excludeAlbumId
@@ -430,22 +463,53 @@ export async function getAlbumPhotos(
     album_id: context.albumId,
   };
 
-  const mediaFilters: Record<string, unknown>[] = [{ status: "normal" }];
+  const mediaWhere: Record<string, unknown> = {
+    status: "normal",
+  };
 
   if (keyword) {
-    mediaFilters.push({
-      OR: [
-        { original_name: { contains: keyword, mode: "insensitive" } },
-        { file_name: { contains: keyword, mode: "insensitive" } },
-      ],
-    });
+    mediaWhere.OR = [
+      { display_name: { contains: keyword, mode: "insensitive" } },
+      { original_name: { contains: keyword, mode: "insensitive" } },
+      { file_name: { contains: keyword, mode: "insensitive" } },
+    ];
+  }
+
+  if (context.mediaType) {
+    mediaWhere.media_type = context.mediaType;
+  }
+
+  if (context.favoritedOnly) {
+    mediaWhere.favorites = {
+      some: { user_id: context.userId },
+    };
+  }
+
+  if (context.uploaderId) {
+    mediaWhere.uploader_id = context.uploaderId;
+  }
+
+  if (takenFrom || takenTo) {
+    mediaWhere.taken_at = {
+      ...(takenFrom ? { gte: takenFrom } : {}),
+      ...(takenTo ? { lte: takenTo } : {}),
+    };
   }
 
   if (excludedPhotoIds.length > 0) {
     where.photo_id = { notIn: excludedPhotoIds };
   }
 
-  where.media = mediaFilters.length === 1 ? mediaFilters[0] : { AND: mediaFilters };
+  where.media = mediaWhere;
+
+  const orderBy =
+    context.sortBy === "fileName"
+      ? { media: { original_name: context.sortOrder ?? "desc" } }
+      : context.sortBy === "size"
+        ? { media: { size: context.sortOrder ?? "desc" } }
+        : context.sortBy === "takenAt"
+          ? { media: { taken_at: context.sortOrder ?? "desc" } }
+          : { added_at: context.sortOrder ?? "desc" };
 
   const cursorWhere = parsedCursor
     ? {
@@ -474,8 +538,8 @@ export async function getAlbumPhotos(
         },
       },
       orderBy: [
-        { added_at: "desc" },
-        { photo_id: "desc" },
+        orderBy,
+        { photo_id: context.sortOrder === "asc" ? "asc" : "desc" },
       ],
       skip: parsedCursor ? undefined : (page - 1) * pageSize,
       take: pageSize + 1,

@@ -53,6 +53,24 @@ afterEach(() => {
 });
 
 describe("AlbumDetailHeader mobile action menu", () => {
+  it("opens a compact mobile info popover from the icon trigger", () => {
+    renderHeader();
+
+    const trigger = document.body.querySelector(
+      'button[aria-label="相册信息"]',
+    ) as HTMLButtonElement;
+
+    act(() => {
+      trigger.click();
+    });
+
+    const popup = document.body.querySelector('[role="menu"]') as HTMLElement;
+    expect(popup).not.toBeNull();
+    expect(popup.textContent).toContain("18 张照片");
+    expect(popup.textContent).toContain("3 位成员");
+    expect(popup.textContent).toContain("周末整理");
+  });
+
   it.each([
     ["管理相册", "manage"],
     ["公开分享", "share"],
@@ -66,7 +84,7 @@ describe("AlbumDetailHeader mobile action menu", () => {
       trigger.click();
     });
 
-    const menuItems = Array.from(container.querySelectorAll('[role="menuitem"]'));
+    const menuItems = Array.from(document.body.querySelectorAll('[role="menuitem"]'));
     expect(menuItems.map((item) => item.textContent)).toEqual(["管理相册", "公开分享"]);
 
     const target = menuItems.find((item) => item.textContent === label) as HTMLButtonElement;

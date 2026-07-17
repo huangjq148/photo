@@ -153,27 +153,6 @@ function getSortDate(photo: PhotoItem): Date {
   return photo.takenAt ? new Date(photo.takenAt) : new Date(photo.uploadedAt);
 }
 
-function groupPhotos(photos: PhotoItem[], mode: GroupMode): Map<string, PhotoItem[]> {
-  const groups = new Map<string, PhotoItem[]>();
-
-  // Sort by date descending first
-  const sorted = [...photos].sort((a, b) => getSortDate(b).getTime() - getSortDate(a).getTime());
-
-  for (const photo of sorted) {
-    const date = getSortDate(photo);
-    let key: string;
-    if (mode === "year") {
-      key = `${date.getFullYear()}年`;
-    } else {
-      key = `${date.getFullYear()}年${date.getMonth() + 1}月`;
-    }
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(photo);
-  }
-
-  return groups;
-}
-
 function buildBatchPhotoLabel(items: PhotoItem[]) {
   if (items.length === 0) {
     return "未选择任何照片";
@@ -187,6 +166,94 @@ function buildBatchPhotoLabel(items: PhotoItem[]) {
 }
 
 type GroupMode = GalleryGroupMode;
+type SortMode = {
+  sortBy?: "uploadedAt" | "takenAt" | "fileName" | "size";
+  sortOrder?: "asc" | "desc";
+};
+
+function compareNullableDate(a: string | null, b: string | null) {
+  const timeA = a ? new Date(a).getTime() : 0;
+  const timeB = b ? new Date(b).getTime() : 0;
+  return timeA - timeB;
+}
+
+function compareNullableNumber(a: number, b: number) {
+  return a - b;
+}
+
+function compareNullableText(a: string | null | undefined, b: string | null | undefined) {
+  return (a ?? "").localeCompare(b ?? "");
+}
+
+export function comparePhotoItems(
+  a: PhotoItem,
+  b: PhotoItem,
+  sort: SortMode,
+) {
+  const sortOrder = sort.sortOrder === "asc" ? 1 : -1;
+  let diff = 0;
+
+  switch (sort.sortBy ?? "uploadedAt") {
+    case "takenAt":
+      diff = compareNullableDate(a.takenAt, b.takenAt);
+      break;
+    case "fileName":
+      diff = compareNullableText(a.originalName, b.originalName);
+      break;
+    case "size":
+      diff = compareNullableNumber(a.size, b.size);
+      break;
+    case "uploadedAt":
+    default:
+      diff = compareNullableDate(a.uploadedAt, b.uploadedAt);
+      break;
+  }
+
+  if (diff === 0) {
+    diff = a.id.localeCompare(b.id);
+  }
+
+  return diff * sortOrder;
+}
+
+export function groupPhotos(
+  photos: PhotoItem[],
+  mode: GroupMode,
+  sort: SortMode,
+): Map<string, PhotoItem[]> {
+  const groups = new Map<string, PhotoItem[]>();
+  const dateOrdered = [...photos].sort((a, b) => {
+    const dateDiff = getSortDate(b).getTime() - getSortDate(a).getTime();
+    return dateDiff !== 0 ? dateDiff : a.id.localeCompare(b.id);
+  });
+
+  // First establish group order from newest to oldest.
+  for (const photo of dateOrdered) {
+    const date = getSortDate(photo);
+    const key =
+      mode === "year"
+        ? `${date.getFullYear()}年`
+        : `${date.getFullYear()}年${date.getMonth() + 1}月`;
+
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+  }
+
+  // Then place items using the active sort so the order inside each group matches the toolbar.
+  const sortedPhotos = [...photos].sort((a, b) => comparePhotoItems(a, b, sort));
+  for (const photo of sortedPhotos) {
+    const date = getSortDate(photo);
+    const key =
+      mode === "year"
+        ? `${date.getFullYear()}年`
+        : `${date.getFullYear()}年${date.getMonth() + 1}月`;
+
+    groups.get(key)?.push(photo);
+  }
+
+  return groups;
+}
 
 export function GallerySkeleton({ photoSize }: { photoSize: PhotoSize }) {
   const count = photoSize === "small" ? 12 : photoSize === "large" ? 6 : 9;
@@ -794,8 +861,11 @@ export function PhotoGallery({
 
   const groupedPhotos = useMemo(() => {
     if (effectiveGroupMode === "none") return null;
-    return groupPhotos(items, effectiveGroupMode as GroupMode);
-  }, [items, effectiveGroupMode]);
+    return groupPhotos(items, effectiveGroupMode as GroupMode, {
+      sortBy: urlState.sortBy,
+      sortOrder: urlState.sortOrder,
+    });
+  }, [items, effectiveGroupMode, urlState.sortBy, urlState.sortOrder]);
 
   return (
     <div className="space-y-4">

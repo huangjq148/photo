@@ -56,7 +56,7 @@ describe("/api/albums/[id]/photos route", () => {
 
     const response = await GET(
       nextRequest(
-        "http://localhost/api/albums/album-1/photos?pageSize=100&cursor=cursor-1&excludeAlbumId=target-1&keyword=%E6%B5%B7",
+        "http://localhost/api/albums/album-1/photos?pageSize=100&cursor=cursor-1&excludeAlbumId=target-1&keyword=%E6%B5%B7&mediaType=image&favoritedOnly=1&uploaderId=user-2&takenFrom=2026-07-01&takenTo=2026-07-31&sortBy=takenAt&sortOrder=asc",
       ),
       { params: Promise.resolve({ id: "album-1" }) },
     );
@@ -71,6 +71,13 @@ describe("/api/albums/[id]/photos route", () => {
         cursor: "cursor-1",
         excludeAlbumId: "target-1",
         keyword: "海",
+        mediaType: "image",
+        favoritedOnly: true,
+        uploaderId: "user-2",
+        takenFrom: "2026-07-01",
+        takenTo: "2026-07-31",
+        sortBy: "takenAt",
+        sortOrder: "asc",
       }),
     );
   });

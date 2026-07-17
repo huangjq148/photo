@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Ellipsis, FolderPlus, Settings, Share2, Upload } from "lucide-react";
+import { ArrowLeft, Ellipsis, FolderPlus, Info, Settings, Share2, Upload } from "lucide-react";
 import { Menu } from "@/components/ui/menu";
 
 type HeaderAlbum = {
@@ -47,18 +47,48 @@ export function AlbumDetailHeader({
             </h1>
             {album.isDefault ? (
               <span className="rounded-md border border-[var(--film)] px-3 py-1 text-xs text-[var(--film)]">
-                全部照片
+                默认相册
               </span>
             ) : null}
             <span className="rounded-md border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
               {album.role === "owner" ? "拥有者" : "成员"}
             </span>
-            <span className="text-sm text-[var(--muted-strong)]">{album.photoCount} 张照片</span>
-            <span className="text-sm text-[var(--muted-strong)]">{album.memberCount} 位成员</span>
+            <span className="hidden text-sm text-[var(--muted-strong)] sm:inline">
+              {album.photoCount} 张照片
+            </span>
+            <span className="hidden text-sm text-[var(--muted-strong)] sm:inline">
+              {album.memberCount} 位成员
+            </span>
+            <Menu
+              label="相册信息"
+              title="相册信息"
+              triggerVariant="plain"
+              triggerContent={<Info aria-hidden="true" size={16} />}
+              menuClassName="min-w-64"
+              className="sm:hidden"
+            >
+              <div className="space-y-3 p-2">
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+                    信息
+                  </p>
+                  <p className="text-sm text-[var(--text)]">{album.photoCount} 张照片</p>
+                  <p className="text-sm text-[var(--text)]">{album.memberCount} 位成员</p>
+                </div>
+                {album.description ? (
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+                      简介
+                    </p>
+                    <p className="text-sm leading-6 text-[var(--muted)]">{album.description}</p>
+                  </div>
+                ) : null}
+              </div>
+            </Menu>
           </div>
 
           {album.description ? (
-            <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
+            <p className="mt-2 hidden max-w-2xl text-sm text-[var(--muted)] sm:block">
               {album.description}
             </p>
           ) : null}
