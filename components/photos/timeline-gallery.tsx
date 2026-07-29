@@ -508,15 +508,16 @@ export function TimelineGallery() {
         ))}
       </div>
 
-      <div ref={sentinelRef} className="h-1" />
-
-      {loadingMore ? (
-        <div className="py-6 text-center text-sm text-[var(--muted)]">加载更多...</div>
-      ) : null}
-
-      {!hasMore ? (
-        <div className="py-4 text-center text-xs text-[var(--muted)]">已加载全部时间线内容</div>
-      ) : null}
+      {hasMore ? (
+        <>
+          <div ref={sentinelRef} className="h-1" />
+          {loadingMore ? (
+            <div className="py-4 text-center text-sm text-[var(--muted)]">加载更多...</div>
+          ) : null}
+        </>
+      ) : (
+        <div className="timeline-end-marker">已加载全部时间线内容</div>
+      )}
 
       <BatchAddPhotosToAlbumModal
         open={batchAddOpen}

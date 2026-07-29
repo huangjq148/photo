@@ -1,9 +1,19 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Check,
+  ChevronDown,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import ImageViewer from "@/components/ui/image-viewer";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Menu } from "@/components/ui/menu";
 import { useMessage } from "@/components/ui/message";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 import { resolveDisplayName } from "@/lib/media/display-name";
@@ -34,6 +44,54 @@ function getPointDate(point: MapMediaPoint) {
   return new Date(point.takenAt ?? point.uploadedAt);
 }
 
+type MapFilterOption = {
+  value: string;
+  label: string;
+};
+
+export function MapFilterMenu({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: MapFilterOption[];
+  onChange: (value: string) => void;
+}) {
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  return (
+    <Menu
+      label={label}
+      align="left"
+      triggerVariant="plain"
+      className="w-full"
+      triggerClassName="map-filter-trigger"
+      menuClassName="map-filter-menu"
+      triggerContent={
+        <>
+          <span className="min-w-0 flex-1 truncate text-left">{selected?.label ?? label}</span>
+          <ChevronDown aria-hidden="true" size={16} className="shrink-0 text-[var(--muted)]" />
+        </>
+      }
+      items={options.map((option) => ({
+        key: option.value,
+        label: option.label,
+        icon:
+          option.value === value ? (
+            <Check aria-hidden="true" size={16} />
+          ) : (
+            <span aria-hidden="true" className="block h-4 w-4" />
+          ),
+        tone: option.value === value ? "accent" : "default",
+        onSelect: () => onChange(option.value),
+      }))}
+    />
+  );
+}
+
 export function MapGallery() {
   const [points, setPoints] = useState<MapMediaPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +106,7 @@ export function MapGallery() {
   const [visibilityFilter, setVisibilityFilter] = useState<"all" | "visible" | "hidden">("all");
   const [takenFrom, setTakenFrom] = useState("");
   const [takenTo, setTakenTo] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const message = useMessage();
 
   const loadPoints = useCallback(async () => {
@@ -245,32 +304,94 @@ export function MapGallery() {
     return <div className="rounded-2xl border border-red-400/30 bg-red-950/30 p-6 text-[var(--danger)]">{error}</div>;
   }
 
-  const hasActiveFilters =
+  const hasActiveFilters = Boolean(
     searchText.trim() ||
+    includeHidden ||
     albumFilter !== "all" ||
     mediaTypeFilter !== "all" ||
     visibilityFilter !== "all" ||
     takenFrom ||
-    takenTo;
+    takenTo,
+  );
+
+  function clearFilters() {
+    setSearchText("");
+    setIncludeHidden(false);
+    setAlbumFilter("all");
+    setMediaTypeFilter("all");
+    setVisibilityFilter("all");
+    setTakenFrom("");
+    setTakenTo("");
+  }
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.6fr)]">
       <section className="space-y-4">
-        <div className="noir-glass-panel rounded-[2rem] p-4 sm:p-5">
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+        <div className="map-filter-panel noir-glass-panel rounded-[2rem] p-4 sm:p-5">
+          <div className="space-y-3">
+            <div className="map-filter-summary">
+              <div className="min-w-0">
                 <p className="text-sm text-[var(--muted)]">
                   {filteredPoints.length} / {points.length} 个地点 ·{" "}
                   {includeHidden ? "包含已隐藏位置" : "已过滤隐藏位置"}
                 </p>
-                <p className="mt-1 text-xs text-[var(--muted)]">
-                  点击标记查看细节，使用下面的筛选和搜索快速定位地点。
-                </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text)]">
+              <div className="map-zoom-actions">
+                <button
+                  type="button"
+                  onClick={() => setZoom((current) => Math.min(3.25, current + 0.35))}
+                  aria-label="放大地图"
+                  title="放大"
+                >
+                  <ZoomIn aria-hidden="true" size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((current) => Math.max(1, current - 0.35))}
+                  aria-label="缩小地图"
+                  title="缩小"
+                >
+                  <ZoomOut aria-hidden="true" size={17} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom(1.15)}
+                  aria-label="重置地图缩放"
+                  title="重置缩放"
+                >
+                  <RotateCcw aria-hidden="true" size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="map-search-row">
+              <label className="map-search-field">
+                <span className="sr-only">搜索地点、文件名、相册名或坐标</span>
+                <Search aria-hidden="true" size={17} />
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="搜索地点、文件名、相册名或坐标"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+              />
+              </label>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((current) => !current)}
+                className={`map-filter-toggle ${filtersOpen ? "is-open" : ""}`}
+                aria-expanded={filtersOpen}
+                aria-controls="map-advanced-filters"
+              >
+                <SlidersHorizontal aria-hidden="true" size={17} />
+                <span>{hasActiveFilters ? "筛选已启用" : "筛选"}</span>
+                {hasActiveFilters ? <i aria-hidden="true" /> : null}
+              </button>
+            </div>
+
+            {filtersOpen ? (
+              <div id="map-advanced-filters" className="map-advanced-filters">
+                <label className="map-hidden-location-toggle">
                   <input
                     type="checkbox"
                     checked={includeHidden}
@@ -279,68 +400,37 @@ export function MapGallery() {
                   />
                   包含已隐藏位置
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setZoom((current) => Math.min(3.25, current + 0.35))}
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-                >
-                  放大
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setZoom((current) => Math.max(1, current - 0.35))}
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-                >
-                  缩小
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setZoom(1.15)}
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-bold text-black"
-                >
-                  重置
-                </button>
-              </div>
-            </div>
 
-            <div className="grid gap-3 lg:grid-cols-2">
-              <input
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                placeholder="搜索地点、文件名、相册名或坐标"
-                className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--accent)]"
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <select
+                <div className="grid gap-3 sm:grid-cols-2">
+                <MapFilterMenu
+                  label="筛选相册"
                   value={albumFilter}
-                  onChange={(event) => setAlbumFilter(event.target.value)}
-                  className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
-                >
-                  <option value="all">全部相册</option>
-                  {albumOptions.map((album) => (
-                    <option key={album.id} value={album.id}>
-                      {album.name}
-                    </option>
-                  ))}
-                </select>
-                <select
+                  onChange={setAlbumFilter}
+                  options={[
+                    { value: "all", label: "全部相册" },
+                    ...albumOptions.map((album) => ({ value: album.id, label: album.name })),
+                  ]}
+                />
+                <MapFilterMenu
+                  label="筛选媒体类型"
                   value={mediaTypeFilter}
-                  onChange={(event) => setMediaTypeFilter(event.target.value as typeof mediaTypeFilter)}
-                  className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
-                >
-                  <option value="all">全部媒体</option>
-                  <option value="image">仅图片</option>
-                  <option value="video">仅视频</option>
-                </select>
-                <select
+                  onChange={(value) => setMediaTypeFilter(value as typeof mediaTypeFilter)}
+                  options={[
+                    { value: "all", label: "全部媒体" },
+                    { value: "image", label: "仅图片" },
+                    { value: "video", label: "仅视频" },
+                  ]}
+                />
+                <MapFilterMenu
+                  label="筛选位置状态"
                   value={visibilityFilter}
-                  onChange={(event) => setVisibilityFilter(event.target.value as typeof visibilityFilter)}
-                  className="h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] px-4 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
-                >
-                  <option value="all">全部位置状态</option>
-                  <option value="visible">仅位置可见</option>
-                  <option value="hidden">仅位置隐藏</option>
-                </select>
+                  onChange={(value) => setVisibilityFilter(value as typeof visibilityFilter)}
+                  options={[
+                    { value: "all", label: "全部位置状态" },
+                    { value: "visible", label: "仅位置可见" },
+                    { value: "hidden", label: "仅位置隐藏" },
+                  ]}
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <DatePicker
                     value={takenFrom}
@@ -358,25 +448,20 @@ export function MapGallery() {
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchText("");
-                  setAlbumFilter("all");
-                  setMediaTypeFilter("all");
-                  setVisibilityFilter("all");
-                  setTakenFrom("");
-                  setTakenTo("");
-                }}
-                className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
-              >
-                清除筛选
-              </button>
-              {hasActiveFilters ? <span className="text-xs text-[var(--muted)]">当前筛选已生效</span> : null}
-            </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    disabled={!hasActiveFilters}
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    清除筛选
+                  </button>
+                  {hasActiveFilters ? <span className="text-xs text-[var(--muted)]">当前筛选已生效</span> : null}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
