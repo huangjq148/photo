@@ -150,8 +150,8 @@ export function AdminFileTable({ items, page, pageSize, total }: Props) {
       </section>
 
       <section className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-white/10">
+        <div className="overflow-x-auto overscroll-x-contain" tabIndex={0} role="region" aria-label="文件管理表格，可横向滚动">
+          <table className="min-w-[900px] w-full divide-y divide-white/10">
             <thead className="text-left text-xs uppercase tracking-[0.25em] text-white/40">
               <tr>
                 <th className="sticky top-0 z-20 border-b border-white/10 bg-[#111215]/95 px-4 py-4 backdrop-blur">
