@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import { getMediaDeleteActions } from "@/lib/media/delete-actions";
 import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
 import { GalleryGrid } from "@/components/photos/gallery-grid";
@@ -386,21 +387,21 @@ export function TrashGallery() {
                 <button
                   type="button"
                   onClick={() => { void batchRestore(); }}
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-bold text-black"
+                  className="relative inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-bold text-black before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
                 >
                   批量恢复 ({selectedCount})
                 </button>
                 <button
                   type="button"
                   onClick={() => { void batchDeleteForever(); }}
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black"
+                  className="relative inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
                 >
                   批量永久删除 ({selectedCount})
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedIds([])}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)]"
+                  className="relative inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)] before:absolute before:-inset-y-1 before:inset-x-0 before:content-['']"
                 >
                   取消选择
                 </button>
@@ -410,7 +411,7 @@ export function TrashGallery() {
                 <button
                   type="button"
                   onClick={toggleSelectAll}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--muted)] transition hover:text-[var(--text)]"
+                  className="relative inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--muted)] transition before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] hover:text-[var(--text)]"
                 >
                   全选
                 </button>
@@ -419,7 +420,7 @@ export function TrashGallery() {
                     type="button"
                     onClick={() => { void clearAll(); }}
                     disabled={clearing}
-                    className="inline-flex h-9 items-center justify-center rounded-lg border border-red-400/30 px-4 text-sm font-bold text-[var(--danger)] transition hover:bg-red-950/30 disabled:opacity-50"
+                    className="relative inline-flex h-9 items-center justify-center rounded-lg border border-red-400/30 px-4 text-sm font-bold text-[var(--danger)] transition before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] hover:bg-red-950/30 disabled:opacity-50"
                   >
                     {clearing ? "清空中..." : "清空回收站"}
                   </button>
@@ -487,25 +488,36 @@ export function TrashGallery() {
                 {selectedIdSet.has(photo.id) ? "✓" : "□"}
               </button>
             </div>
-            <div className="space-y-3 p-4">
-              <div>
-                <h3 className="text-sm font-medium text-[var(--text)]">{photo.originalName}</h3>
-                <p className="text-xs text-[var(--muted)]">
+            <div className="space-y-3 p-3 sm:p-4">
+              <div className="min-w-0">
+                <h3
+                  className="truncate text-sm font-medium text-[var(--text)]"
+                  title={photo.originalName}
+                >
+                  {photo.originalName}
+                </h3>
+                <p className="mt-0.5 text-xs leading-5 text-[var(--muted)]">
                   删除于 {photo.deletedAt ? new Date(photo.deletedAt).toLocaleDateString("zh-CN") : "未知"}
                   {" · "}
                   {formatRemainingDays(photo.deletedAt)}
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => { void restorePhoto(photo.id); }}
                   disabled={isPending}
                   aria-disabled={isPending}
                   aria-busy={pendingAction === "restore"}
-                  className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-sm font-bold text-[var(--text)] disabled:cursor-wait disabled:opacity-50"
+                  aria-label={`恢复 ${photo.originalName}`}
+                  title="恢复"
+                  className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text)] transition before:absolute before:-inset-1 before:content-[''] hover:bg-white/[0.08] active:bg-white/[0.12] disabled:cursor-wait disabled:opacity-50"
                 >
-                  {pendingAction === "restore" ? "恢复中..." : "恢复"}
+                  {pendingAction === "restore" ? (
+                    <LoaderCircle aria-hidden="true" size={17} className="animate-spin" />
+                  ) : (
+                    <RotateCcw aria-hidden="true" size={17} />
+                  )}
                 </button>
                 <button
                   type="button"
@@ -513,9 +525,15 @@ export function TrashGallery() {
                   disabled={isPending}
                   aria-disabled={isPending}
                   aria-busy={pendingAction === "delete"}
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--danger)] px-4 text-sm font-bold text-black disabled:cursor-wait disabled:opacity-50"
+                  aria-label={`${deleteAction.label} ${photo.originalName}`}
+                  title={deleteAction.label}
+                  className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--danger)] text-black transition before:absolute before:-inset-1 before:content-[''] hover:opacity-90 active:opacity-80 disabled:cursor-wait disabled:opacity-50"
                 >
-                  {pendingAction === "delete" ? `${deleteAction.label}中...` : deleteAction.label}
+                  {pendingAction === "delete" ? (
+                    <LoaderCircle aria-hidden="true" size={17} className="animate-spin" />
+                  ) : (
+                    <Trash2 aria-hidden="true" size={17} />
+                  )}
                 </button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { StarOff } from "lucide-react";
 import ImageViewer from "@/components/ui/image-viewer";
 import { buildMediaViewerNavigationItems } from "@/components/photos/image-viewer-navigation";
 import { PhotoGallerySizeControl, type PhotoSize } from "@/components/photos/photo-gallery-size-control";
@@ -152,9 +153,9 @@ export function FavoritesGallery() {
                 className="group/img block w-full"
               />
             )}
-            <div className="space-y-3 p-4">
-              <div>
-                <h3 className="text-sm font-medium text-[var(--text)]">{photo.originalName}</h3>
+            <div className="flex items-end justify-between gap-3 p-4">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-medium text-[var(--text)]">{photo.originalName}</h3>
                 <p className="text-xs text-[var(--muted)]">
                   {photo.width} × {photo.height}
                 </p>
@@ -162,9 +163,11 @@ export function FavoritesGallery() {
               <button
                 type="button"
                 onClick={() => { void removeFavorite(photo.id); }}
-                className="inline-flex h-9 items-center justify-center rounded-lg noir-glass-chip px-4 text-sm font-bold text-[var(--text)]"
+                aria-label={`取消收藏 ${photo.originalName}`}
+                title="取消收藏"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition duration-200 hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]/60 active:scale-95"
               >
-                取消收藏
+                <StarOff size={18} strokeWidth={1.8} aria-hidden="true" />
               </button>
             </div>
           </article>
