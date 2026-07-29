@@ -39,16 +39,18 @@ export function HomeStats({ albumCount, photoCount, storageUsed, storageLimit }:
 
   return (
     <section className="mx-auto max-w-5xl">
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        {stats.map((item) => (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        {stats.map((item, index) => (
           <div
             key={item.label}
-            className="noir-glass-panel flex flex-col items-center gap-3 rounded-2xl p-4 transition hover:border-[var(--border-strong)] sm:p-5"
+            className={`noir-glass-panel flex min-w-0 flex-col items-center gap-2 rounded-2xl p-4 text-center transition hover:border-[var(--border-strong)] sm:gap-3 sm:p-5 ${
+              index === 2 ? "col-span-2 sm:col-span-1" : ""
+            }`}
           >
             <span className="flex h-11 w-11 items-center justify-center rounded-full noir-glass-chip">
               {item.icon}
             </span>
-            <p className="text-lg font-black text-[var(--text)] sm:text-2xl">
+            <p className="max-w-full break-words text-lg font-black leading-tight text-[var(--text)] sm:text-2xl">
               {item.value}
             </p>
             <p className="text-xs text-[var(--muted)]">{item.label}</p>

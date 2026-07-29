@@ -68,13 +68,13 @@ export function HomeQuickActions() {
   return (
     <>
       <section className="mx-auto max-w-5xl">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
           {actions.map((action) =>
             action.href ? (
               <Link
                 key={action.key}
                 href={action.href}
-                className="noir-glass-panel flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] sm:p-5"
+                className="noir-glass-panel flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] active:scale-[0.98] sm:p-5"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-full noir-glass-chip">
                   {action.icon}
@@ -87,7 +87,7 @@ export function HomeQuickActions() {
                 key={action.key}
                 type="button"
                 onClick={() => handleClick(action.key)}
-                className="noir-glass-panel flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] sm:p-5"
+                className="noir-glass-panel flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl p-4 text-center transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] active:scale-[0.98] sm:p-5"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-full noir-glass-chip">
                   {action.icon}

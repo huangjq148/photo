@@ -42,7 +42,7 @@ export function AlbumCard({
   const displayCover = coverUrl || lastPhotoUrl;
 
   return (
-    <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl noir-glass-panel transition duration-200 hover:-translate-y-1 hover:border-[var(--border-strong)]">
+    <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl noir-glass-panel transition duration-200 hover:-translate-y-1 hover:border-[var(--border-strong)] active:border-[var(--border-strong)]">
       {/* Cover layer */}
       {displayCover ? (
         <img
@@ -115,7 +115,7 @@ export function AlbumCard({
           e.stopPropagation();
           setShowInfo((prev) => !prev);
         }}
-        className={`absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full transition ${
+        className={`absolute right-3 top-3 z-20 flex h-11 w-11 items-center justify-center rounded-full transition ${
           showInfo
             ? "bg-[var(--accent)] text-black"
             : "noir-glass-chip text-white/90 hover:text-white"
@@ -150,7 +150,7 @@ export function AlbumCard({
       {/* Clickable area to navigate */}
       <Link
         href={`/albums/${albumId}` as Route}
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--film)]"
         aria-label={name}
       >
         <span className="sr-only">进入 {name}</span>

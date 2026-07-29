@@ -255,7 +255,7 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="album-detail-view space-y-7 sm:space-y-10">
       <AlbumDetailHeader
         album={album}
         onUploadNew={() => openUpload({ albumId })}
@@ -271,8 +271,15 @@ export function AlbumDetail({ albumId }: { albumId: string }) {
         onShare={() => setShowShareManager(true)}
       />
 
-      <section className="space-y-4">
-        <p className="text-sm font-medium text-[var(--film)]">PHOTOS</p>
+      <section className="album-photo-section space-y-4 sm:space-y-5">
+        <div className="album-section-heading">
+          <p className="album-section-index">02</p>
+          <div>
+            <h2>照片</h2>
+            <p>{album.photoCount} 个影像瞬间</p>
+          </div>
+          <span aria-hidden="true" />
+        </div>
         <PhotoGallery
           key={photoRefreshToken}
           albumId={albumId}

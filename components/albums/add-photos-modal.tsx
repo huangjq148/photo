@@ -1,8 +1,8 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import { Check, Loader2, Search, X } from "lucide-react";
+import { Check, ImageOff, Loader2, Search, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useMessage } from "@/components/ui/message";
 import { useGalleryQuery } from "@/hooks/use-gallery-query";
@@ -67,6 +67,60 @@ export function reconcileFailedSelection(
 ) {
   const selected = new Set(selectedIds);
   return result.failed.map((item) => item.id).filter((id) => selected.has(id));
+}
+
+function AddPhotoTile({
+  photo,
+  selected,
+  onToggle,
+}: {
+  photo: PhotoItem;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photo.thumbnailUrl]);
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      aria-label={`${selected ? "取消选择" : "选择"} ${photo.originalName}`}
+      className={`group relative min-w-0 overflow-hidden rounded-xl border text-left transition ${
+        selected
+          ? "border-[var(--film)] ring-2 ring-[var(--film)]/45"
+          : "border-[var(--border)] hover:border-white/30"
+      }`}
+    >
+      <div className="relative aspect-square w-full overflow-hidden bg-[var(--surface-strong)] sm:aspect-[4/3]">
+        {imageFailed ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-[var(--muted)]">
+            <ImageOff aria-hidden="true" size={22} />
+            <span className="text-[11px]">预览不可用</span>
+          </div>
+        ) : (
+          <img
+            src={photo.thumbnailUrl}
+            alt={photo.originalName}
+            onError={() => setImageFailed(true)}
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+          />
+        )}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-2 pt-6">
+        <p className="truncate text-xs text-white">{photo.originalName}</p>
+      </div>
+      {selected ? (
+        <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-black shadow-lg">
+          <Check aria-hidden="true" size={16} strokeWidth={3} />
+        </div>
+      ) : null}
+    </button>
+  );
 }
 
 export function AddPhotosModal({ open = true, currentAlbumId, onClose, onAdded }: AddPhotosModalProps) {
@@ -269,9 +323,9 @@ export function AddPhotosModal({ open = true, currentAlbumId, onClose, onAdded }
       description="选择要添加到当前相册的照片"
       onClose={onClose}
       footer={
-        <div className="sticky bottom-0 flex flex-col gap-3 bg-[var(--surface)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm text-[var(--muted)]">
+        <div className="flex items-center justify-between gap-3 bg-[var(--surface)]">
+          <div className="min-w-0">
+            <p className="truncate text-sm text-[var(--muted)]">
               {selectedCount > 0 ? `已选择 ${selectedCount} 张` : "点击照片选择"}
             </p>
           </div>
@@ -280,18 +334,18 @@ export function AddPhotosModal({ open = true, currentAlbumId, onClose, onAdded }
             type="button"
             onClick={() => void handleAdd()}
             disabled={adding || selectedCount === 0}
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-6 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 min-w-28 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] px-6 text-sm font-bold text-black transition hover:bg-white disabled:border disabled:border-[var(--border)] disabled:bg-[var(--surface-strong)] disabled:text-[var(--muted)]"
           >
             {adding ? "添加中..." : `添加 ${selectedCount || ""}`.trim()}
           </button>
         </div>
       }
     >
-      <div className="space-y-4">
-        <div className="rounded-2xl border border-[var(--border)] bg-black/20 p-4">
-          <label className="block">
+      <div className="space-y-3 sm:space-y-4">
+        <div>
+          <label className="block rounded-xl border border-[var(--border)] bg-black/25 transition focus-within:border-[var(--film)] focus-within:ring-2 focus-within:ring-[var(--film)]/15">
             <span className="sr-only">搜索全部照片</span>
-            <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-black/25 px-4 py-3">
+            <div className="flex min-h-11 items-center gap-2 px-4">
               <Search aria-hidden="true" size={16} className="text-[var(--muted)]" />
               <input
                 value={query.searchValue}
@@ -325,45 +379,24 @@ export function AddPhotosModal({ open = true, currentAlbumId, onClose, onAdded }
           <div className="py-12 text-center text-[var(--muted)]">全部照片中暂无可添加的照片</div>
         ) : (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
               {items.map((photo) => {
                 const selected = selectedIds.has(photo.id);
                 return (
-                  <button
+                  <AddPhotoTile
                     key={photo.id}
-                    type="button"
-                    onClick={() => toggleSelection(photo.id)}
-                    className={`relative overflow-hidden rounded-xl border transition ${
-                      selected
-                        ? "border-[var(--accent)] ring-2 ring-[var(--accent)]"
-                        : "border-[var(--border)] hover:border-white/30"
-                    }`}
-                  >
-                    <div className="relative aspect-[4/3] w-full">
-                      <Image
-                        src={photo.thumbnailUrl}
-                        alt={photo.originalName}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1280px) 33vw, 25vw"
-                      />
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                      <p className="truncate text-xs text-white">{photo.originalName}</p>
-                    </div>
-                    {selected ? (
-                      <div className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-black">
-                        <Check aria-hidden="true" size={16} strokeWidth={3} />
-                      </div>
-                    ) : null}
-                  </button>
+                    photo={photo}
+                    selected={selected}
+                    onToggle={() => toggleSelection(photo.id)}
+                  />
                 );
               })}
             </div>
           </div>
         )}
 
-        <div className="flex items-center justify-center">
+        {hasMore || loadingMore ? (
+          <div className="flex items-center justify-center pt-1">
           <button
             type="button"
             onClick={() => {
@@ -381,7 +414,8 @@ export function AddPhotosModal({ open = true, currentAlbumId, onClose, onAdded }
               "加载更多"
             )}
           </button>
-        </div>
+          </div>
+        ) : null}
       </div>
     </Modal>
   );

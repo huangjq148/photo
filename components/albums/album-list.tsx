@@ -133,7 +133,7 @@ export function AlbumList() {
         <button
           type="button"
           onClick={() => setShowCreate(true)}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-bold text-black transition hover:bg-white"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-sm font-bold text-black transition hover:bg-white sm:w-auto"
         >
           创建新相册
         </button>

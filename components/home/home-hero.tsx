@@ -34,15 +34,15 @@ function MemoryPreview({ memory }: { memory: OnThisDayMemory }) {
         </div>
       </div>
 
-      <div className="relative mt-4 grid gap-2 sm:grid-cols-3 sm:grid-rows-2">
+      <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:grid-rows-2">
         {previewItems.length > 0 ? (
           previewItems.map((photo, index) => (
             <div
               key={photo.id}
               className={
                 index === 0
-                  ? "group relative col-span-2 row-span-2 overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/35"
-                  : "group relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/25"
+                  ? "group relative col-span-2 row-span-2 aspect-[4/3] overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/35 sm:aspect-auto"
+                  : "group relative aspect-square overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/25 sm:aspect-auto"
               }
               aria-label={resolveDisplayName(photo.displayName, photo.originalName)}
             >
@@ -82,14 +82,14 @@ export function HomeHero({ user, memorySpotlight }: HomeHeroProps) {
   const hasMemorySpotlight = spotlight !== null;
 
   return (
-    <section className="noir-glass-panel relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] px-6 py-12 sm:px-10 sm:py-14 lg:px-14 lg:py-16">
+    <section className="noir-glass-panel relative mx-auto max-w-5xl overflow-hidden rounded-[1.75rem] px-5 py-9 sm:rounded-[2rem] sm:px-10 sm:py-14 lg:px-14 lg:py-16">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.09),transparent_28%),radial-gradient(circle_at_right,rgba(255,255,255,0.05),transparent_22%),linear-gradient(135deg,rgba(255,255,255,0.02),transparent_40%)]" />
       <div className={hasMemorySpotlight ? "grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center" : "mx-auto max-w-3xl text-center"}>
         <div className={hasMemorySpotlight ? "relative text-left" : "relative"}>
           <p className="mb-4 text-xs font-semibold tracking-[0.32em] text-[var(--film)]">
             PHOTO ARCHIVE
           </p>
-          <h1 className="max-w-[9ch] text-[clamp(3.5rem,10vw,7.5rem)] font-black leading-[0.88] tracking-[-0.04em] text-[var(--text)]">
+          <h1 className="max-w-[9ch] text-[clamp(2.75rem,15vw,7.5rem)] font-black leading-[0.88] tracking-[-0.04em] text-[var(--text)]">
             NOIR PHOTO
           </h1>
 

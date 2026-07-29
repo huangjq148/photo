@@ -50,7 +50,7 @@ export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
         <h2 className="text-lg font-bold text-[var(--text)]">最近上传</h2>
         <Link
           href="/albums"
-          className="text-sm font-medium text-[var(--muted)] transition hover:text-[var(--text)]"
+          className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--text)]"
         >
           查看全部 →
         </Link>
@@ -61,7 +61,7 @@ export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
           <Link
             key={photo.id}
             href={`/albums/${photo.albumId}`}
-            className="group relative aspect-square overflow-hidden rounded-2xl noir-glass-panel transition hover:-translate-y-0.5 hover:border-[var(--border-strong)]"
+            className="group relative aspect-square overflow-hidden rounded-2xl noir-glass-panel transition hover:-translate-y-0.5 hover:border-[var(--border-strong)] active:scale-[0.98]"
           >
             <img
               src={photo.thumbnailUrl}
@@ -70,7 +70,7 @@ export function HomeRecentPhotos({ photos }: HomeRecentPhotosProps) {
               loading="lazy"
               style={{ aspectRatio: "1" }}
             />
-            <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-transparent to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 via-transparent to-transparent p-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
               <p className="truncate text-xs text-white">{photo.originalName}</p>
             </div>
           </Link>

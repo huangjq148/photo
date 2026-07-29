@@ -30,75 +30,73 @@ export function AlbumDetailHeader({
   onShare,
 }: AlbumDetailHeaderProps) {
   return (
-    <section className="border-b border-[var(--border)] pb-4 pt-1 sm:pb-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <Link
-            href="/albums"
-            className="inline-flex min-h-9 items-center gap-2 rounded-lg px-1 text-sm font-bold text-[var(--muted)] transition hover:text-[var(--text)]"
-          >
-            <ArrowLeft aria-hidden="true" size={18} />
-            返回相册
-          </Link>
+    <section className="album-detail-hero">
+      <div className="album-hero-top">
+        <Link href="/albums" className="album-back-link">
+          <ArrowLeft aria-hidden="true" size={17} />
+          返回相册
+        </Link>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="album-kicker" aria-hidden="true">
+          <span>01</span>
+          <p>PRIVATE ALBUM</p>
+        </div>
+      </div>
+
+      <div className="album-hero-grid">
+        <div className="min-w-0">
+          <div className="album-title-row">
             <h1 className="max-w-full text-3xl font-black leading-tight text-[var(--text)] sm:text-5xl">
               {album.name}
             </h1>
-            {album.isDefault ? (
-              <span className="rounded-md border border-[var(--film)] px-3 py-1 text-xs text-[var(--film)]">
+            <div className="album-title-badges">
+              {album.isDefault ? (
+                <span className="album-badge album-badge-accent">
                 默认相册
               </span>
-            ) : null}
-            <span className="rounded-md border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted)]">
-              {album.role === "owner" ? "拥有者" : "成员"}
-            </span>
-            <span className="hidden text-sm text-[var(--muted-strong)] sm:inline">
-              {album.photoCount} 张照片
-            </span>
-            <span className="hidden text-sm text-[var(--muted-strong)] sm:inline">
-              {album.memberCount} 位成员
-            </span>
-            <Menu
-              label="相册信息"
-              title="相册信息"
-              triggerVariant="plain"
-              triggerContent={<Info aria-hidden="true" size={16} />}
-              menuClassName="min-w-64"
-              className="sm:hidden"
-            >
-              <div className="space-y-3 p-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-                    信息
-                  </p>
-                  <p className="text-sm text-[var(--text)]">{album.photoCount} 张照片</p>
-                  <p className="text-sm text-[var(--text)]">{album.memberCount} 位成员</p>
-                </div>
-                {album.description ? (
+              ) : null}
+              <span className="album-badge">
+                {album.role === "owner" ? "拥有者" : "成员"}
+              </span>
+              <span className="album-meta-copy">
+                {album.photoCount} 张照片 · {album.memberCount} 位成员
+              </span>
+              <Menu
+                label="相册信息"
+                title="相册信息"
+                triggerVariant="plain"
+                triggerContent={<Info aria-hidden="true" size={16} />}
+                menuClassName="min-w-64"
+                className="sm:hidden"
+              >
+                <div className="space-y-3 p-2">
                   <div className="space-y-1">
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-                      简介
+                      信息
                     </p>
-                    <p className="text-sm leading-6 text-[var(--muted)]">{album.description}</p>
+                    <p className="text-sm text-[var(--text)]">{album.photoCount} 张照片</p>
+                    <p className="text-sm text-[var(--text)]">{album.memberCount} 位成员</p>
                   </div>
-                ) : null}
-              </div>
-            </Menu>
+                  {album.description ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+                        简介
+                      </p>
+                      <p className="text-sm leading-6 text-[var(--muted)]">{album.description}</p>
+                    </div>
+                  ) : null}
+                </div>
+              </Menu>
+            </div>
           </div>
-
-          {album.description ? (
-            <p className="mt-2 hidden max-w-2xl text-sm text-[var(--muted)] sm:block">
-              {album.description}
-            </p>
-          ) : null}
+          {album.description ? <p className="hidden">{album.description}</p> : null}
         </div>
 
-        <div className="flex items-center gap-2 sm:hidden">
+        <div className="album-mobile-actions sm:hidden">
           <button
             type="button"
             onClick={onUploadNew}
-            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
+            className="album-primary-action"
           >
             <Upload aria-hidden="true" size={17} />
             上传照片
@@ -108,7 +106,7 @@ export function AlbumDetailHeader({
             aria-label="从全部照片添加"
             title="从全部照片添加"
             onClick={onAddFromAllPhotos}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full noir-glass-chip text-white transition hover:border-[var(--border-strong)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
+            className="album-icon-action h-11 w-11"
           >
             <FolderPlus aria-hidden="true" size={18} />
           </button>
@@ -130,15 +128,15 @@ export function AlbumDetailHeader({
                 onSelect: onShare,
               },
             ]}
-            triggerClassName="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
+            triggerClassName="album-more-action shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--film)]/70"
           />
         </div>
 
-        <div className="hidden sm:flex gap-2 lg:shrink-0">
+        <div className="album-desktop-actions hidden sm:flex">
           <button
             type="button"
             onClick={onUploadNew}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white"
+            className="album-primary-action"
           >
             <Upload aria-hidden="true" size={17} />
             上传新照片
@@ -146,7 +144,7 @@ export function AlbumDetailHeader({
           <button
             type="button"
             onClick={onAddFromAllPhotos}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+            className="album-secondary-action"
           >
             <FolderPlus aria-hidden="true" size={17} />
             从全部照片添加
@@ -154,7 +152,7 @@ export function AlbumDetailHeader({
           <button
             type="button"
             onClick={onManage}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+            className="album-secondary-action"
           >
             <Settings aria-hidden="true" size={17} />
             管理
@@ -162,7 +160,7 @@ export function AlbumDetailHeader({
           <button
             type="button"
             onClick={onShare}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--border-strong)] px-5 text-sm font-bold text-[var(--text)] transition hover:border-white/35 hover:bg-white/[0.08]"
+            className="album-secondary-action"
           >
             <Share2 aria-hidden="true" size={17} />
             公开分享
