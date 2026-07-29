@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { LogOut, Image, FolderTree } from "lucide-react";
+import { LogOut, Image, FolderTree, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/admin/photos", label: "图片管理", icon: Image },
   { href: "/admin/files", label: "文件管理", icon: FolderTree },
+  { href: "/admin/users", label: "用户管理", icon: Users },
 ] as const;
 
 export function AdminShell({ children }: { children: ReactNode }) {
