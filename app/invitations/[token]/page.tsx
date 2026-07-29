@@ -35,8 +35,8 @@ export default async function InvitationPage({ params }: InvitationPageProps) {
   );
 
   return (
-    <main className="min-h-screen px-5 py-10 sm:px-10">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-md items-center justify-center">
+    <main className="min-h-dvh px-4 py-6 sm:px-10 sm:py-10">
+      <div className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-md items-center justify-center sm:min-h-[calc(100dvh-5rem)]">
         <InvitationAcceptance
           token={invite.token}
           albumName={invite.album.name}

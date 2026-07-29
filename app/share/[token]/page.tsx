@@ -23,7 +23,7 @@ export default async function SharePage({ params }: SharePageProps) {
     const originalUrl = `/api/shares/${token}/files/original`;
 
     return (
-      <main className="min-h-screen bg-black px-5 py-8 text-[var(--text)] sm:px-10">
+      <main className="min-h-dvh bg-black px-4 py-5 text-[var(--text)] sm:px-10 sm:py-8">
         <div className="mx-auto max-w-6xl">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             <ShareImageClient

@@ -11,8 +11,8 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#08090c] px-4 py-12 text-white">
-      <section className="w-full max-w-md rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-2xl shadow-black/30 sm:p-8">
+    <main className="flex min-h-dvh items-center justify-center bg-[#08090c] px-4 py-6 text-white sm:py-12">
+      <section className="w-full max-w-md rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/30 sm:rounded-[2rem] sm:p-8">
         <p className="text-xs uppercase tracking-[0.4em] text-white/40">Admin access</p>
         <h1 className="mt-3 text-3xl font-black">管理员登录</h1>
         <p className="mt-3 text-sm leading-6 text-white/60">

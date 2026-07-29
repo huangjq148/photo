@@ -91,18 +91,16 @@ export function UserMenu() {
 
   return (
     <>
-      <div className="inline-flex h-[50px] items-center rounded-xl noir-glass-panel p-1 lg:hidden">
-        <button
-          type="button"
-          onClick={logout}
-          disabled={loggingOut}
-          className="inline-flex h-[40px] items-center rounded-lg noir-glass-chip px-3.5 text-sm font-medium transition hover:text-[var(--text)] disabled:opacity-60"
-        >
-          <span className={logoutError ? "text-[var(--danger)]" : "text-[var(--muted)]"}>
-            {loggingOut ? "退出中…" : logoutError ? "退出失败，重试" : "退出"}
-          </span>
-        </button>
-      </div>
+      <Link
+        href="/account/security"
+        className="inline-flex min-h-[50px] max-w-[11rem] items-center gap-2 rounded-xl noir-glass-panel px-3 text-sm font-medium text-[var(--text)] transition active:bg-white/[0.06] lg:hidden"
+        aria-label={`${user.nickname}，账号与安全`}
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg noir-glass-chip">
+          <Shield size={17} aria-hidden="true" />
+        </span>
+        <span className="truncate">{user.nickname}</span>
+      </Link>
       <div className="hidden items-center gap-3 rounded-lg noir-glass-panel px-3 py-2 lg:flex">
         <div className="hidden text-right leading-tight sm:block">
           <p className="text-sm font-medium text-[var(--text)]">{user.nickname}</p>

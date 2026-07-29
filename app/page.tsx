@@ -58,8 +58,8 @@ export default async function HomePage() {
     : null;
 
   return (
-    <main className="overflow-x-hidden px-4 py-6 sm:px-6 sm:py-10 lg:px-12 lg:py-12">
-      <div className="space-y-10 sm:space-y-14">
+    <main className="overflow-x-hidden px-4 pb-8 pt-5 sm:px-6 sm:py-10 lg:px-12 lg:py-12">
+      <div className="space-y-8 sm:space-y-14">
         <HomeHero
           user={user ? { nickname: user.nickname } : null}
           memorySpotlight={memoryDashboard?.onThisDay ?? null}

@@ -16,6 +16,7 @@ import {
   Trash2,
   Shield,
   LogOut,
+  LogIn,
   X,
 } from "lucide-react";
 import { useUpload } from "@/components/upload/upload-provider";
@@ -49,7 +50,10 @@ export function MobileNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Close drawer on outside click
   useEffect(() => {
@@ -69,6 +73,19 @@ export function MobileNavigation() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [moreOpen]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetch("/api/users/me", { signal: controller.signal })
+      .then((response) => setAuthenticated(response.ok))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setAuthenticated(false);
+      });
+
+    return () => controller.abort();
+  }, []);
+
   // Lock body scroll when drawer is open
   useEffect(() => {
     if (moreOpen) {
@@ -78,6 +95,20 @@ export function MobileNavigation() {
         document.body.style.overflow = prev;
       };
     }
+  }, [moreOpen]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+
+    closeButtonRef.current?.focus({ preventScroll: true });
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setMoreOpen(false);
+      window.requestAnimationFrame(() => moreButtonRef.current?.focus());
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [moreOpen]);
 
   const handleLogout = useCallback(async () => {
@@ -99,14 +130,25 @@ export function MobileNavigation() {
     { key: "map", label: "地图", icon: <Map size={20} />, href: "/map" },
     { key: "duplicates", label: "重复", icon: <Copy size={20} />, href: "/duplicates" },
     { key: "trash", label: "回收站", icon: <Trash2 size={20} />, href: "/trash" },
-    { key: "security", label: "安全", icon: <Shield size={20} />, href: "/account/security" },
-    {
-      key: "logout",
-      label: loggingOut ? "退出中…" : logoutError ? "退出失败，重试" : "退出",
-      icon: <LogOut size={20} />,
-      onClick: handleLogout,
-      tone: "danger" as const,
-    },
+    ...(authenticated
+      ? [
+          { key: "security", label: "安全", icon: <Shield size={20} />, href: "/account/security" as Route },
+          {
+            key: "logout",
+            label: loggingOut ? "退出中…" : logoutError ? "退出失败，重试" : "退出",
+            icon: <LogOut size={20} />,
+            onClick: handleLogout,
+            tone: "danger" as const,
+          },
+        ]
+      : [
+          {
+            key: "login",
+            label: authenticated === null ? "检查登录…" : "登录",
+            icon: <LogIn size={20} />,
+            href: "/login" as Route,
+          },
+        ]),
   ];
 
   function getTabActive(tabKey: string): boolean {
@@ -120,7 +162,7 @@ export function MobileNavigation() {
     <>
       <nav
         aria-label="底部导航"
-        className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t border-[var(--border)] bg-[rgba(10,10,12,0.88)] px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-1.5 backdrop-blur-xl lg:hidden"
+        className="mobile-bottom-navigation relative z-30 flex shrink-0 items-start justify-around border-t border-[var(--border)] bg-[rgba(10,10,12,0.94)] px-1 pt-1.5 shadow-[0_-16px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl lg:hidden"
       >
         {mainTabs.map((tab) => {
           const active = getTabActive(tab.key);
@@ -133,7 +175,7 @@ export function MobileNavigation() {
                 type="button"
                 onClick={() => openUpload()}
                 aria-label={tab.label}
-                className="flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-xl px-2 text-xs font-medium text-[var(--muted)] transition active:scale-95"
+                className="flex min-h-14 min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-medium text-[var(--muted)] transition active:bg-white/[0.06] active:scale-95"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-black">
                   <Icon size={20} strokeWidth={2.5} aria-hidden="true" />
@@ -146,12 +188,13 @@ export function MobileNavigation() {
           if (tab.isMore) {
             return (
               <button
+                ref={moreButtonRef}
                 key={tab.key}
                 type="button"
                 onClick={() => setMoreOpen(true)}
                 aria-label={tab.label}
                 aria-expanded={moreOpen}
-                className={`flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-xl px-2 text-xs font-medium transition active:scale-95 ${
+                className={`flex min-h-14 min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-medium transition active:bg-white/[0.06] active:scale-95 ${
                   moreOpen ? "text-[var(--text)]" : "text-[var(--muted)]"
                 }`}
               >
@@ -167,7 +210,7 @@ export function MobileNavigation() {
               key={tab.key}
               href={tab.href!}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 rounded-xl px-2 text-xs font-medium transition active:scale-95 ${
+              className={`flex min-h-14 min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-medium transition active:bg-white/[0.06] active:scale-95 ${
                 active ? "text-[var(--text)]" : "text-[var(--muted)]"
               }`}
             >
@@ -180,13 +223,13 @@ export function MobileNavigation() {
 
       {/* More Drawer Overlay */}
       {moreOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden">
+        <div className="fixed inset-0 z-40 bg-black/65 backdrop-blur-sm lg:hidden">
           <div
             ref={drawerRef}
             role="dialog"
             aria-label="更多"
             aria-modal="true"
-            className="absolute bottom-0 left-0 right-0 rounded-t-2xl border-t border-[var(--border-strong)] bg-[var(--surface)] pb-[max(env(safe-area-inset-bottom),1rem)] pt-1"
+            className="mobile-more-drawer absolute bottom-0 left-0 right-0 max-h-[min(82dvh,42rem)] overflow-y-auto overscroll-contain rounded-t-3xl border-t border-[var(--border-strong)] bg-[var(--surface)] pt-1 shadow-[0_-24px_70px_rgba(0,0,0,0.55)]"
           >
             {/* Handle */}
             <div className="mx-auto my-2 h-1 w-10 rounded-full bg-[var(--border-strong)]" />
@@ -195,10 +238,11 @@ export function MobileNavigation() {
             <div className="flex items-center justify-between px-6 py-2">
               <h2 className="text-base font-bold text-[var(--text)]">更多</h2>
               <button
+                ref={closeButtonRef}
                 type="button"
                 onClick={() => setMoreOpen(false)}
                 aria-label="关闭更多"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)] active:bg-white/[0.12]"
               >
                 <X size={18} />
               </button>
@@ -210,7 +254,7 @@ export function MobileNavigation() {
                 const isActive = item.href ? pathname.startsWith(item.href) : false;
                 const content = (
                   <div
-                    className={`flex flex-col items-center gap-2 rounded-xl px-2 py-3 transition active:scale-95 ${
+                    className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 transition active:scale-95 ${
                       isActive ? "bg-[var(--accent-soft)] text-[var(--text)]" : "text-[var(--muted)] hover:bg-white/[0.06] hover:text-[var(--text)]"
                     } ${item.tone === "danger" ? "hover:bg-[var(--danger)]/10 hover:text-[var(--danger)]" : ""}`}
                   >
@@ -252,8 +296,6 @@ export function MobileNavigation() {
         </div>
       )}
 
-      {/* Spacer to prevent content from being hidden behind the bottom nav */}
-      <div className="h-[4.5rem] lg:hidden" aria-hidden="true" />
     </>
   );
 }

@@ -25,7 +25,7 @@ export default async function AlbumSharePage({ params }: SharePageProps) {
     const share = await getPublicAlbumShare(prisma, token);
 
     return (
-      <main className="min-h-screen bg-black px-5 py-8 text-[var(--text)] sm:px-10">
+      <main className="min-h-dvh bg-black px-4 py-5 text-[var(--text)] sm:px-10 sm:py-8">
         <div className="mx-auto max-w-7xl space-y-6">
           <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             <div className="border-b border-[var(--border)] px-5 py-4 sm:px-7">
@@ -76,7 +76,7 @@ export default async function AlbumSharePage({ params }: SharePageProps) {
                       <div className="flex flex-wrap items-center gap-2">
                         <a
                           href={previewUrl}
-                          className="inline-flex h-9 items-center justify-center rounded-lg border border-[var(--border)] px-3 text-xs font-bold text-[var(--text)]"
+                          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] px-4 text-xs font-bold text-[var(--text)]"
                         >
                           预览
                         </a>
@@ -84,7 +84,7 @@ export default async function AlbumSharePage({ params }: SharePageProps) {
                           <a
                             href={originalUrl}
                             download={photo.originalName}
-                            className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] px-3 text-xs font-bold text-black"
+                            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-4 text-xs font-bold text-black"
                           >
                             下载
                           </a>

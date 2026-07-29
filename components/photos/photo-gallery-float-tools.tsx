@@ -45,7 +45,7 @@ export function PhotoGalleryFloatTools({
   return (
     <>
       <div
-        className={`fixed bottom-5 right-5 z-30 flex flex-col items-end gap-2 transition duration-200 lg:bottom-6 lg:right-6 ${
+        className={`fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-3 z-30 flex flex-col items-end gap-2 transition duration-200 sm:right-5 lg:bottom-6 lg:right-6 ${
           visible ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
         }`}
       >

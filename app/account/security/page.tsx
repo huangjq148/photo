@@ -11,9 +11,9 @@ export default async function SecurityPage() {
   }
 
   return (
-    <main className="min-h-screen px-5 py-10 sm:px-10">
+    <main className="px-4 pb-8 pt-6 sm:px-10 sm:py-10">
       <div className="mx-auto max-w-2xl">
-        <h1 className="text-3xl font-black text-[var(--text)]">账号安全</h1>
+        <h1 className="text-2xl font-black text-[var(--text)] sm:text-3xl">账号安全</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
           登录账号：{user.email}
         </p>

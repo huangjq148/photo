@@ -12,9 +12,9 @@ export default async function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen px-5 py-10 sm:px-10">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-5xl items-center justify-center">
-        <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
+    <main className="min-h-dvh px-4 py-6 sm:px-10 sm:py-10">
+      <div className="mx-auto flex min-h-[calc(100dvh-3rem)] max-w-5xl items-center justify-center sm:min-h-[calc(100dvh-5rem)]">
+        <section className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-8">
           <div>
             <p className="text-sm font-medium text-[var(--film)]">JOIN</p>
             <h1 className="mt-3 text-4xl font-black leading-none text-[var(--text)]">

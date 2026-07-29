@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { Upload, Ellipsis, Star, Map, Copy, Trash2 } from "lucide-react";
 import { UserMenu } from "@/components/layout/user-menu";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
+import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 import { useUpload } from "@/components/upload/upload-provider";
+import { isStandaloneRoute } from "@/lib/client/standalone-routes";
 
 const mainNavItems = [
   { href: "/albums", label: "相册" },
@@ -25,10 +27,24 @@ const moreMenuItems = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { openUpload } = useUpload();
-  const isHome = pathname === "/";
   const [moreOpen, setMoreOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const moreRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleRefresh = useCallback(async () => {
+    const startedAt = Date.now();
+
+    router.refresh();
+    setRefreshKey((current) => current + 1);
+
+    const minimumFeedbackTime = 520 - (Date.now() - startedAt);
+    if (minimumFeedbackTime > 0) {
+      await new Promise((resolve) => setTimeout(resolve, minimumFeedbackTime));
+    }
+  }, [router]);
 
   // Close "more" dropdown on outside click
   useEffect(() => {
@@ -44,6 +60,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [moreOpen]);
 
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [pathname]);
+
   // Close on Escape
   useEffect(() => {
     if (!moreOpen) return;
@@ -56,14 +76,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", handleKey);
   }, [moreOpen]);
 
-  if (pathname.startsWith("/share/") || pathname.startsWith("/admin")) {
+  if (isStandaloneRoute(pathname)) {
     return <>{children}</>;
   }
 
   return (
-    <div className={`${isHome ? "flex min-h-dvh flex-col overflow-x-hidden" : "min-h-dvh"} text-[var(--text)]`}>
+    <div className="flex h-dvh min-h-0 flex-col overflow-hidden text-[var(--text)] lg:h-auto lg:min-h-dvh lg:overflow-x-clip lg:overflow-y-visible">
       {/* Top header — simplified on mobile, full on desktop */}
-      <header className="sticky top-0 z-20 shrink-0 border-b border-[var(--border)] noir-glass-shell">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-[var(--border)] pt-[env(safe-area-inset-top)] noir-glass-shell">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-8 lg:py-3">
           {/* Logo */}
           <Link href="/" className="inline-flex shrink-0 items-baseline gap-3">
@@ -167,8 +187,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className={isHome ? "min-h-0 flex-1" : undefined} id="main-content" tabIndex={-1}>
-        {children}
+      <div
+        ref={contentRef}
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain lg:overflow-visible"
+        id="main-content"
+        tabIndex={-1}
+      >
+        <PullToRefresh
+          disabled={moreOpen}
+          onRefresh={handleRefresh}
+          scrollContainerRef={contentRef}
+        >
+          <div key={`${pathname}-${refreshKey}`}>{children}</div>
+        </PullToRefresh>
       </div>
 
       {/* Mobile bottom navigation */}

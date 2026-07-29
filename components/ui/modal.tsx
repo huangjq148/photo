@@ -97,7 +97,7 @@ export function Modal({
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onWheelCapture={(event) => {
         event.stopPropagation();
       }}
@@ -130,7 +130,7 @@ export function Modal({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={clsx(
-          "max-h-[90dvh] w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl",
+          "max-h-[calc(100dvh-env(safe-area-inset-top)-0.75rem)] w-full overflow-hidden rounded-t-3xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl",
           sizeClass[size],
         )}
         onKeyDown={(event) => {
@@ -150,8 +150,8 @@ export function Modal({
           }
         }}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-6 py-4">
-          <div>
+        <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+          <div className="min-w-0">
             <h2 id={titleId} className="text-lg font-bold text-[var(--text)]">
               {title}
             </h2>
@@ -174,8 +174,7 @@ export function Modal({
         <div
           data-modal-body
           tabIndex={-1}
-          className="overflow-y-auto p-6"
-          style={{ maxHeight: "calc(90dvh - 145px)", overscrollBehavior: "contain" }}
+          className="max-h-[calc(100dvh-env(safe-area-inset-top)-9rem)] overflow-y-auto overscroll-contain px-4 py-5 sm:max-h-[calc(90dvh-145px)] sm:p-6"
           onWheelCapture={stopScrollPropagation}
           onTouchMoveCapture={stopScrollPropagation}
         >
@@ -183,7 +182,9 @@ export function Modal({
         </div>
 
         {footer ? (
-          <div className="border-t border-[var(--border)] px-6 py-4">{footer}</div>
+          <div className="border-t border-[var(--border)] px-4 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 sm:px-6 sm:py-4">
+            {footer}
+          </div>
         ) : null}
       </div>
     </div>
