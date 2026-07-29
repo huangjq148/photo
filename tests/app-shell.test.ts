@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/albums",
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/upload/upload-provider", () => ({
@@ -21,6 +24,7 @@ vi.mock("@/components/layout/mobile-navigation", () => ({
 }));
 
 import { AppShell } from "@/components/layout/app-shell";
+import { isStandaloneRoute } from "@/lib/client/standalone-routes";
 
 describe("AppShell", () => {
   it("renders a desktop upload launcher in the top bar", () => {
@@ -54,6 +58,14 @@ describe("AppShell", () => {
     expect(html).toContain('aria-label="底部导航"');
   });
 
+  it("uses one viewport-height shell and lets the content fill only the remaining space", () => {
+    const html = renderToStaticMarkup(createElement(AppShell, null, createElement("main", null, "内容")));
+
+    expect(html).toContain("flex h-dvh min-h-0 flex-col overflow-hidden");
+    expect(html).toContain("min-h-0 min-w-0 flex-1 overflow-y-auto");
+    expect(html).toContain('id="main-content"');
+  });
+
   it("no longer renders inline 7-item horizontal scroll navigation", () => {
     const html = renderToStaticMarkup(createElement(AppShell, null, createElement("main", null, "内容")));
 
@@ -63,5 +75,14 @@ describe("AppShell", () => {
     expect(html).not.toContain('href="/map"');
     expect(html).not.toContain('href="/duplicates"');
     expect(html).not.toContain('href="/trash"');
+  });
+
+  it("keeps authentication, invitation, share, and admin flows standalone", () => {
+    expect(isStandaloneRoute("/login")).toBe(true);
+    expect(isStandaloneRoute("/register")).toBe(true);
+    expect(isStandaloneRoute("/invitations/token")).toBe(true);
+    expect(isStandaloneRoute("/share/token")).toBe(true);
+    expect(isStandaloneRoute("/admin/photos")).toBe(true);
+    expect(isStandaloneRoute("/albums")).toBe(false);
   });
 });

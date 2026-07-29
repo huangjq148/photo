@@ -28,6 +28,9 @@ describe("Modal", () => {
     expect(html).toContain("创建");
     expect(html).toContain("关闭弹框");
     expect(html).toContain('tabindex="-1"');
+    expect(html).toContain("items-end");
+    expect(html).toContain("rounded-t-3xl");
+    expect(html).toContain("sm:items-center");
   });
 
   it("renders nothing when closed", () => {

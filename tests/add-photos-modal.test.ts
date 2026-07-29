@@ -15,7 +15,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("AddPhotosModal", () => {
-  it("renders search, pagination and a fixed footer for cross-page selection", () => {
+  it("renders a compact search and selection footer", () => {
     const html = renderToStaticMarkup(
       createElement(
         MessageProvider,
@@ -33,8 +33,8 @@ describe("AddPhotosModal", () => {
     expect(html).toContain("从全部照片中添加");
     expect(html).toContain("选择要添加到当前相册的照片");
     expect(html).toContain("搜索");
-    expect(html).toContain("加载更多");
     expect(html).toContain("点击照片选择");
+    expect(html).not.toContain("rounded-2xl border border-[var(--border)] bg-black/20 p-4");
   });
 
   it("builds request urls against the default album and excludes items already in the target album", () => {

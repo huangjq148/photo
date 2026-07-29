@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/",
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 vi.mock("@/components/upload/upload-provider", () => ({
   useUpload: () => ({ openUpload: vi.fn() }),

@@ -45,7 +45,8 @@ describe("mobile navigation", () => {
   it("applies safe-area bottom padding", () => {
     const html = renderToStaticMarkup(createElement(MobileNavigation));
 
-    expect(html).toContain("env(safe-area-inset-bottom)");
+    expect(html).toContain("mobile-bottom-navigation");
+    expect(html).toContain("min-h-14");
   });
 
   it("uses aria-current for active tab dual expression", () => {
@@ -68,9 +69,12 @@ describe("mobile navigation", () => {
     expect(html).toContain('aria-label="上传"');
   });
 
-  it("includes a spacer div to prevent content overlap with fixed nav", () => {
+  it("participates in the mobile shell layout instead of overlaying scroll content", () => {
     const html = renderToStaticMarkup(createElement(MobileNavigation));
 
-    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("shrink-0");
+    expect(html).toContain("relative z-30");
+    expect(html).not.toContain("fixed bottom-0");
+    expect(html).not.toContain("4.5rem");
   });
 });

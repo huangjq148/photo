@@ -21,7 +21,9 @@ describe("BatchActionBar", () => {
     expect(html).toContain("添加到相册");
     expect(html).toContain("收藏");
     expect(html).toContain("删除选中 (3)");
-    expect(html).toContain("fixed inset-x-4");
+    expect(html).toContain("fixed inset-x-3");
+    expect(html).toContain("5.25rem+env(safe-area-inset-bottom)");
+    expect(html).toContain("grid grid-cols-2");
   });
 
   it("renders nothing when there is no selection", () => {

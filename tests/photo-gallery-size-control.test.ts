@@ -17,4 +17,18 @@ describe("PhotoGallerySizeControl", () => {
     expect(html).toContain("大");
     expect(html).toContain("图片尺寸");
   });
+
+  it("keeps compact size buttons touch friendly on mobile", () => {
+    const html = renderToStaticMarkup(
+      createElement(PhotoGallerySizeControl, {
+        value: "medium",
+        compact: true,
+        onChange: () => undefined,
+      }),
+    );
+
+    expect(html).toContain("h-9");
+    expect(html).toContain("min-w-10");
+    expect(html).toContain("before:-inset-y-1");
+  });
 });
