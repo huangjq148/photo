@@ -56,7 +56,7 @@ export function PasswordField({
           type="button"
           onClick={() => setVisible(!visible)}
           aria-label={visible ? "隐藏密码" : "显示密码"}
-          className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)]"
+          className="absolute right-0.5 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--muted)] transition hover:bg-white/[0.08] hover:text-[var(--text)] active:bg-white/[0.12]"
         >
           {visible ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
         </button>

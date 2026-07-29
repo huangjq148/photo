@@ -7,8 +7,8 @@ export default async function AlbumDetailPage({
 }) {
   const { albumId } = await params;
   return (
-    <main className="min-h-dvh px-5 py-8 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <main className="album-detail-page px-4 pb-10 pt-4 sm:px-8 sm:py-8 lg:px-10">
+      <div className="mx-auto max-w-7xl">
         <AlbumDetail albumId={albumId} />
       </div>
     </main>

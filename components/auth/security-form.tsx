@@ -85,7 +85,7 @@ export function SecurityForm() {
       {/* Change Password */}
       <section>
         <h2 className="text-lg font-bold text-[var(--text)]">修改密码</h2>
-        <form onSubmit={handleChangePassword} className="mt-4 space-y-4 max-w-md">
+        <form onSubmit={handleChangePassword} className="mt-4 max-w-md space-y-4">
           <PasswordField
             id="security-current"
             value={currentPassword}
@@ -120,7 +120,7 @@ export function SecurityForm() {
           <button
             type="submit"
             disabled={changing}
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[var(--accent)] px-5 text-sm font-bold text-black transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {changing ? "修改中..." : "修改密码"}
           </button>
@@ -128,7 +128,7 @@ export function SecurityForm() {
       </section>
 
       {/* Logout All */}
-      <section className="rounded-xl border border-red-400/25 bg-red-950/20 p-4 max-w-md">
+      <section className="max-w-md rounded-xl border border-red-400/25 bg-red-950/20 p-4">
         <h2 className="text-lg font-bold text-[var(--danger)]">退出所有设备</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
           将使你的所有设备上的登录状态失效，包括当前设备。
@@ -137,7 +137,7 @@ export function SecurityForm() {
           type="button"
           onClick={() => { void handleLogoutAll(); }}
           disabled={loggingOut}
-          className="mt-3 inline-flex h-11 items-center justify-center rounded-lg bg-[var(--danger)] px-5 text-sm font-bold text-black transition hover:opacity-85 disabled:opacity-50"
+          className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[var(--danger)] px-5 text-sm font-bold text-black transition hover:opacity-85 disabled:opacity-50 sm:w-auto"
         >
           {loggingOut ? "处理中..." : "退出所有设备"}
         </button>
