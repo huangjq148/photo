@@ -435,6 +435,9 @@ export async function getPhotoDetails(
       album: {
         select: { creator_id: true },
       },
+      albumPhotos: {
+        select: { album_id: true },
+      },
       favorites: {
         where: { user_id: context.userId },
         select: { id: true },
@@ -446,7 +449,7 @@ export async function getPhotoDetails(
     throw new Error("媒体文件不存在");
   }
 
-  await assertAlbumMembership(prisma, media.album_id, context.userId);
+  await assertMediaAccessible(prisma, media, context.userId);
 
   return {
     id: media.id,

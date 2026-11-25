@@ -25,14 +25,14 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): LoadedAppEnv {
     throw new Error(`Invalid environment configuration: ${message}`);
   }
 
-  const adminPassword = parsed.data.ADMIN_PASSWORD ?? (source.NODE_ENV === "production" ? undefined : "qwerty123");
+  const adminPassword = parsed.data.ADMIN_PASSWORD ?? (source.NODE_ENV === "test" ? "qwerty123" : undefined);
 
-  if (source.NODE_ENV === "production" && !adminPassword) {
-    throw new Error("Invalid environment configuration: ADMIN_PASSWORD: ADMIN_PASSWORD is required in production");
+  if (!adminPassword) {
+    throw new Error("Invalid environment configuration: ADMIN_PASSWORD: ADMIN_PASSWORD is required outside test environments");
   }
 
   return {
     ...parsed.data,
-    ADMIN_PASSWORD: adminPassword ?? "qwerty123",
+    ADMIN_PASSWORD: adminPassword,
   } as LoadedAppEnv;
 }

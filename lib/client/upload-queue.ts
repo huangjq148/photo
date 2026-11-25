@@ -82,7 +82,6 @@ export type UploadQueueController = {
 };
 
 const DEFAULT_MAX_CONCURRENT_UPLOADS = 3;
-const TERMINAL_STATUSES: ReadonlySet<UploadQueueStatus> = new Set(["success", "failed", "cancelled"]);
 
 function buildFileKey(file: File) {
   return [file.name, file.size, file.lastModified, file.type].join("|");

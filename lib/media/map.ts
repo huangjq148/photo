@@ -1,8 +1,17 @@
 import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
+const booleanQueryValue = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "1" || normalized === "true") return true;
+  if (normalized === "0" || normalized === "false") return false;
+  return value;
+}, z.boolean());
+
 export const mapQuerySchema = z.object({
-  includeHidden: z.coerce.boolean().optional().default(false),
+  includeHidden: booleanQueryValue.optional().default(false),
 });
 
 export type MapMediaPoint = {

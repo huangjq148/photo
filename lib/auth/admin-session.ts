@@ -4,6 +4,7 @@ import { serializeSetCookieHeader } from "@/lib/auth/session";
 const ADMIN_SESSION_VERSION = 1;
 const ADMIN_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const ADMIN_SESSION_COOKIE_NAME = "photo_admin_session";
+const revokedAdminSessions = new Map<string, number>();
 
 type AdminSessionPayload = {
   v: number;
@@ -108,11 +109,11 @@ export function verifyAdminSessionToken(
 }
 
 export function registerAdminSession(sessionId: string) {
-  void sessionId;
+  revokedAdminSessions.delete(sessionId);
 }
 
 export function revokeAdminSession(sessionId: string) {
-  void sessionId;
+  revokedAdminSessions.set(sessionId, Date.now() + ADMIN_SESSION_TTL_MS);
 }
 
 export function isAdminSessionTokenValid(
@@ -121,7 +122,15 @@ export function isAdminSessionTokenValid(
   now = Date.now()
 ) {
   try {
-    verifyAdminSessionToken(token, secret, now);
+    const session = verifyAdminSessionToken(token, secret, now);
+    const revokedUntil = revokedAdminSessions.get(session.sessionId);
+    if (revokedUntil !== undefined) {
+      if (revokedUntil <= now) {
+        revokedAdminSessions.delete(session.sessionId);
+      } else {
+        return false;
+      }
+    }
     return true;
   } catch {
     return false;

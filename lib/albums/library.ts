@@ -771,6 +771,19 @@ export async function restorePhotoToAlbum(
 
   await assertCanDelete(prisma, context.albumId, context.userId);
 
+  const media = await prisma.media.findUnique({
+    where: { id: context.photoId },
+    select: { album_id: true },
+  });
+  if (!media) {
+    throw new Error("媒体文件不存在");
+  }
+
+  const defaultAlbumId = await getUserDefaultAlbumId(prisma, context.userId);
+  if (media.album_id !== defaultAlbumId) {
+    throw new AppError("你没有权限恢复该媒体", "FORBIDDEN", 403);
+  }
+
   await prisma.albumPhoto.upsert({
     where: {
       album_id_photo_id: {

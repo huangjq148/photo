@@ -44,6 +44,14 @@ export function resolveAdminDataFilePath(dataRoot: string, candidate: string) {
   return resolve(dataRoot, relativePath);
 }
 
+export function resolveAdminStorageFilePath(
+  storageRoot: string,
+  variant: "originals" | "previews" | "thumbnails",
+  candidate: string,
+) {
+  return resolveAdminDataFilePath(storageRoot, `${variant}/${candidate}`);
+}
+
 async function listDirectoryFiles(dataRoot: string, currentDir: string, output: AdminFileEntry[]) {
   const entries = await readdir(currentDir, { withFileTypes: true });
 

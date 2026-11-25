@@ -1,12 +1,12 @@
 import { createReadStream } from "node:fs";
-import { stat } from "node:fs/promises";
-import { basename, extname, resolve } from "node:path";
+import { lstat, realpath } from "node:fs/promises";
+import { extname } from "node:path";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getAppEnv } from "@/lib/config";
 import { getCurrentAdminSessionFromCookieStore } from "@/lib/auth/admin-session";
-import { resolveAdminDataFilePath } from "@/lib/admin/file-tree";
+import { resolveAdminStorageFilePath } from "@/lib/admin/file-tree";
 
 const MIME_BY_EXT: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -49,18 +49,29 @@ export async function GET(
     return NextResponse.json({ error: "无效的文件类型" }, { status: 400 });
   }
 
-  const dataRoot = resolve(getAppEnv().STORAGE_ROOT, "..");
-  const candidatePath = `${basename(getAppEnv().STORAGE_ROOT)}/${variant}/${fileName.join("/")}`;
-
   let filePath: string;
   try {
-    filePath = resolveAdminDataFilePath(dataRoot, candidatePath);
+    filePath = resolveAdminStorageFilePath(
+      getAppEnv().STORAGE_ROOT,
+      variant as "originals" | "previews" | "thumbnails",
+      fileName.join("/"),
+    );
+    const [storageRootPath, resolvedFilePath] = await Promise.all([
+      realpath(getAppEnv().STORAGE_ROOT),
+      realpath(filePath),
+    ]);
+    if (
+      resolvedFilePath !== storageRootPath &&
+      !resolvedFilePath.startsWith(`${storageRootPath}/`)
+    ) {
+      throw new Error("文件路径越界");
+    }
   } catch {
     return NextResponse.json({ error: "文件不存在" }, { status: 404 });
   }
 
-  const fileStats = await stat(filePath).catch(() => null);
-  if (!fileStats) {
+  const fileStats = await lstat(filePath).catch(() => null);
+  if (!fileStats || !fileStats.isFile() || fileStats.isSymbolicLink()) {
     return NextResponse.json({ error: "文件不存在" }, { status: 404 });
   }
 

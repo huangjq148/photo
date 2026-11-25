@@ -12,7 +12,7 @@ import {
 const TEST_SECRET = "y".repeat(32);
 
 describe("admin session", () => {
-  it("round-trips a signed admin session and stays valid until revoked", () => {
+  it("round-trips a signed admin session and rejects it after revocation", () => {
     const issued = createAdminSessionToken({
       adminPassword: "qwerty123",
       secret: TEST_SECRET,
@@ -30,7 +30,7 @@ describe("admin session", () => {
     expect(isAdminSessionTokenValid(issued.token, TEST_SECRET, 2_000)).toBe(true);
 
     revokeAdminSession(issued.sessionId);
-    expect(isAdminSessionTokenValid(issued.token, TEST_SECRET, 2_000)).toBe(true);
+    expect(isAdminSessionTokenValid(issued.token, TEST_SECRET, 2_000)).toBe(false);
   });
 
   it("creates a clear-cookie header that expires the admin session", () => {

@@ -84,7 +84,7 @@ export function AsyncState({
 
   return (
     <div className="space-y-4">
-      {refreshing ? (
+      {refreshing || loading ? (
         <InlineNotice
           title="正在刷新"
           description="内容会保留，刷新完成后会自动更新。"

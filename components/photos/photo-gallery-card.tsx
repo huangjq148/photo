@@ -84,13 +84,6 @@ type PhotoGalleryCardMenuItem = {
 
 const MAX_DISPLAY_NAME_LENGTH = 100;
 
-function formatDuration(seconds?: number): string {
-  if (!seconds || seconds <= 0) return "";
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
 function formatDateTime(dateStr: string) {
   const d = new Date(dateStr);
   const month = d.getMonth() + 1;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { loadEnv } from "@/lib/env";
 
 describe("admin env defaults", () => {
-  it("uses qwerty123 when ADMIN_PASSWORD is not configured outside production", () => {
+  it("requires ADMIN_PASSWORD outside test environments", () => {
     const runtimeEnv = process.env as Record<string, string | undefined>;
     const originalNodeEnv = runtimeEnv.NODE_ENV;
     const originalAdminPassword = runtimeEnv.ADMIN_PASSWORD;
@@ -16,9 +16,7 @@ describe("admin env defaults", () => {
     runtimeEnv.JWT_SECRET = "x".repeat(32);
     runtimeEnv.STORAGE_ROOT = "./data/storage";
 
-    const loadedEnv = loadEnv();
-
-    expect(loadedEnv.ADMIN_PASSWORD).toBe("qwerty123");
+    expect(() => loadEnv()).toThrow(/ADMIN_PASSWORD/);
 
     if (originalNodeEnv !== undefined) {
       runtimeEnv.NODE_ENV = originalNodeEnv;

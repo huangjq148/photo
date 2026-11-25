@@ -3,7 +3,7 @@
 import React from "react";
 import { X } from "lucide-react";
 import type { PhotoGalleryCardItem } from "@/components/photos/photo-gallery-card";
-import { resolveDisplayName, normalizeDisplayName } from "@/lib/media/display-name";
+import { normalizeDisplayName } from "@/lib/media/display-name";
 
 type MediaInfoDialogProps = {
   open: boolean;

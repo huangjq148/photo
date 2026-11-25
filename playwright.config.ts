@@ -24,9 +24,10 @@ export default defineConfig({
     timeout: 30_000,
     env: {
       DATABASE_URL:
-        "postgresql://postgres:postgres@127.0.0.1:6000/photo_management_test?schema=public",
+        "postgresql://postgres:secret@127.0.0.1:6000/photo_management_test?schema=public",
       JWT_SECRET: "test-secret-for-e2e-testing-only-32chars",
       STORAGE_ROOT: "./data/storage-e2e",
+      ADMIN_PASSWORD: "qwerty123",
     },
   },
   projects: [

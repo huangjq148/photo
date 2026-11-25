@@ -18,7 +18,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     env: {
-      DATABASE_URL: "postgresql://postgres:postgres@127.0.0.1:6000/photo_management_test?schema=public",
+      DATABASE_URL: "postgresql://postgres:secret@127.0.0.1:6000/photo_management_test?schema=public",
       JWT_SECRET: "test_secret_for_testing_only_123456789",
       STORAGE_ROOT: "./data/storage-test",
     },

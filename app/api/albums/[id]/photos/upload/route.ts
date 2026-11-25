@@ -6,6 +6,7 @@ import { getCurrentUserFromRequest } from "@/lib/auth/current-user";
 import { uploadPhotoToAlbum } from "@/lib/media/upload";
 import { getUserDefaultAlbumId } from "@/lib/albums/library";
 import { addPhotosToAlbum } from "@/lib/albums/library";
+import { assertCanUpload } from "@/lib/membership";
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUserFromRequest(request);
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
 
   try {
+    if (albumId !== await getUserDefaultAlbumId(prisma, user.id)) {
+      await assertCanUpload(prisma, albumId, user.id);
+    }
+
     // First upload to the user's "全部照片" default album
     const defaultAlbumId = await getUserDefaultAlbumId(prisma, user.id);
 

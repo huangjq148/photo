@@ -122,11 +122,14 @@ function createMessageStore(): MessageStore {
     );
 
     if (duplicate) {
-      duplicate.createdAt = now;
-      duplicate.expiresAt = now + duration;
-      duplicate.action = options.action ?? duplicate.action;
-      schedule(duplicate);
-      emit();
+      const updated = {
+        ...duplicate,
+        createdAt: now,
+        expiresAt: now + duration,
+        action: options.action ?? duplicate.action,
+      };
+      publish(messages.map((message) => (message.id === duplicate.id ? updated : message)));
+      schedule(updated);
       return duplicate.id;
     }
 
@@ -159,15 +162,13 @@ function createMessageStore(): MessageStore {
       return false;
     }
 
-    current.pending = true;
-    emit();
+    publish(messages.map((message) => (message.id === id ? { ...message, pending: true } : message)));
 
     let result: void | Promise<void>;
     try {
       result = current.action.onSelect();
     } catch (error) {
-      current.pending = false;
-      emit();
+      publish(messages.map((message) => (message.id === id ? { ...message, pending: false } : message)));
       throw error;
     }
 
@@ -178,10 +179,8 @@ function createMessageStore(): MessageStore {
           return true;
         })
         .catch((error) => {
-          const latest = messages.find((message) => message.id === id);
-          if (latest) {
-            latest.pending = false;
-            emit();
+          if (messages.some((message) => message.id === id)) {
+            publish(messages.map((message) => (message.id === id ? { ...message, pending: false } : message)));
           }
           throw error;
         });

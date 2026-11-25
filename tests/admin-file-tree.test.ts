@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   listAdminDataFiles,
+  resolveAdminStorageFilePath,
   resolveAdminDataRelativePath,
 } from "@/lib/admin/file-tree";
 
@@ -11,6 +12,10 @@ describe("admin file tree", () => {
   it("rejects paths outside the data root", () => {
     expect(() => resolveAdminDataRelativePath("/data/root", "../escape.txt")).toThrow();
     expect(() => resolveAdminDataRelativePath("/data/root", "/absolute.txt")).toThrow();
+  });
+
+  it("keeps storage previews inside the configured storage root", () => {
+    expect(() => resolveAdminStorageFilePath("/data/root/storage", "previews", "../../outside.txt")).toThrow();
   });
 
   it("lists regular files recursively and skips symlinks", async () => {

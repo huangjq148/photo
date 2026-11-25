@@ -22,9 +22,10 @@
 创建 `.env.local` 文件：
 
 ```env
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/photo_management?schema=public
+DATABASE_URL=postgresql://postgres:secret@127.0.0.1:6000/photo_management?schema=public
 JWT_SECRET=<至少 32 字符的密钥>
 STORAGE_ROOT=./data/storage
+ADMIN_PASSWORD=<管理员密码>
 ```
 
 ## 数据库迁移

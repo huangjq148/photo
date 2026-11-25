@@ -18,10 +18,12 @@ import {
   leaveAlbum,
   addPhotosToAlbum,
   removePhotoFromAlbum,
+  restorePhotoToAlbum,
   getAlbumPhotos,
   createDefaultAlbum,
   getUserDefaultAlbumId,
 } from "@/lib/albums/library";
+import { getPhotoDetails } from "@/lib/photos/library";
 
 const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jx2kAAAAASUVORK5CYII=",
@@ -232,6 +234,24 @@ describe("album permission matrix", () => {
     await expect(
       removePhotoFromAlbum(prisma, { albumId: album2.id, userId: member.id, photoId: photo2.id })
     ).rejects.toThrow(/删除权限/);
+  });
+
+  it("does not restore another user's media into a member album", async () => {
+    const { album, deleter, photo } = await setupUsers();
+
+    await removePhotoFromAlbum(prisma, { albumId: album.id, userId: deleter.id, photoId: photo.id });
+
+    await expect(
+      restorePhotoToAlbum(prisma, { albumId: album.id, userId: deleter.id, photoId: photo.id }),
+    ).rejects.toThrow(/权限恢复/);
+  });
+
+  it("allows a member to open media through a linked album", async () => {
+    const { member, photo } = await setupUsers();
+
+    await expect(getPhotoDetails(prisma, { photoId: photo.id, userId: member.id })).resolves.toMatchObject({
+      id: photo.id,
+    });
   });
 
   it("lets album owners remove a member-uploaded photo relation but not manage the media itself", async () => {

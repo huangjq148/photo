@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { clusterMapPoints, type MapMediaPoint } from "@/lib/media/map";
+import { clusterMapPoints, mapQuerySchema, type MapMediaPoint } from "@/lib/media/map";
 
 describe("map helpers", () => {
+  it("parses false-like query values as false", () => {
+    expect(mapQuerySchema.parse({ includeHidden: "0" }).includeHidden).toBe(false);
+    expect(mapQuerySchema.parse({ includeHidden: "false" }).includeHidden).toBe(false);
+    expect(mapQuerySchema.parse({ includeHidden: "1" }).includeHidden).toBe(true);
+  });
+
   it("clusters nearby points by zoom level", () => {
     const points: MapMediaPoint[] = [
       {

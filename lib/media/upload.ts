@@ -27,6 +27,15 @@ type UploadInput = {
   file: File;
 };
 
+export type StorageReservationTransaction = {
+  user: {
+    updateMany: (args: {
+      where: { id: string; storage_used: { lte: bigint } };
+      data: { storage_used: { increment: bigint } };
+    }) => Promise<{ count: number }>;
+  };
+};
+
 export type UploadResult = {
   id: string;
   originalName: string;
@@ -53,6 +62,27 @@ async function ensureStorageDirectories(storageRoot: string) {
 
 function checksum(buffer: Buffer): string {
   return createHash("sha256").update(buffer).digest("hex");
+}
+
+export async function reserveStorageWithinLimit(
+  tx: StorageReservationTransaction,
+  userId: string,
+  uploadSize: bigint,
+  storageLimit: bigint,
+) {
+  const result = await tx.user.updateMany({
+    where: {
+      id: userId,
+      storage_used: { lte: storageLimit - uploadSize },
+    },
+    data: {
+      storage_used: { increment: uploadSize },
+    },
+  });
+
+  if (result.count !== 1) {
+    throw new Error("存储空间不足");
+  }
 }
 
 async function cleanupPaths(paths: string[]) {
@@ -272,12 +302,7 @@ export async function uploadPhotoToAlbum(
         },
       });
 
-      await tx.user.update({
-        where: { id: input.userId },
-        data: {
-          storage_used: { increment: uploadSize },
-        },
-      });
+      await reserveStorageWithinLimit(tx, input.userId, uploadSize, user.storage_limit);
 
       // Touch album updated_at
       await tx.album.update({
